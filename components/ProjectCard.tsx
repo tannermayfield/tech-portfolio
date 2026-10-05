@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { lensInfo, type Project } from "@/data/projects";
 import { StatusBadge } from "./StatusBadge";
+import { LinkIcon } from "./LinkIcon";
 
 // `large` is the lead card: it spans two columns/rows on desktop and shows a decorative
 // header panel (no fake screenshots; real ones can replace it later via `project.image`).
@@ -66,7 +67,8 @@ export function ProjectCard({ project, large = false }: { project: Project; larg
           <div className="relative z-10 flex items-center gap-4 text-sm">
             <span className="font-medium text-primary">Case study →</span>
             {project.links.github && (
-              <a className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" href={project.links.github}>
+              <a className="inline-flex items-center gap-1.5 text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" href={project.links.github}>
+                <LinkIcon name="github" />
                 GitHub
               </a>
             )}

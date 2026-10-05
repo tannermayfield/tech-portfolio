@@ -4,6 +4,7 @@ import { projects, smallWork } from "@/data/projects";
 import { ProjectsSection } from "@/components/ProjectsSection";
 import { Reveal } from "@/components/Reveal";
 import { SkillsEvidence } from "@/components/SkillsEvidence";
+import { LinkIcon } from "@/components/LinkIcon";
 
 const sorted = [...projects].sort((a, b) => a.order - b.order);
 
@@ -38,7 +39,8 @@ export default function Home() {
         <div className="relative flex max-w-3xl flex-col items-center">
           <p className="inline-flex items-center gap-3 rounded-full border border-border/60 bg-card/70 px-5 py-2.5 text-sm text-muted-foreground backdrop-blur">
             <span aria-hidden="true" className="pulse-dot h-2 w-2 rounded-full bg-primary" />
-            Seeking software engineering, AI &amp; full-stack internships
+            Seeking <strong className="font-semibold text-foreground">software engineering</strong> and{" "}
+            <strong className="font-semibold text-foreground">data analytics</strong> internships
           </p>
 
           <div
@@ -59,13 +61,13 @@ export default function Home() {
             I build <strong className="font-semibold text-foreground">AI-assisted, full-stack software</strong>, and I'm drawn to
             software that{" "}
             <strong className="font-semibold text-foreground">adapts to people, context, and goals</strong>. I combine product
-            thinking, database design, and deployment to turn ideas into working systems.
+            thinking, database design, and AI automation to turn ideas into working systems.
           </p>
 
           <ul className="mt-8 flex flex-wrap justify-center gap-3">
-            <li><a className={chip} href={`mailto:${links.email}`}>{links.email}</a></li>
-            <li><a className={chip} href={links.github}>github.com/tannermayfield</a></li>
-            <li><a className={chip} href={links.linkedin}>LinkedIn</a></li>
+            <li><a className={chip} href={`mailto:${links.email}`}><LinkIcon name="email" />{links.email}</a></li>
+            <li><a className={chip} href={links.github}><LinkIcon name="github" />github.com/tannermayfield</a></li>
+            <li><a className={chip} href={links.linkedin}><LinkIcon name="linkedin" />LinkedIn</a></li>
           </ul>
 
           <div className="mt-8 flex flex-wrap justify-center gap-4">
@@ -180,10 +182,9 @@ export default function Home() {
             blurb="I'm looking for software engineering, AI, and full-stack internships. Email is the fastest way to reach me."
           />
           <ul className="mt-8 flex flex-wrap justify-center gap-3">
-            <li><a className={chip} href={`mailto:${links.email}`}>{links.email}</a></li>
-            <li><a className={chip} href={links.github}>GitHub</a></li>
-            <li><a className={chip} href={links.linkedin}>LinkedIn</a></li>
-            <li><a className={chip} href={links.resume}>Resume (PDF)</a></li>
+            <li><a className={chip} href={`mailto:${links.email}`}><LinkIcon name="email" />{links.email}</a></li>
+            <li><a className={chip} href={links.github}><LinkIcon name="github" />GitHub</a></li>
+            <li><a className={chip} href={links.linkedin}><LinkIcon name="linkedin" />LinkedIn</a></li>
           </ul>
         </Reveal>
       </section>

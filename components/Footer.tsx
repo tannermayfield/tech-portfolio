@@ -1,4 +1,5 @@
 import { profile } from "@/data/profile";
+import { LinkIcon } from "./LinkIcon";
 
 export function Footer() {
   return (
@@ -9,7 +10,8 @@ export function Footer() {
         </p>
         <p>
           {profile.domain} ·{" "}
-          <a className="underline-offset-4 hover:text-foreground hover:underline" href={profile.links.siteRepo}>
+          <a className="inline-flex items-center gap-1.5 underline-offset-4 hover:text-foreground hover:underline" href={profile.links.siteRepo}>
+            <LinkIcon name="github" />
             Source on GitHub
           </a>
         </p>

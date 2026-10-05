@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, projects } from "@/data/projects";
 import { StatusBadge } from "@/components/StatusBadge";
+import { LinkIcon } from "@/components/LinkIcon";
 
 type Params = { slug: string };
 
@@ -48,7 +49,7 @@ export default async function CaseStudy({ params }: { params: Promise<Params> })
         <p className="mt-3 max-w-2xl text-lg text-muted">{p.tagline}</p>
         {(p.links.github || p.links.demo) && (
           <p className="mt-4 flex gap-4 text-sm">
-            {p.links.github && <a className="text-sea underline-offset-4 hover:underline" href={p.links.github}>GitHub</a>}
+            {p.links.github && <a className="inline-flex items-center gap-1.5 text-sea underline-offset-4 hover:underline" href={p.links.github}><LinkIcon name="github" />GitHub</a>}
             {p.links.demo && <a className="text-sea underline-offset-4 hover:underline" href={p.links.demo}>Live demo</a>}
           </p>
         )}
