@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+/* Dark mode is class-based so the toggle can override the system preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Beach palette. Light = "shoreline" (sand, foam, deep-ocean ink). Dark = "night tide". */
+:root {
+  --bg: #f7f1e5;
+  --surface: #fffaf0;
+  --sunk: #efe6d3;
+  --ink: #0e2a38;
+  --muted: #4c6470;
+  --line: #e0d4bb;
+  --sea: #0b6b78; /* accessible teal for text and links */
+  --sea-soft: #cfe8e4; /* foam */
+  --coral: #e4694f; /* decoration only, never body text */
+  --shadow: 0 1px 2px rgb(14 42 56 / 0.06), 0 8px 24px -12px rgb(14 42 56 / 0.18);
+}
+
+.dark {
+  --bg: #08202b;
+  --surface: #0d2d3b;
+  --sunk: #0a2634;
+  --ink: #f2e9d8;
+  --muted: #9fb7be;
+  --line: #1f4453;
+  --sea: #6fcfd2;
+  --sea-soft: #12404b;
+  --coral: #f08a6e;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-sea: var(--sea);
+  --color-foam: var(--sea-soft);
+  --color-coral: var(--coral);
+  --shadow-card: var(--shadow);
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-mono: var(--font-mono-src), ui-monospace, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::selection {
+  background: var(--sea-soft);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--sea);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Subtle, purposeful motion: content eases in once. Disabled for reduced-motion users. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.rise-2 {
+  animation-delay: 0.08s;
+}
+.rise-3 {
+  animation-delay: 0.16s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .rise {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.container-page {
+  width: 100%;
+  max-width: 68rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+@media (min-width: 768px) {
+  .container-page {
+    padding-inline: 2rem;
+  }
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
