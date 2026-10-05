@@ -1,122 +1,131 @@
 @import "tailwindcss";
 
-/* Dark mode is class-based so the toggle can override the system preference. */
-@custom-variant dark (&:where(.dark, .dark *));
-
-/* Beach palette. Light = "shoreline" (sand, foam, deep-ocean ink). Dark = "night tide". */
+/*
+ * Design system: dark, glowing-card, gradient-accent (structure inspired by modern
+ * developer-portfolio patterns), tuned to a "night beach" palette:
+ * deep-ocean background, seafoam primary, sunset (sand-gold to coral) accent.
+ * Values are HSL channels so Tailwind opacity modifiers (e.g. border-border/50) work.
+ */
 :root {
-  --bg: #f7f1e5;
-  --surface: #fffaf0;
-  --sunk: #efe6d3;
-  --ink: #0e2a38;
-  --muted: #4c6470;
-  --line: #e0d4bb;
-  --sea: #0b6b78; /* accessible teal for text and links */
-  --sea-soft: #cfe8e4; /* foam */
-  --coral: #e4694f; /* decoration only, never body text */
-  --shadow: 0 1px 2px rgb(14 42 56 / 0.06), 0 8px 24px -12px rgb(14 42 56 / 0.18);
-}
+  --background: 200 45% 5%;
+  --foreground: 40 45% 96%;
+  --card: 200 38% 9%;
+  --border: 200 26% 17%;
+  --muted: 200 28% 13%;
+  --muted-foreground: 200 16% 64%;
+  --primary: 174 72% 56%; /* seafoam */
+  --primary-foreground: 200 45% 5%;
+  --accent: 14 90% 66%; /* coral */
+  --gold: 38 90% 68%; /* sand-gold */
+  --radius: 0.75rem;
 
-.dark {
-  --bg: #08202b;
-  --surface: #0d2d3b;
-  --sunk: #0a2634;
-  --ink: #f2e9d8;
-  --muted: #9fb7be;
-  --line: #1f4453;
-  --sea: #6fcfd2;
-  --sea-soft: #12404b;
-  --coral: #f08a6e;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+  --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--gold)) 55%, hsl(var(--accent)) 100%);
+  --gradient-card: linear-gradient(145deg, hsl(200 36% 11%) 0%, hsl(200 40% 7%) 100%);
+  --glow-primary: 0 0 60px -15px hsl(var(--primary) / 0.4);
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-sunk: var(--sunk);
-  --color-ink: var(--ink);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-sea: var(--sea);
-  --color-foam: var(--sea-soft);
-  --color-coral: var(--coral);
-  --shadow-card: var(--shadow);
-  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-border: hsl(var(--border));
+  --color-secondary: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-gold: hsl(var(--gold));
+  /* aliases used by case-study pages */
+  --color-bg: hsl(var(--background));
+  --color-ink: hsl(var(--foreground));
+  --color-muted: hsl(var(--muted-foreground));
+  --color-line: hsl(var(--border));
+  --color-sea: hsl(var(--primary));
+  --color-sunk: hsl(var(--muted));
+  --color-surface: hsl(var(--card));
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono-src), ui-monospace, monospace;
 }
 
 html {
   scroll-behavior: smooth;
-  color-scheme: light;
-}
-html.dark {
   color-scheme: dark;
+  scroll-padding-top: 5rem; /* fixed header offset for anchor links */
 }
 
 body {
-  background: var(--bg);
-  color: var(--ink);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
   font-family: var(--font-sans);
-  line-height: 1.65;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.025em;
 }
 
 ::selection {
-  background: var(--sea-soft);
-  color: var(--ink);
+  background: hsl(var(--primary) / 0.3);
 }
 
 :focus-visible {
-  outline: 2px solid var(--sea);
+  outline: 2px solid hsl(var(--primary));
   outline-offset: 3px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-/* Subtle, purposeful motion: content eases in once. Disabled for reduced-motion users. */
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+.text-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
-.rise {
-  animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+.bg-gradient-card {
+  background-image: var(--gradient-card);
 }
-.rise-2 {
-  animation-delay: 0.08s;
+.bg-gradient-primary {
+  background-image: var(--gradient-primary);
 }
-.rise-3 {
-  animation-delay: 0.16s;
+.glow-primary {
+  box-shadow: var(--glow-primary);
+}
+
+/* Faint grid + soft sea-glow behind the hero. Decorative only. */
+.hero-backdrop {
+  background-image:
+    radial-gradient(60% 50% at 50% 0%, hsl(var(--primary) / 0.12), transparent 70%),
+    linear-gradient(hsl(var(--border) / 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--border) / 0.35) 1px, transparent 1px);
+  background-size: 100% 100%, 56px 56px, 56px 56px;
+  -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent);
+  mask-image: linear-gradient(to bottom, black 55%, transparent);
+}
+
+/* Scroll reveal: a single gentle fade-up, applied by <Reveal>. */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-dot {
+  animation: pulse-dot 2.4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-  .rise {
-    animation: none;
-  }
-  * {
-    transition-duration: 0.01ms !important;
-  }
-}
-
-.container-page {
-  width: 100%;
-  max-width: 68rem;
-  margin-inline: auto;
-  padding-inline: 1.25rem;
-}
-@media (min-width: 768px) {
-  .container-page {
-    padding-inline: 2rem;
-  }
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .pulse-dot { animation: none; }
+  * { transition-duration: 0.01ms !important; }
 }
 
 .eyebrow {
@@ -124,5 +133,5 @@ body {
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: hsl(var(--muted-foreground));
 }

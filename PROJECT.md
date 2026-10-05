@@ -12,6 +12,15 @@
 > - Project statuses with `statusConfirmed: false` in `data/projects.ts` still need Tanner's confirmation.
 > - Layout now: `app/` (routes), `components/`, `data/` (profile, projects, skills).
 >
+> **Redesign (2026-10-05):** the visual system and page flow now follow the structure of
+> willbennett.org (dark theme, Outfit type, gradient headline text, glowing gradient cards,
+> fixed nav with hamburger, single-page scroll with `#projects/#skills/#about/#contact`,
+> filter pills, separate `/resume` page). Only structure and styling patterns were adopted;
+> all content, copy and imagery are Tanner's own. The palette stays beach-toned
+> (seafoam to sand-gold to coral on deep ocean). The light/dark toggle and the `/about`,
+> `/contact`, `/projects` routes were removed; the filter pills replace the focus lens.
+> Hero avatar is a "TM" monogram placeholder until a real photo is added.
+>
 > Everything else below is the original proposal and still applies unless noted above.
 
 ## 1. Purpose

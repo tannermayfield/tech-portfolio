@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="border-t border-line py-8">
-      <h2 className="font-display text-2xl font-semibold">{title}</h2>
+      <h2 className="text-2xl font-semibold">{title}</h2>
       <div className="mt-3 max-w-2xl space-y-3 text-muted [&_strong]:text-ink">{children}</div>
     </section>
   );
@@ -38,13 +38,13 @@ export default async function CaseStudy({ params }: { params: Promise<Params> })
   const s = p.study;
 
   return (
-    <article className="container-page pb-8 pt-14 md:pt-20">
-      <Link href="/projects/" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
-        ← All projects
+    <article className="mx-auto max-w-4xl px-6 pb-8 pt-28 md:pt-32">
+      <Link href="/#projects" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
+        ← Back to work
       </Link>
       <header className="mt-6">
         <StatusBadge status={p.status} confirmed={p.statusConfirmed} />
-        <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight md:text-5xl">{p.title}</h1>
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">{p.title}</h1>
         <p className="mt-3 max-w-2xl text-lg text-muted">{p.tagline}</p>
         {(p.links.github || p.links.demo) && (
           <p className="mt-4 flex gap-4 text-sm">

@@ -1,151 +1,191 @@
 import Link from "next/link";
-import { profile } from "@/data/profile";
-import { projects } from "@/data/projects";
-import { FeaturedProjects } from "@/components/FeaturedProjects";
-import { LensPicker } from "@/components/LensPicker";
+import { education, profile } from "@/data/profile";
+import { projects, smallWork } from "@/data/projects";
+import { ProjectsSection } from "@/components/ProjectsSection";
+import { Reveal } from "@/components/Reveal";
 import { SkillsEvidence } from "@/components/SkillsEvidence";
-import { StatusBadge } from "@/components/StatusBadge";
-import { Wave } from "@/components/Wave";
 
-const featured = projects.filter((p) => p.tier === "featured").sort((a, b) => a.order - b.order);
-const exploring = projects.filter((p) => p.tier === "exploring");
+const sorted = [...projects].sort((a, b) => a.order - b.order);
 
 const approach = [
   ["Understand the user", "Interviews, problem validation, and PRDs decide what is worth building."],
-  ["Model the data", "Relational design, ERDs, and SQL so the product has a sound foundation."],
+  ["Model the data", "Relational design, ERDs, and SQL give the product a sound foundation."],
   ["Build full-stack", "JavaScript applications taken end to end, with AI-assisted workflows."],
   ["Ship and run it", "Git, deployment, and cloud fundamentals that keep it working."],
 ];
 
+const chip =
+  "inline-flex min-h-11 items-center gap-2 rounded-xl border border-border/50 bg-secondary/50 px-5 text-sm text-muted-foreground backdrop-blur-sm transition-colors hover:border-primary/50 hover:text-foreground";
+
+function SectionHeading({ id, title, accent, blurb }: { id: string; title: string; accent: string; blurb?: string }) {
+  return (
+    <div className="text-center">
+      <h2 id={id} className="text-4xl font-bold md:text-5xl">
+        {title} <span className="text-gradient">{accent}</span>
+      </h2>
+      {blurb && <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">{blurb}</p>}
+    </div>
+  );
+}
+
 export default function Home() {
+  const { links } = profile;
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="container-page pb-20 pt-16 md:pb-28 md:pt-24">
-          <p className="rise eyebrow">
-            Information Systems · Brigham Young University
+      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pb-16 pt-28 text-center">
+        <div aria-hidden="true" className="hero-backdrop absolute inset-0" />
+        <div className="relative flex max-w-3xl flex-col items-center">
+          <p className="inline-flex items-center gap-3 rounded-full border border-border/60 bg-card/70 px-5 py-2.5 text-sm text-muted-foreground backdrop-blur">
+            <span aria-hidden="true" className="pulse-dot h-2 w-2 rounded-full bg-primary" />
+            Seeking software engineering, AI &amp; full-stack internships
           </p>
-          <h1 className="rise rise-2 mt-5 max-w-3xl font-display text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl">
-            {profile.name}
-            <span className="block text-sea">builds software that adapts to people, problems, and goals.</span>
+
+          <div
+            aria-hidden="true"
+            className="mt-10 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-primary text-4xl font-bold text-primary-foreground glow-primary"
+          >
+            TM
+            {/* TODO(Tanner): replace the monogram with a real photo in /public and use next/image */}
+          </div>
+
+          <h1 className="mt-8 text-5xl font-bold leading-[1.05] md:text-7xl">
+            Hi, I'm <span className="text-gradient">{profile.name}</span>
           </h1>
-          <p className="rise rise-3 mt-6 max-w-2xl text-lg text-muted">{profile.intro}</p>
+          <p className="mt-5 text-xl font-medium md:text-2xl">BYU Information Systems</p>
+          <p className="mt-1 text-sm text-muted-foreground">{profile.descriptor}</p>
 
-          <div className="rise rise-3 mt-8 flex flex-wrap items-center gap-3">
-            <Link
-              href="/projects/"
-              className="inline-flex min-h-11 items-center rounded-full bg-sea px-6 text-sm font-medium text-bg transition-opacity hover:opacity-90"
-            >
-              View projects
-            </Link>
-            <a
-              href={profile.links.resume}
-              className="inline-flex min-h-11 items-center rounded-full border border-line bg-surface px-6 text-sm font-medium transition-colors hover:border-sea"
-            >
-              Resume (PDF)
-            </a>
-            <a
-              href={profile.links.github}
-              className="inline-flex min-h-11 items-center px-3 text-sm text-muted underline-offset-4 hover:text-ink hover:underline"
-            >
-              GitHub
-            </a>
-          </div>
-
-          {/* The adaptive title is deliberately quiet: a small caption, not the headline. */}
-          <p className="mt-10 font-mono text-xs text-muted">
-            <span aria-hidden="true" className="mr-2 inline-block h-px w-6 bg-coral align-middle" />
-            {profile.descriptor}
+          <p className="mt-8 text-lg leading-relaxed text-muted-foreground md:text-xl">
+            I build <strong className="font-semibold text-foreground">AI-assisted, full-stack software</strong>, and I'm drawn to
+            software that{" "}
+            <strong className="font-semibold text-foreground">adapts to people, context, and goals</strong>. I combine product
+            thinking, database design, and deployment to turn ideas into working systems.
           </p>
-        </div>
-        <Wave className="text-foam" />
-      </section>
 
-      {/* Lens + featured projects */}
-      <section aria-labelledby="featured" className="bg-foam/60 pb-20 pt-4 dark:bg-foam/30">
-        <div className="container-page">
-          <div className="flex flex-col gap-8 pt-12 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="eyebrow">Featured work</p>
-              <h2 id="featured" className="mt-2 font-display text-3xl font-semibold tracking-tight md:text-4xl">
-                What I'm building
-              </h2>
-              <p className="mt-3 max-w-xl text-muted">
-                Each project is labeled with how real it is today. Case studies separate what exists from what is planned.
-              </p>
-            </div>
-            <LensPicker />
-          </div>
-          <div className="mt-10">
-            <FeaturedProjects projects={featured} />
-          </div>
+          <ul className="mt-8 flex flex-wrap justify-center gap-3">
+            <li><a className={chip} href={`mailto:${links.email}`}>{links.email}</a></li>
+            <li><a className={chip} href={links.github}>github.com/tannermayfield</a></li>
+            <li><a className={chip} href={links.linkedin}>LinkedIn</a></li>
+          </ul>
 
-          {exploring.map((p) => (
-            <Link
-              key={p.slug}
-              href={`/projects/${p.slug}/`}
-              className="mt-6 flex flex-col gap-3 rounded-2xl border border-dashed border-line bg-surface p-6 transition-colors hover:border-sea sm:flex-row sm:items-center sm:justify-between"
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <a
+              href="#projects"
+              className="inline-flex h-12 items-center rounded-md bg-primary px-8 font-medium text-primary-foreground transition-all hover:bg-primary/90 glow-primary"
             >
-              <div>
-                <p className="eyebrow">Exploring</p>
-                <p className="mt-1 font-display text-xl font-semibold">{p.title}</p>
-                <p className="text-sm text-muted">{p.card.problem}</p>
-              </div>
-              <StatusBadge status={p.status} />
-            </Link>
-          ))}
+              View My Work
+            </a>
+            <a
+              href="#contact"
+              className="inline-flex h-12 items-center rounded-md border border-border/60 bg-secondary/50 px-8 font-medium backdrop-blur-sm transition-colors hover:bg-secondary/80"
+            >
+              Get In Touch
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* How I work */}
-      <section aria-labelledby="approach" className="container-page pt-20">
-        <p className="eyebrow">How I work</p>
-        <h2 id="approach" className="mt-2 max-w-2xl font-display text-3xl font-semibold tracking-tight md:text-4xl">
-          I don't just generate code. I start with the user and work down to the infrastructure.
-        </h2>
-        <ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {approach.map(([title, text], i) => (
-            <li key={title} className="border-t border-line pt-4">
-              <span className="font-mono text-xs text-sea">0{i + 1}</span>
-              <h3 className="mt-2 font-display text-lg font-semibold">{title}</h3>
-              <p className="mt-1 text-sm text-muted">{text}</p>
-            </li>
-          ))}
-        </ol>
+      {/* Projects */}
+      <section id="projects" aria-labelledby="projects-h" className="px-6 py-24">
+        <div className="mx-auto max-w-6xl">
+          <Reveal>
+            <SectionHeading
+              id="projects-h"
+              title="Featured"
+              accent="Projects"
+              blurb="Each project carries an honest status. Case studies separate what exists today from what is planned."
+            />
+          </Reveal>
+          <Reveal className="mt-12">
+            <ProjectsSection projects={sorted} />
+          </Reveal>
+
+          <Reveal className="mt-16">
+            <h3 className="text-center text-xl font-bold">Smaller academic work</h3>
+            <ul className="mt-6 grid gap-4 md:grid-cols-3">
+              {smallWork.map((s) => (
+                <li key={s.title} className="rounded-xl border border-border/50 bg-gradient-card p-5">
+                  <h4 className="font-semibold">{s.title}</h4>
+                  <p className="mt-1 text-sm text-muted-foreground">{s.blurb}</p>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
       </section>
 
       {/* Skills */}
-      <section aria-labelledby="skills" className="container-page pt-20">
-        <p className="eyebrow">Skills, with evidence</p>
-        <h2 id="skills" className="mt-2 font-display text-3xl font-semibold tracking-tight md:text-4xl">
-          Where each skill shows up
-        </h2>
-        <p className="mt-3 max-w-xl text-muted">No percentage bars. Each skill points to the project that uses it, or says plainly that it doesn't yet.</p>
-        <div className="mt-10">
-          <SkillsEvidence />
+      <section id="skills" aria-labelledby="skills-h" className="px-6 py-24">
+        <div className="mx-auto max-w-6xl">
+          <Reveal>
+            <SectionHeading
+              id="skills-h"
+              title="Skills,"
+              accent="with evidence"
+              blurb="No percentage bars. Each skill points to the project that uses it, or says plainly that it doesn't yet."
+            />
+          </Reveal>
+          <Reveal className="mt-12">
+            <SkillsEvidence />
+          </Reveal>
         </div>
       </section>
 
-      {/* Contact CTA */}
-      <section className="container-page pt-20">
-        <div className="rounded-3xl bg-ink px-6 py-12 text-bg sm:px-12">
-          <h2 className="font-display text-3xl font-semibold tracking-tight">Hiring for an internship?</h2>
-          <p className="mt-3 max-w-xl opacity-80">
-            I'd like to hear about it. Email is the fastest way to reach me.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <a
-              href={`mailto:${profile.links.email}`}
-              className="inline-flex min-h-11 items-center rounded-full bg-bg px-6 text-sm font-medium text-ink"
-            >
-              {profile.links.email}
-            </a>
-            <Link href="/contact/" className="inline-flex min-h-11 items-center rounded-full border border-bg/40 px-6 text-sm">
-              Other ways to reach me
-            </Link>
-          </div>
+      {/* About */}
+      <section id="about" aria-labelledby="about-h" className="relative overflow-hidden px-6 py-24">
+        <div className="mx-auto max-w-3xl">
+          <Reveal>
+            <SectionHeading id="about-h" title="About" accent="Me" />
+            <div className="mt-8 space-y-5 text-lg leading-relaxed text-muted-foreground">
+              <p>
+                I'm an Information Systems student at BYU, focused on software engineering and AI. I like understanding both the
+                user's problem and how to build the solution, so I think about the user, the data, the implementation, and the
+                reason a feature should exist.
+              </p>
+              <p>
+                Coursework in product management, database design, programming, and IT infrastructure sits alongside the things I
+                build myself, mostly with AI agents in a spec-driven workflow. I'm especially interested in software that adapts to
+                users, context, goals, and tasks.
+              </p>
+              <p>
+                I also speak Spanish fluently, am studying Portuguese and ASL, and play piano, drums, and guitar.
+              </p>
+            </div>
+            <ol className="mt-12 grid gap-6 sm:grid-cols-2">
+              {approach.map(([title, text], i) => (
+                <li key={title} className="border-t border-border/60 pt-4">
+                  <span className="font-mono text-xs text-primary">0{i + 1}</span>
+                  <h3 className="mt-1 font-semibold">{title}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-10 text-sm text-muted-foreground">
+              {education.degree}, {education.school} · Major GPA {education.majorGpa}.{" "}
+              <Link href="/resume/" className="text-primary underline-offset-4 hover:underline">
+                Full resume →
+              </Link>
+            </p>
+          </Reveal>
         </div>
+      </section>
+
+      {/* Contact */}
+      <section id="contact" aria-labelledby="contact-h" className="px-6 py-24">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <SectionHeading
+            id="contact-h"
+            title="Let's"
+            accent="Connect"
+            blurb="I'm looking for software engineering, AI, and full-stack internships. Email is the fastest way to reach me."
+          />
+          <ul className="mt-8 flex flex-wrap justify-center gap-3">
+            <li><a className={chip} href={`mailto:${links.email}`}>{links.email}</a></li>
+            <li><a className={chip} href={links.github}>GitHub</a></li>
+            <li><a className={chip} href={links.linkedin}>LinkedIn</a></li>
+            <li><a className={chip} href={links.resume}>Resume (PDF)</a></li>
+          </ul>
+        </Reveal>
       </section>
     </>
   );
