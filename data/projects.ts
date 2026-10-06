@@ -16,6 +16,8 @@ export type Project = {
   lenses: Lens[]; // which focus areas this project is evidence for
   stack: string[];
   links: { github?: string; demo?: string };
+  /** TODO(Tanner): path to a real screenshot in /public (e.g. "/images/bravos.png"). Until set, a placeholder panel shows. */
+  image?: string;
   card: { problem: string; built: string; learned?: string };
   /** Case-study sections (the agreed structure). Missing ones are not rendered. */
   study: Partial<{
