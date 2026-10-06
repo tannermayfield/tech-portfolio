@@ -15,7 +15,13 @@ export const profile = {
     linkedin: "https://www.linkedin.com/in/tanner-mayfield",
     email: "tannerjamesmayfield@gmail.com",
     resume: "/Tanner_Mayfield_Resume.pdf",
+    // TODO(Tanner): build the "fun, creative portfolio" (Apple Music soundtrack, AI tech, a deeper
+    // look at you), then set this to its URL. While null, the home page shows a "Coming soon" button.
+    funPortfolio: null as string | null,
   },
+  // TODO(Tanner): add a real photo to /public (e.g. /profile.jpg) and set it here. While null,
+  // the About section shows a "TM" monogram in the same frame.
+  photo: null as string | null,
 } as const;
 
 // Source: resume PDF supplied by Tanner. Dates and bullets are quoted from it.
@@ -34,6 +40,8 @@ export const education = {
 };
 
 export type Role = {
+  /** Short label for the experience tab / card heading. */
+  tab: string;
   title: string;
   org: string;
   place?: string;
@@ -44,6 +52,7 @@ export type Role = {
 
 export const roles: Role[] = [
   {
+    tab: "BravOS",
     title: "Product Designer & Developer",
     org: "AI-Assisted Personal Operating System (BravOS)",
     dates: "May 2026 – Present",
@@ -55,6 +64,7 @@ export const roles: Role[] = [
     ],
   },
   {
+    tab: "Language-Learning Platform",
     title: "Product Designer & Developer",
     org: "AI-Assisted Language-Learning Platform",
     dates: "Oct 2025 – Present",
@@ -66,6 +76,7 @@ export const roles: Role[] = [
     ],
   },
   {
+    tab: "Missionary Training Center",
     title: "Spanish Teacher",
     org: "Missionary Training Center",
     place: "Provo, UT",
@@ -78,6 +89,7 @@ export const roles: Role[] = [
     ],
   },
   {
+    tab: "BYU Continuing Education",
     title: "Online Spanish Tutor",
     org: "BYU Continuing Education",
     place: "Provo, UT",
@@ -91,6 +103,7 @@ export const roles: Role[] = [
     ],
   },
   {
+    tab: "Volunteer Representative",
     title: "Volunteer Representative",
     org: "The Church of Jesus Christ of Latter-day Saints",
     place: "St. George, UT",

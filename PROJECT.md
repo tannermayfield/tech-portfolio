@@ -21,6 +21,26 @@
 > `/contact`, `/projects` routes were removed; the filter pills replace the focus lens.
 > Hero avatar is a "TM" monogram placeholder until a real photo is added.
 >
+> **Redesign 2 (2026-10-06): match briankabbo.vercel.app (supersedes the palette and layout notes above).**
+> - Look: near-black `#04080f` canvas, moonstone `#e0e7ff` accents, Poppins / Inter / JetBrains Mono,
+>   film grain, soft glows and a mouse-following spotlight. Tokens live in `app/globals.css`.
+> - Layout: fixed left nav rail (Home / About / Experience / Projects / Fun Side) with scroll-spy,
+>   fixed right rail with LinkedIn / GitHub / email, mobile full-screen menu. The old header, filter
+>   pills and "Skills, with evidence" grid are gone; skills are the "How I build things" glass card
+>   (evidence shows in each chip's tooltip). "Smaller academic work" moved to `/resume`.
+> - Projects: sticky left text that swaps while previews scroll past on the right (desktop), stacked on
+>   mobile. No screenshots exist yet, so `ProjectPreview` shows a "Preview coming soon" panel.
+> - **The contact section was replaced** by "Beyond the resume / LET'S PLAY", a link to a more fun,
+>   creative portfolio (Apple Music in the background, AI tech, a deeper look at Tanner).
+> - **TODO(Tanner), reminders baked into the site:**
+>   1. Build the fun portfolio, then set `profile.links.funPortfolio` in `data/profile.ts`. Until then
+>      the button shows a disabled "Coming soon" state (`components/FunPortfolio.tsx`).
+>   2. Add a real photo and set `profile.photo` (About shows a "TM" monogram until then).
+>   3. Add project screenshots and set `image` on each project in `data/projects.ts`.
+> - Hero ticker words ("AI / PostgreSQL / Node.js / Adaptive Software") and the small caption under the
+>   buttons are in `components/Hero.tsx`; the caption is an addition to the reference, kept so the
+>   internship goal is obvious at a glance.
+>
 > Everything else below is the original proposal and still applies unless noted above.
 
 ## 1. Purpose

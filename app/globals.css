@@ -1,137 +1,157 @@
 @import "tailwindcss";
 
 /*
- * Design system: dark, glowing-card, gradient-accent (structure inspired by modern
- * developer-portfolio patterns), tuned to a "night beach" palette:
- * deep-ocean background, seafoam primary, sunset (sand-gold to coral) accent.
- * Values are HSL channels so Tailwind opacity modifiers (e.g. border-border/50) work.
+ * Design system: near-black "arctic void" canvas, moonstone (pale indigo) accents,
+ * Poppins headings / Inter body / JetBrains Mono details, film grain and soft glows.
+ * Structure and styling follow briankabbo.vercel.app; all content is Tanner's own.
  */
-:root {
-  --background: 200 45% 5%;
-  --foreground: 40 45% 96%;
-  --card: 200 38% 9%;
-  --border: 200 26% 17%;
-  --muted: 200 28% 13%;
-  --muted-foreground: 200 16% 64%;
-  --primary: 174 72% 56%; /* seafoam */
-  --primary-foreground: 200 45% 5%;
-  --accent: 14 90% 66%; /* coral */
-  --gold: 38 90% 68%; /* sand-gold */
-  --radius: 0.75rem;
-
-  --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--gold)) 55%, hsl(var(--accent)) 100%);
-  --gradient-card: linear-gradient(145deg, hsl(200 36% 11%) 0%, hsl(200 40% 7%) 100%);
-  --glow-primary: 0 0 60px -15px hsl(var(--primary) / 0.4);
+@theme inline {
+  --color-arctic-void: #04080f;
+  --color-moonstone: #e0e7ff;
+  --color-moonstone-light: #eef2ff;
+  --color-moonstone-dim: #e0e7ff14;
+  --color-moonstone-border: #e0e7ff33;
+  --font-inter: var(--font-inter-src), ui-sans-serif, system-ui, sans-serif;
+  --font-poppins: var(--font-poppins-src), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-src), ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-border: hsl(var(--border));
-  --color-secondary: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-gold: hsl(var(--gold));
-  /* aliases used by case-study pages */
-  --color-bg: hsl(var(--background));
-  --color-ink: hsl(var(--foreground));
-  --color-muted: hsl(var(--muted-foreground));
-  --color-line: hsl(var(--border));
-  --color-sea: hsl(var(--primary));
-  --color-sunk: hsl(var(--muted));
-  --color-surface: hsl(var(--card));
-  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-mono-src), ui-monospace, monospace;
+:root {
+  --bg-primary: #04080f;
 }
 
 html {
   scroll-behavior: smooth;
-  color-scheme: dark;
-  scroll-padding-top: 5rem; /* fixed header offset for anchor links */
+  background-color: var(--bg-primary);
 }
 
 body {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: var(--font-sans);
-  line-height: 1.6;
+  font-family: var(--font-inter);
+  color: #8aacbe;
+  background-color: var(--bg-primary);
+  margin: 0;
+  position: relative;
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 {
-  letter-spacing: -0.025em;
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-poppins);
+    color: #eef2ff;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+  }
+  :focus-visible {
+    outline: 2px solid #e0e7ff;
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
 }
 
-::selection {
-  background: hsl(var(--primary) / 0.3);
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: #e0e7ff26; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #e0e7ff4d; }
+
+.film-grain {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-:focus-visible {
-  outline: 2px solid hsl(var(--primary));
-  outline-offset: 3px;
-  border-radius: 6px;
+.glass-card {
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+  border: 1px solid var(--color-moonstone-border);
+  background-color: #04080fb3;
+  box-shadow: 0 25px 50px -12px #00000080;
 }
 
-.text-gradient {
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.btn-shine {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.bg-gradient-card {
-  background-image: var(--gradient-card);
+.btn-shine:hover {
+  border-color: #e0e7ff;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px #e0e7ff40, 0 8px 10px -6px #0000001a;
+  color: #04080f !important;
+  background-color: #eef2ff !important;
 }
-.bg-gradient-primary {
-  background-image: var(--gradient-primary);
-}
-.glow-primary {
-  box-shadow: var(--glow-primary);
+.btn-shine:hover svg {
+  color: #04080f !important;
 }
 
-/* Faint grid + soft sea-glow behind the hero. Decorative only. */
-.hero-backdrop {
-  background-image:
-    radial-gradient(60% 50% at 50% 0%, hsl(var(--primary) / 0.12), transparent 70%),
-    linear-gradient(hsl(var(--border) / 0.35) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(var(--border) / 0.35) 1px, transparent 1px);
-  background-size: 100% 100%, 56px 56px, 56px 56px;
-  -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent);
-  mask-image: linear-gradient(to bottom, black 55%, transparent);
+/* Hero: the word after "Crafting with" ticks through a list (the last row repeats the first,
+   so the loop is seamless). Written for 5 rows of 1.2em. */
+@keyframes tick {
+  0% { transform: translateY(0); }
+  20% { transform: translateY(0); }
+  25% { transform: translateY(-1.2em); }
+  45% { transform: translateY(-1.2em); }
+  50% { transform: translateY(-2.4em); }
+  70% { transform: translateY(-2.4em); }
+  75% { transform: translateY(-3.6em); }
+  95% { transform: translateY(-3.6em); }
+  99% { animation-timing-function: step-end; transform: translateY(-4.8em); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+.rise {
+  opacity: 0;
+  animation: rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--d, 0s);
+}
+
+@keyframes swap {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.swap {
+  animation: swap 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes nudge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+.nudge {
+  animation: nudge 1.6s ease-in-out infinite;
+}
+
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: none; }
+}
+.menu-in {
+  animation: menu-in 0.3s ease-out both;
 }
 
 /* Scroll reveal: a single gentle fade-up, applied by <Reveal>. */
 .reveal {
   opacity: 0;
-  transform: translateY(16px);
-  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transform: translateY(20px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .reveal.in {
   opacity: 1;
   transform: none;
 }
 
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-.pulse-dot {
-  animation: pulse-dot 2.4s ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .reveal { opacity: 1; transform: none; transition: none; }
-  .pulse-dot { animation: none; }
+  .rise, .swap, .menu-in { animation: none; opacity: 1; transform: none; }
+  .nudge { animation: none; }
+  .ticker { animation: none !important; }
   * { transition-duration: 0.01ms !important; }
-}
-
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: hsl(var(--muted-foreground));
 }

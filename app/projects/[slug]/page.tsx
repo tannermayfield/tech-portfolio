@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, projects } from "@/data/projects";
 import { StatusBadge } from "@/components/StatusBadge";
-import { LinkIcon } from "@/components/LinkIcon";
+import { Icon } from "@/components/Icon";
 
 type Params = { slug: string };
 
@@ -18,15 +18,15 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-line py-8">
-      <h2 className="text-2xl font-semibold">{title}</h2>
-      <div className="mt-3 max-w-2xl space-y-3 text-muted [&_strong]:text-ink">{children}</div>
+    <section className="border-t border-white/10 py-8">
+      <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-[#aaa]">{title}</h2>
+      <div className="mt-4 max-w-2xl space-y-3 text-base leading-relaxed text-white/80 sm:text-lg [&_strong]:text-white">{children}</div>
     </section>
   );
 }
 
 const List = ({ items }: { items: string[] }) => (
-  <ul className="list-disc space-y-2 pl-5">
+  <ul className="list-disc space-y-2 pl-5 marker:text-moonstone">
     {items.map((i) => (
       <li key={i}>{i}</li>
     ))}
@@ -39,24 +39,24 @@ export default async function CaseStudy({ params }: { params: Promise<Params> })
   const s = p.study;
 
   return (
-    <article className="mx-auto max-w-4xl px-6 pb-8 pt-28 md:pt-32">
-      <Link href="/#projects" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
+    <article className="mx-auto min-w-0 max-w-4xl px-0 pb-8 pt-24 lg:px-6 lg:pt-32">
+      <Link href="/#projects" className="font-mono text-xs uppercase tracking-[0.2em] text-[#aaa] transition-colors hover:text-white">
         ← Back to work
       </Link>
       <header className="mt-6">
         <StatusBadge status={p.status} confirmed={p.statusConfirmed} />
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">{p.title}</h1>
-        <p className="mt-3 max-w-2xl text-lg text-muted">{p.tagline}</p>
+        <h1 className="mt-4 break-words text-4xl font-bold tracking-tight text-white md:text-6xl">{p.title}</h1>
+        <p className="mt-3 max-w-2xl text-lg text-white/60">{p.tagline}</p>
         {(p.links.github || p.links.demo) && (
-          <p className="mt-4 flex gap-4 text-sm">
-            {p.links.github && <a className="inline-flex items-center gap-1.5 text-sea underline-offset-4 hover:underline" href={p.links.github}><LinkIcon name="github" />GitHub</a>}
-            {p.links.demo && <a className="text-sea underline-offset-4 hover:underline" href={p.links.demo}>Live demo</a>}
+          <p className="mt-5 flex flex-wrap gap-3 text-sm">
+            {p.links.github && <a className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-xs font-bold uppercase tracking-[0.2em] text-white/80 transition-colors hover:bg-white/15 hover:text-white" href={p.links.github} target="_blank" rel="noopener noreferrer"><Icon name="github" size={18} />GitHub</a>}
+            {p.links.demo && <a className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-xs font-bold uppercase tracking-[0.2em] text-white/80 transition-colors hover:bg-white/15 hover:text-white" href={p.links.demo} target="_blank" rel="noopener noreferrer">Live demo</a>}
           </p>
         )}
         {p.stack.length > 0 && (
           <ul className="mt-5 flex flex-wrap gap-2" aria-label="Technologies">
             {p.stack.map((t) => (
-              <li key={t} className="rounded-md bg-sunk px-2 py-1 font-mono text-xs text-muted">{t}</li>
+              <li key={t} className="rounded-full border border-white/20 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-white/50">{t}</li>
             ))}
           </ul>
         )}

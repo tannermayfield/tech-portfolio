@@ -55,7 +55,10 @@ export const skillGroups: SkillGroup[] = [
     skills: [
       { name: "Git / GitHub", evidence: ["tech-portfolio"] },
       { name: "AWS & deployment", evidence: [] },
-      { name: "Tableau, Power BI, Advanced Excel, VBA", evidence: [] },
+      { name: "Tableau", evidence: [] },
+      { name: "Power BI", evidence: [] },
+      { name: "Advanced Excel", evidence: [] },
+      { name: "VBA", evidence: [] },
     ],
   },
 ];
