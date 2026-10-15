@@ -3,7 +3,7 @@ import { Icon } from "./Icon";
 import { Reveal } from "./Reveal";
 import { SectionTitle } from "./SectionTitle";
 
-const headline = "LET'S PLAY";
+const headline = "EXPLORE";
 
 const btn =
   "btn-shine group flex min-h-11 w-full items-center justify-center gap-3 rounded-2xl border border-moonstone-border bg-transparent px-8 py-4 text-base font-bold text-moonstone transition-all duration-300 hover:bg-white sm:w-auto sm:px-10 sm:py-5 sm:text-lg";
@@ -15,7 +15,7 @@ export function FunPortfolio() {
   const href = profile.links.funPortfolio;
   return (
     <section id="fun" aria-labelledby="fun-h" className="mx-auto min-w-0 max-w-6xl px-0 py-12 sm:py-16 lg:px-6 lg:py-24">
-      <SectionTitle>Beyond the resume</SectionTitle>
+      <SectionTitle>Fun Portfolio</SectionTitle>
       <Reveal className="min-w-0 text-center">
         <h3 id="fun-h" className="mb-6 px-2 text-xs font-bold uppercase tracking-[0.25em] text-[#aaa] sm:mb-8 sm:tracking-[0.4em]">
           Want to know me even deeper?
@@ -44,8 +44,7 @@ export function FunPortfolio() {
         </div>
 
         <p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-white/60 sm:text-lg">
-          A more fun, creative portfolio: Apple Music songs playing in the background, cool AI technologies, and a deeper look at who I
-          am beyond the work.
+          A more fun, creative portfolio: Get to know me beyond the résumé through an interactive experience featuring my hobbies, talents, achievements, and goals. Take a walk with me into my past, present, and possible future.
         </p>
 
         <div className="mx-auto mt-8 flex max-w-md flex-col items-stretch justify-center gap-3 sm:mt-12 sm:max-w-none sm:flex-row sm:items-center sm:gap-6">

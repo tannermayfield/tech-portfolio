@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { education, profile } from "@/data/profile";
+import { profile } from "@/data/profile";
 import { getProject, projects } from "@/data/projects";
 import { skillGroups } from "@/data/skills";
 import { ExperienceTabs } from "@/components/ExperienceTabs";
+import { Connect } from "@/components/Connect";
 import { FunPortfolio } from "@/components/FunPortfolio";
 import { Hero } from "@/components/Hero";
 import { ProjectsShowcase } from "@/components/ProjectsShowcase";
@@ -17,14 +17,12 @@ const evidenceTitle = (evidence: string[]) =>
     ? "Coursework / learning. No project linked yet."
     : `Used in ${evidence.map((s) => getProject(s)?.title ?? s).join(", ")}`;
 
-const em = "font-semibold text-moonstone";
-
 export default function Home() {
   return (
     <>
       <Hero />
 
-      <section id="about" aria-label="About" className="mx-auto min-w-0 max-w-6xl px-0 py-12 sm:py-16 lg:px-6 lg:py-24">
+      <section id="about" aria-label="About" className="mx-auto min-w-0 max-w-6xl px-0 py-12 sm:py-16 lg:px-6 lg:pt-16 lg:pb-24">
         <SectionTitle>About me</SectionTitle>
 
         <div className="mb-12 flex flex-col items-center justify-between gap-10 sm:mb-16 sm:gap-12 md:flex-row-reverse md:items-start lg:mb-24 lg:gap-16">
@@ -39,7 +37,7 @@ export default function Home() {
                 <img
                   src={profile.photo}
                   alt={profile.name}
-                  className="relative z-10 h-56 w-56 rounded-xl object-cover shadow-2xl grayscale transition-all duration-700 hover:grayscale-0 sm:h-64 sm:w-64 md:h-80 md:w-80"
+                  className="relative z-10 h-56 w-56 rounded-xl object-cover object-[center_14%] shadow-2xl grayscale transition-all duration-700 hover:grayscale-0 sm:h-64 sm:w-64 md:h-80 md:w-80"
                 />
               ) : (
                 <div
@@ -55,26 +53,25 @@ export default function Home() {
 
           <Reveal className="w-full min-w-0 space-y-5 sm:space-y-6 md:w-3/5 lg:space-y-8">
             <p className="break-words text-base leading-relaxed text-white sm:text-lg lg:text-xl">
-              I'm <span className={em}>{profile.name}</span>, an Information Systems student focused on software engineering and AI. I
-              build AI-assisted, full-stack software, and I'm especially interested in software that adapts to users, context, goals, and
-              tasks.
+              I’m an Information Systems student at Brigham Young University who enjoys using technology to solve real business and user
+              problems. My interests span data and analytics, AI and machine learning, software development, cloud and data systems, and
+              business automation.
             </p>
             <p className="break-words text-base leading-relaxed text-white sm:text-lg lg:text-xl">
-              I'm studying at <span className={em}>Brigham Young University</span> ({education.degree}, {education.unit.split(",")[0]}), with
-              coursework in product management, database design, programming, and IT infrastructure.
+              I’m especially interested in understanding how data moves through systems, how AI can improve workflows and decision-making,
+              and how technology can make complex processes more efficient. Through coursework and personal projects, I’m building hands-on
+              experience with Python, SQL, relational databases, analytics, AI-assisted development, and cloud technologies.
             </p>
             <p className="break-words text-base leading-relaxed text-white/90 sm:text-lg lg:text-xl">
-              I like understanding both the user's problem and how to build the solution: the user, the data, the implementation, and the
-              reason a feature should exist. Looking for software engineering, AI, and full-stack internships.{" "}
-              <Link href="/resume/" className="whitespace-nowrap text-moonstone underline-offset-4 hover:underline">
-                Full resume →
-              </Link>
+              My background in teaching, leadership, and bilingual communication has also taught me how to understand individual needs,
+              explain complex ideas clearly, and work effectively with people—not just technology. Long term, I want to grow into a technology
+              leader who can connect technical systems with the people and organizations they serve.
             </p>
           </Reveal>
         </div>
 
         <Reveal className="glass-card min-w-0 rounded-2xl p-6 sm:rounded-[2rem] sm:p-8 lg:p-10 xl:p-16">
-          <h3 className="mb-8 text-2xl font-bold text-white sm:mb-10 sm:text-3xl lg:mb-12">How I build things</h3>
+          <h3 className="mb-8 text-2xl font-bold text-white sm:mb-10 sm:text-3xl lg:mb-12">My tech stack</h3>
           <div className="flex flex-col gap-6 sm:gap-8">
             {skillGroups.map((g) => (
               <div key={g.area} className="flex min-w-0 flex-col gap-3 sm:gap-4 md:flex-row md:items-start">
@@ -98,14 +95,15 @@ export default function Home() {
         </Reveal>
       </section>
 
-      <section id="experience" aria-label="Experience" className="mx-auto min-w-0 max-w-6xl px-0 py-12 sm:py-16 lg:px-6 lg:py-24">
+      <ProjectsShowcase projects={sorted} />
+
+      <section id="experience" aria-label="Experience" className="mx-auto min-w-0 max-w-6xl px-0 py-12 sm:py-16 lg:px-6 lg:pt-16 lg:pb-24">
         <SectionTitle>Experience</SectionTitle>
         <ExperienceTabs />
       </section>
 
-      <ProjectsShowcase projects={sorted} />
-
       <FunPortfolio />
+      <Connect />
     </>
   );
 }

@@ -8,10 +8,10 @@ import { profile } from "@/data/profile";
 
 const items = [
   { name: "Home", id: "home" },
-  { name: "About", id: "about" },
-  { name: "Experience", id: "experience" },
+  { name: "About Me", id: "about" },
   { name: "Projects", id: "projects" },
-  { name: "Fun Side", id: "fun" },
+  { name: "Experience", id: "experience" },
+  { name: "Fun Portfolio", id: "fun" },
 ];
 
 // Fixed left rail on desktop, full-screen overlay menu on mobile. On the home page it
@@ -56,7 +56,15 @@ export function SideNav() {
     setOpen(false);
     if (!onHome) return; // normal navigation to /#id
     e.preventDefault();
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    const target = document.getElementById(id);
+    if (!target) return;
+
+    window.history.pushState(null, "", `#${id}`);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    target.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+      ...(id === "fun" ? { block: "center" as const } : {}),
+    });
     setActive(id);
   };
 

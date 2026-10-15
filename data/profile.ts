@@ -14,27 +14,29 @@ export const profile = {
     siteRepo: "https://github.com/tannermayfield/tech-portfolio",
     linkedin: "https://www.linkedin.com/in/tanner-mayfield",
     email: "tannerjamesmayfield@gmail.com",
-    resume: "/Tanner_Mayfield_Resume.pdf",
+    resume: "/Tanner_Mayfield_IS_Resume.docx",
     // TODO(Tanner): build the "fun, creative portfolio" (Apple Music soundtrack, AI tech, a deeper
     // look at you), then set this to its URL. While null, the home page shows a "Coming soon" button.
     funPortfolio: null as string | null,
   },
   // TODO(Tanner): add a real photo to /public (e.g. /profile.jpg) and set it here. While null,
   // the About section shows a "TM" monogram in the same frame.
-  photo: null as string | null,
+  photo: "/profile.jpg" as string | null,
 } as const;
 
-// Source: resume PDF supplied by Tanner. Dates and bullets are quoted from it.
+// Source: current resume DOCX supplied by Tanner. Dates and bullets follow that document.
 export const education = {
   school: "Brigham Young University",
   unit: "Marriott School of Business, Provo, UT",
-  degree: "B.S. Information Systems",
-  focus: "Product & Project Management focus · Minor in Spanish",
-  date: "Apr 2026", // as printed on the resume
+  degree: "Bachelor of Science: Information Systems",
+  minor: "Spanish",
+  date: "Apr 2028",
   majorGpa: "3.72",
+  seeking: "a Master’s in Information Systems Management",
   courses: {
-    past: ["Intro to Information Systems", "Intro to Computer Programming", "Spreadsheets & Business Analysis"],
-    current: ["Project Management & System Design", "Database Systems", "Business Programming", "IT Infrastructure"],
+    current: ["Database Systems", "Business Programming", "IT Infrastructure", "Project Management & System Design"],
+    upcoming: ["Predictive AI in Business (Machine Learning Foundations)", "Agentic AI in Business", "IS Security & Controls"],
+    upcomingTerm: "Winter 2027",
   },
   involvement: ["Association for Information Systems (AIS)"],
 };
@@ -47,32 +49,36 @@ export type Role = {
   place?: string;
   dates: string;
   kind: "project" | "work" | "volunteer";
+  projectSlug?: string;
   bullets: string[];
 };
 
 export const roles: Role[] = [
   {
-    tab: "BravOS",
-    title: "Product Designer & Developer",
-    org: "AI-Assisted Personal Operating System (BravOS)",
-    dates: "May 2026 – Present",
+    tab: "Airline Operations Intelligence Platform",
+    title: "Data & AI Developer",
+    org: "Airline Operations Intelligence Platform (Individual Project)",
+    dates: "Oct 2026 – Present",
     kind: "project",
+    projectSlug: "airline-operations",
+    bullets: [
+      "Building an airline operations data pipeline using Python, SQL, PostgreSQL, and AWS to support operational analysis",
+      "Creating ETL/ELT workflows and data-quality checks to transform raw flight data into reliable, analysis-ready datasets",
+      "Designing Tableau and Excel dashboards to track operational KPIs, delays, disruptions, and performance trends",
+      "Developing predictive models to estimate flight-delay and disruption risk using historical operational and weather data",
+    ],
+  },
+  {
+    tab: "AI-Assisted Personal Operating System",
+    title: "Product Designer & Developer",
+    org: "AI-Assisted Personal Operating System",
+    dates: "Oct 2025 – Present",
+    kind: "project",
+    projectSlug: "bravos",
     bullets: [
       "Accelerated feature development by ~8x by orchestrating Codex and Claude Code across smaller parallel tasks",
       "Applied spec-driven development to convert product goals into technical specifications and testable implementation plans",
       "Integrated and tested AI-generated code across multiple workstreams to maintain consistent system functionality",
-    ],
-  },
-  {
-    tab: "Language-Learning Platform",
-    title: "Product Designer & Developer",
-    org: "AI-Assisted Language-Learning Platform",
-    dates: "Oct 2025 – Present",
-    kind: "project",
-    bullets: [
-      "Accelerated development by ~4x using Codex and Claude Code to build and test features in JavaScript and HTML/CSS",
-      "Translated product ideas and user flows into AI technical prompts, requirements, and unique specifications",
-      "Iterated on AI-generated code through detailed review, debugging, and testing to improve functionality and user experience",
     ],
   },
   {
@@ -85,7 +91,7 @@ export const roles: Role[] = [
     bullets: [
       "Created a centralized planning document to cut class preparation time by 50%",
       "Built an automated performance tracker using Excel to identify the specific needs of struggling students efficiently",
-      "Taught Spanish to groups of 10+ students; 30% of supported students received intermediate fluency scores in 6 weeks",
+      "Taught Spanish to groups of 10+ students; over 50% of supported students received intermediate fluency scores in 6 weeks",
     ],
   },
   {
@@ -118,6 +124,6 @@ export const roles: Role[] = [
 
 export const other = {
   languages: "Fluent in English and Spanish; currently studying Portuguese and ASL",
-  music: "Piano, drums, and guitar",
-  interests: "Baseball, basketball, group sports/games, music, movies/shows, languages, and technology",
+  music: "Piano and drums; played in a local community band",
+  interests: "Baseball and basketball; played on travel teams",
 };

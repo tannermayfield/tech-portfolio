@@ -1,4 +1,4 @@
-// Skills grouped by area. Every item came from Tanner (prompt or resume).
+// Skills grouped by area. Every item below comes from Tanner's current resume.
 // `evidence` links a skill to the project slugs that demonstrate it. No percentages.
 // An empty evidence list means "listed, but no project linked yet": the UI says so honestly.
 import type { Lens } from "./projects";
@@ -8,57 +8,55 @@ export type SkillGroup = { area: string; lens: Lens | null; note: string; skills
 
 export const skillGroups: SkillGroup[] = [
   {
-    area: "AI engineering",
-    lens: "ai",
-    note: "Designing AI features and building quickly with agentic tools.",
-    skills: [
-      { name: "AI-assisted development (Codex, Claude Code)", evidence: ["bravos", "language-learning"] },
-      { name: "Spec-driven development", evidence: ["bravos"] },
-      { name: "Adaptive software concepts", evidence: ["bravos", "language-learning"] },
-      { name: "Machine learning & generative AI", evidence: [] },
-    ],
-  },
-  {
-    area: "Database",
+    area: "Data Analytics",
     lens: "data",
-    note: "Modeling data so products can grow.",
+    note: "Analyzing, modeling, and communicating data.",
     skills: [
-      { name: "SQL / PostgreSQL", evidence: ["skill-projects"] },
-      { name: "Relational modeling & ERDs", evidence: ["skill-projects"] },
-    ],
-  },
-  {
-    area: "Full-stack",
-    lens: "fullstack",
-    note: "From idea to a working application.",
-    skills: [
-      { name: "JavaScript", evidence: ["language-learning", "tech-portfolio"] },
-      { name: "HTML / CSS", evidence: ["language-learning"] },
-      { name: "Node.js", evidence: [] },
-      { name: "Python", evidence: [] },
-    ],
-  },
-  {
-    area: "Product",
-    lens: null,
-    note: "Deciding what to build and why.",
-    skills: [
-      { name: "User research & problem discovery", evidence: ["skill-projects"] },
-      { name: "PRDs & feature prioritization", evidence: ["bravos"] },
-      { name: "Project management", evidence: [] },
-    ],
-  },
-  {
-    area: "Infrastructure & analytics",
-    lens: null,
-    note: "Shipping it and understanding the data.",
-    skills: [
-      { name: "Git / GitHub", evidence: ["tech-portfolio"] },
-      { name: "AWS & deployment", evidence: [] },
-      { name: "Tableau", evidence: [] },
+      { name: "Python", evidence: ["airline-operations"] },
+      { name: "SQL", evidence: ["airline-operations"] },
+      { name: "PostgreSQL", evidence: ["airline-operations"] },
+      { name: "Pandas", evidence: [] },
+      { name: "NumPy", evidence: [] },
+      { name: "Tableau", evidence: ["airline-operations"] },
       { name: "Power BI", evidence: [] },
-      { name: "Advanced Excel", evidence: [] },
+      { name: "Excel", evidence: ["airline-operations"] },
       { name: "VBA", evidence: [] },
+      { name: "Microsoft Office Suite", evidence: [] },
+    ],
+  },
+  {
+    area: "Database Design",
+    lens: "data",
+    note: "Designing relational data structures and improving data processes.",
+    skills: [
+      { name: "Relational Database Design", evidence: ["skill-projects"] },
+      { name: "Data Modeling", evidence: ["skill-projects"] },
+      { name: "ERDs", evidence: ["skill-projects"] },
+      { name: "Data Analysis", evidence: ["airline-operations"] },
+      { name: "Process Improvement", evidence: [] },
+      { name: "Supabase", evidence: [] },
+    ],
+  },
+  {
+    area: "Artificial Intelligence",
+    lens: "ai",
+    note: "Applying AI and developing with AI tools.",
+    skills: [
+      { name: "Machine Learning Fundamentals", evidence: ["airline-operations"] },
+      { name: "Codex", evidence: ["bravos"] },
+      { name: "Claude Code", evidence: ["bravos"] },
+    ],
+  },
+  {
+    area: "Cloud & Development",
+    lens: "fullstack",
+    note: "Building software and working with cloud tools.",
+    skills: [
+      { name: "AWS", evidence: ["airline-operations"] },
+      { name: "Git/GitHub", evidence: ["tech-portfolio"] },
+      { name: "JavaScript", evidence: ["language-learning", "tech-portfolio"] },
+      { name: "Node.js", evidence: [] },
+      { name: "HTML/CSS", evidence: ["language-learning"] },
     ],
   },
 ];

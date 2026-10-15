@@ -40,6 +40,30 @@ export type Project = {
 
 export const projects: Project[] = [
   {
+    slug: "airline-operations",
+    title: "Airline Operations Intelligence Platform",
+    tagline: "A data pipeline and analytics platform for airline operations.",
+    status: "In Development",
+    statusConfirmed: true,
+    tier: "featured",
+    order: 0,
+    lenses: ["data", "ai", "fullstack"],
+    stack: ["Python", "SQL", "PostgreSQL", "AWS", "Tableau", "Excel"],
+    links: {},
+    card: {
+      problem: "Airline performance analysis depends on reliable, analysis-ready operational data.",
+      built: "Building ETL/ELT workflows, data-quality checks, KPI dashboards, and predictive delay and disruption models.",
+    },
+    study: {
+      today: [
+        "Building an airline operations data pipeline with Python, SQL, PostgreSQL, and AWS.",
+        "Creating ETL/ELT workflows and data-quality checks to prepare raw flight data for analysis.",
+        "Designing Tableau and Excel dashboards for operational KPIs, delays, disruptions, and performance trends.",
+        "Developing predictive models for flight-delay and disruption risk from historical operations and weather data.",
+      ],
+    },
+  },
+  {
     slug: "bravos",
     title: "BravOS",
     tagline: "An adaptive AI workspace that assembles itself around what you're trying to do.",
@@ -214,6 +238,7 @@ export const projects: Project[] = [
     lenses: ["fullstack"],
     stack: ["Next.js", "React", "TypeScript", "Tailwind CSS", "Git/GitHub"],
     links: { github: "https://github.com/tannermayfield/tech-portfolio" },
+    image: "/images/tech-portfolio-preview.png",
     card: { problem: "A resume can't show how I think.", built: "A data-driven static site with a focus lens that reorders content." },
     study: {},
   },

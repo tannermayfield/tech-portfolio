@@ -5,16 +5,17 @@ import { roles } from "@/data/profile";
 import { Reveal } from "./Reveal";
 
 const isCurrent = (dates: string) => dates.trim().endsWith("Present");
+const experienceRoles = roles.filter((role) => role.kind === "work" || role.kind === "volunteer");
 
 // Desktop: company list on the left, selected role on the right. Mobile: stacked cards.
 export function ExperienceTabs() {
   const [active, setActive] = useState(0);
-  const r = roles[active];
+  const r = experienceRoles[active];
 
   return (
     <>
       <div className="flex flex-col gap-4 lg:hidden">
-        {roles.map((role, i) => (
+        {experienceRoles.map((role, i) => (
           <Reveal key={role.tab} delay={i * 100}>
             <div className="rounded-2xl border border-white/10 bg-moonstone-dim p-4 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-moonstone/30">
               <div className="mb-1 flex items-start justify-between gap-2">
@@ -47,7 +48,7 @@ export function ExperienceTabs() {
 
       <div className="hidden lg:flex lg:gap-12 xl:gap-24">
         <div role="tablist" aria-label="Experience" aria-orientation="vertical" className="flex w-1/3 flex-col gap-3">
-          {roles.map((role, i) => (
+          {experienceRoles.map((role, i) => (
             <button
               key={role.tab}
               type="button"

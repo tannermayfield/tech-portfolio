@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 import { Ambient } from "@/components/Ambient";
-import { Footer } from "@/components/Footer";
 import { SideNav } from "@/components/SideNav";
 import { SocialRail } from "@/components/SocialRail";
 import { profile } from "@/data/profile";
@@ -37,7 +36,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <SideNav />
             <main id="main" className="flex-1 px-6 lg:ml-[80px] lg:mr-[80px] lg:pl-5 lg:pr-5 xl:ml-[120px] xl:mr-[120px]">
               {children}
-              <Footer />
             </main>
             <SocialRail />
           </div>

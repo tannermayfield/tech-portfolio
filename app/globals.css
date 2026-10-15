@@ -87,18 +87,41 @@ body {
   color: #04080f !important;
 }
 
-/* Hero: the word after "Crafting with" ticks through a list (the last row repeats the first,
-   so the loop is seamless). Written for 5 rows of 1.2em. */
+@property --fun-outline-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.fun-outline-button {
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+    conic-gradient(from var(--fun-outline-angle), #3b82f6, #22c55e, #3b82f6, #22c55e, #3b82f6) border-box;
+  box-shadow: 0 0 14px #3b82f633, 0 0 20px #22c55e22;
+  animation: fun-outline-spin 4s linear infinite;
+}
+.fun-outline-button:hover {
+  box-shadow: 0 0 20px #3b82f680, 0 0 30px #22c55e55;
+}
+
+@keyframes fun-outline-spin {
+  to { --fun-outline-angle: 360deg; }
+}
+
+/* Hero ticker: five labels plus a repeated first row for a seamless loop. */
 @keyframes tick {
   0% { transform: translateY(0); }
-  20% { transform: translateY(0); }
-  25% { transform: translateY(-1.2em); }
-  45% { transform: translateY(-1.2em); }
-  50% { transform: translateY(-2.4em); }
-  70% { transform: translateY(-2.4em); }
-  75% { transform: translateY(-3.6em); }
-  95% { transform: translateY(-3.6em); }
-  99% { animation-timing-function: step-end; transform: translateY(-4.8em); }
+  16% { transform: translateY(0); }
+  20% { transform: translateY(-1.2em); }
+  36% { transform: translateY(-1.2em); }
+  40% { transform: translateY(-2.4em); }
+  56% { transform: translateY(-2.4em); }
+  60% { transform: translateY(-3.6em); }
+  76% { transform: translateY(-3.6em); }
+  80% { transform: translateY(-4.8em); }
+  96% { transform: translateY(-4.8em); }
+  99% { animation-timing-function: step-end; transform: translateY(-6em); }
   100% { transform: translateY(0); }
 }
 
@@ -152,6 +175,7 @@ body {
   .reveal { opacity: 1; transform: none; transition: none; }
   .rise, .swap, .menu-in { animation: none; opacity: 1; transform: none; }
   .nudge { animation: none; }
+  .fun-outline-button { animation: none; }
   .ticker { animation: none !important; }
   * { transition-duration: 0.01ms !important; }
 }
