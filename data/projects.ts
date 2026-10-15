@@ -104,7 +104,7 @@ export const projects: Project[] = [
   },
   {
     slug: "skill-projects",
-    title: "Skill Projects",
+    title: "AppliedLoop",
     tagline: "Connects career goals to skills, learning, projects, and evidence.",
     status: "In Development",
     statusConfirmed: false,
@@ -140,7 +140,7 @@ export const projects: Project[] = [
   },
   {
     slug: "language-learning",
-    title: "Adaptive Language Learning",
+    title: "Polybot",
     tagline: "AI-powered language learning built around personalization, not a copy of existing apps.",
     status: "In Development",
     statusConfirmed: false,
@@ -166,64 +166,6 @@ export const projects: Project[] = [
         "Adapt to the learner's weaknesses, learning style, progress, and goals.",
         "Target the region or accent the learner wants.",
         "Learn which exercise types work best for each learner.",
-      ],
-    },
-  },
-  {
-    slug: "gospel-study",
-    title: "Gospel Study App",
-    tagline: "Scripture study that keeps the reading at the center.",
-    status: "Prototype",
-    statusConfirmed: false,
-    tier: "featured",
-    order: 4,
-    lenses: ["fullstack"],
-    stack: [], // TODO(Tanner)
-    links: {},
-    card: {
-      problem: "Deep scripture study means constantly leaving the text for definitions, context, and notes.",
-      built: "Focused on a reading-first experience. Planned: tap an unfamiliar or Latter-day Saint-specific word for a clear contextual definition.",
-    },
-    study: {
-      problem: "Studying scripture deeply usually means leaving the reading to look things up.",
-      targetUser: "Individuals, teachers, and speakers preparing personal study, lessons, or talks.",
-      productDecisions: ["The reading content stays central. Study tools come to the reader instead of sending them away."],
-      vision: [
-        "Click an unfamiliar or Latter-day Saint-specific word for a clear contextual definition.",
-        "Historical context, cross-references, notes, people and places.",
-        "Lesson preparation, talk preparation, and Come, Follow Me study support.",
-      ],
-      // TODO(Tanner): which of these work today, and confirm status.
-    },
-  },
-  {
-    slug: "lecture-app",
-    title: "Lecture App",
-    tagline: "Connecting the live lecture to what students learn afterward. Working names: LectConnect, Lexure.",
-    status: "Research",
-    statusConfirmed: true,
-    tier: "exploring",
-    order: 5,
-    lenses: ["ai", "data"],
-    stack: [],
-    links: {},
-    card: {
-      problem: "In lectures, students listen, follow slides, and take notes at once, and context gets lost.",
-      built: "Concept and research stage. Not a built application.",
-    },
-    study: {
-      problem: "During a lecture students must listen, understand, navigate slides, and take notes simultaneously, so important context is lost.",
-      targetUser: "Students in lecture-based classes, and the teachers who run them.",
-      mvpScope: [
-        "Teachers create a class section and upload slides",
-        "Students follow slides and can go back and forward when allowed",
-        "A button returns students to the teacher's current slide",
-        "Teachers can optionally restrict navigation",
-      ],
-      vision: [
-        "Teacher speech is transcribed and shown alongside the current slide.",
-        "Student questions could be captured into the lecture transcript.",
-        "Slides + transcript + notes generate summaries, key concepts, study questions, flashcards, practice, and application exercises.",
       ],
     },
   },

@@ -87,7 +87,7 @@ export function SideNav() {
               {it.name}
               <span
                 aria-hidden="true"
-                className={`absolute bottom-[-4px] left-0 h-[1px] w-full origin-left bg-white transition-transform duration-300 ease-out ${
+                className={`absolute bottom-0 left-0 h-[1px] w-full origin-left bg-white transition-transform duration-300 ease-out ${
                   isActive(it.id) ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
                 }`}
               />

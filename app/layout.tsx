@@ -12,7 +12,7 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-src", d
 
 export const metadata: Metadata = {
   metadataBase: new URL(`https://${profile.domain}`),
-  title: { default: `${profile.name} | BYU Information Systems, software engineering`, template: `%s · ${profile.name}` },
+  title: { default: `${profile.name} - Portfolio`, template: `%s | ${profile.name} - Portfolio` },
   description:
     "Tanner Mayfield is a BYU Information Systems student building AI-assisted, full-stack software. Projects, case studies, and evidence.",
   openGraph: { title: profile.name, description: profile.headline, type: "website" },
