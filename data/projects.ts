@@ -18,6 +18,7 @@ export type Project = {
   links: { github?: string; demo?: string };
   /** TODO(Tanner): path to a real screenshot in /public (e.g. "/images/bravos.png"). Until set, a placeholder panel shows. */
   image?: string;
+  hasCaseStudy?: boolean;
   card: { problem: string; built: string; learned?: string };
   /** Case-study sections (the agreed structure). Missing ones are not rendered. */
   study: Partial<{
@@ -41,12 +42,12 @@ export type Project = {
 export const projects: Project[] = [
   {
     slug: "airline-operations",
-    title: "Airline Operations Intelligence Platform",
+    title: "Airline Intelligence",
     tagline: "A data pipeline and analytics platform for airline operations.",
     status: "In Development",
     statusConfirmed: true,
     tier: "featured",
-    order: 0,
+    order: 1,
     lenses: ["data", "ai", "fullstack"],
     stack: ["Python", "SQL", "PostgreSQL", "AWS", "Tableau", "Excel"],
     links: {},
@@ -70,7 +71,7 @@ export const projects: Project[] = [
     status: "In Development",
     statusConfirmed: false,
     tier: "featured",
-    order: 1,
+    order: 2,
     lenses: ["ai", "fullstack", "data"],
     stack: ["Codex", "Claude Code"], // TODO(Tanner): confirm full stack (frontend, backend, DB, hosting)
     links: {}, // TODO(Tanner): repo / demo
@@ -109,7 +110,7 @@ export const projects: Project[] = [
     status: "In Development",
     statusConfirmed: false,
     tier: "featured",
-    order: 2,
+    order: 3,
     lenses: ["fullstack", "data"],
     stack: [], // TODO(Tanner)
     links: {},
@@ -145,7 +146,7 @@ export const projects: Project[] = [
     status: "In Development",
     statusConfirmed: false,
     tier: "featured",
-    order: 3,
+    order: 0,
     lenses: ["ai", "fullstack"],
     stack: ["JavaScript", "HTML/CSS", "Codex", "Claude Code"],
     links: {},
@@ -173,7 +174,8 @@ export const projects: Project[] = [
     slug: "tech-portfolio",
     title: "This Portfolio",
     tagline: "A real project: Next.js, Tailwind, and an interface that adapts to the visitor.",
-    status: "In Development",
+    status: "Live",
+    hasCaseStudy: false,
     statusConfirmed: true,
     tier: "self",
     order: 6,

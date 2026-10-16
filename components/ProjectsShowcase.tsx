@@ -5,15 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import { lensInfo, type Project } from "@/data/projects";
 import { Icon } from "./Icon";
 import { ProjectPreview } from "./ProjectPreview";
+import { StatusBadge } from "./StatusBadge";
+import { observeViewport } from "@/lib/observeViewport";
 
-const pad = (n: number) => String(n).padStart(2, "0");
 const tag =
   "cursor-default rounded-full border border-white/20 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-white/50 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-white/5";
 const pill =
   "flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 backdrop-blur-md";
 const pillLabel = "text-[10px] font-bold uppercase tracking-[0.2em]";
 
-const tagsFor = (p: Project) => [p.status, ...(p.stack.length ? p.stack : p.lenses.map((l) => lensInfo[l].label))];
+const tagsFor = (p: Project) => p.stack.length ? p.stack : p.lenses.map((l) => lensInfo[l].label);
 
 // Desktop: the left column is sticky and swaps as the previews scroll past on the right.
 // Mobile: a simple stacked list. Links (case study, GitHub, demo) are real anchors in both.
@@ -23,28 +24,24 @@ export function ProjectsShowcase({ projects }: { projects: Project[] }) {
   const n = projects.length;
 
   useEffect(() => {
-    let raf = 0;
+    const el = track.current;
+    if (!el) return;
     const update = () => {
-      raf = 0;
-      const el = track.current;
-      if (!el || el.offsetParent === null) return; // hidden below lg
-      const rect = el.getBoundingClientRect();
-      const total = rect.height - window.innerHeight;
-      const p = total > 0 ? Math.min(1, Math.max(0, -rect.top / total)) : 0;
-      const next = Math.round(p * (n - 1));
+      if (el.getClientRects().length === 0) return; // hidden below lg
+      const middle = window.innerHeight / 2;
+      let next = 0;
+      let distance = Infinity;
+      Array.from(el.children).forEach((preview, i) => {
+        const rect = preview.getBoundingClientRect();
+        const current = Math.abs(rect.top + rect.height / 2 - middle);
+        if (current < distance) {
+          next = i;
+          distance = current;
+        }
+      });
       setIndex((cur) => (cur === next ? cur : next));
     };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      cancelAnimationFrame(raf);
-    };
+    return observeViewport(update, el);
   }, [n]);
 
   const cur = projects[index];
@@ -66,14 +63,8 @@ export function ProjectsShowcase({ projects }: { projects: Project[] }) {
             </div>
           </div>
           <div className="flex flex-1 flex-col justify-center pr-12">
-            <div className="mb-3 flex items-center font-mono text-sm tracking-[0.3em] text-white/40" aria-live="polite">
-              <span>[</span>
-              <span className="px-3">{pad(index + 1)}</span>
-              <span>/</span>
-              <span className="px-3">{pad(n)}</span>
-              <span>]</span>
-            </div>
             <div key={cur.slug} className="swap">
+              <div className="mb-4 flex justify-start"><StatusBadge status={cur.status} /></div>
               <h3 className="mb-4 max-w-[90%] break-words text-2xl font-bold uppercase leading-tight tracking-tight text-white xl:text-3xl">{cur.title}</h3>
               <p className="mb-3 max-w-[90%] text-sm leading-relaxed text-white/60">{cur.tagline}</p>
               <p className="mb-6 max-w-[90%] text-sm leading-relaxed text-white/40">{cur.card.built}</p>
@@ -82,28 +73,28 @@ export function ProjectsShowcase({ projects }: { projects: Project[] }) {
                   <span key={t} className={tag}>{t}</span>
                 ))}
               </div>
-              <Link
+              {cur.hasCaseStudy !== false && <Link
                 href={`/projects/${cur.slug}/`}
                 className="mt-6 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-moonstone transition-colors hover:text-white"
               >
                 Case study <Icon name="arrow-right" size={14} />
-              </Link>
+              </Link>}
             </div>
           </div>
         </div>
 
         <div ref={track} className="w-[55%]">
           {projects.map((p) => (
-            <div key={p.slug} className="flex items-center justify-end px-8" style={{ minHeight: "100svh" }}>
+            <div key={p.slug} data-project-preview={p.slug} className="flex items-center justify-end px-8" style={{ minHeight: "100svh" }}>
               <div className="relative w-full max-w-full">
                 <div aria-hidden="true" className="absolute -inset-3 rounded-2xl border border-moonstone/20" />
                 <div className="relative z-10 flex w-full items-center justify-center overflow-hidden rounded-xl border border-white/5 bg-zinc-900/20 shadow-2xl backdrop-blur-3xl">
                   <ProjectPreview project={p} />
                   <div className="absolute inset-0 z-30 flex items-center justify-center gap-3 bg-black/40 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 focus-within:opacity-100 hover:opacity-100">
-                    <Link href={`/projects/${p.slug}/`} className={`${pill} translate-y-2 transition-transform duration-300 hover:translate-y-0 focus-visible:translate-y-0`}>
+                    {p.hasCaseStudy !== false && <Link href={`/projects/${p.slug}/`} className={`${pill} translate-y-2 transition-transform duration-300 hover:translate-y-0 focus-visible:translate-y-0`}>
                       <Icon name="arrow-right" size={18} className="text-white" />
                       <span className={`${pillLabel} text-white`}>Case study</span>
-                    </Link>
+                    </Link>}
                     {p.links.github && (
                       <a href={p.links.github} target="_blank" rel="noopener noreferrer" className={`${pill} translate-y-2 transition-transform duration-300 hover:translate-y-0 focus-visible:translate-y-0`}>
                         <Icon name="github" size={18} className="text-white" />
@@ -132,12 +123,9 @@ export function ProjectsShowcase({ projects }: { projects: Project[] }) {
           </div>
         </div>
         <div className="flex w-full flex-col items-center gap-12 pt-10 sm:gap-16 sm:pt-12">
-          {projects.map((p, i) => (
+          {projects.map((p) => (
             <article key={p.slug} className="mx-auto flex w-full min-w-0 max-w-lg flex-col items-center gap-5 sm:gap-6">
               <div className="flex flex-col items-center gap-3 sm:gap-4">
-                <div className="font-mono text-xs tracking-[0.2em] text-white/40 sm:tracking-[0.3em]">
-                  [ {pad(i + 1)} / {pad(n)} ]
-                </div>
                 <h3 className="break-words text-xl font-bold uppercase leading-snug tracking-tight text-white sm:text-2xl">{p.title}</h3>
               </div>
               <div className="relative mx-auto w-full min-w-0 max-w-full">
@@ -146,6 +134,7 @@ export function ProjectsShowcase({ projects }: { projects: Project[] }) {
                   <ProjectPreview project={p} />
                 </div>
               </div>
+              <div className="flex w-full justify-start"><StatusBadge status={p.status} /></div>
               <p className="break-words text-sm leading-relaxed text-white/60 sm:text-base">{p.tagline}</p>
               <p className="break-words text-sm leading-relaxed text-white/40">{p.card.built}</p>
               <div className="flex flex-wrap justify-center gap-2">
@@ -154,9 +143,9 @@ export function ProjectsShowcase({ projects }: { projects: Project[] }) {
                 ))}
               </div>
               <div className="flex flex-wrap justify-center gap-3 pt-1">
-                <Link href={`/projects/${p.slug}/`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-white/80 transition-colors duration-300 hover:bg-white/15 hover:text-white">
+                {p.hasCaseStudy !== false && <Link href={`/projects/${p.slug}/`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-white/80 transition-colors duration-300 hover:bg-white/15 hover:text-white">
                   <span className={pillLabel}>Case study</span>
-                </Link>
+                </Link>}
                 {p.links.github && (
                   <a href={p.links.github} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-white/80 transition-colors duration-300 hover:bg-white/15 hover:text-white">
                     <Icon name="github" size={18} />

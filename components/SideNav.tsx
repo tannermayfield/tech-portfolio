@@ -13,6 +13,7 @@ const items = [
   { name: "Experience", id: "experience" },
   { name: "Fun Portfolio", id: "fun" },
 ];
+const visibleItems = items.filter((item) => item.id !== "fun");
 
 // Fixed left rail on desktop, full-screen overlay menu on mobile. On the home page it
 // scroll-spies the section under the middle of the viewport.
@@ -74,7 +75,7 @@ export function SideNav() {
     <>
       <aside className="fixed left-0 top-0 z-50 hidden h-screen w-[80px] flex-col items-start justify-center pl-4 lg:flex xl:w-[120px] xl:pl-6">
         <nav aria-label="Primary" className="flex flex-col items-start space-y-4">
-          {items.map((it) => (
+          {visibleItems.map((it) => (
             <Link
               key={it.id}
               href={`/#${it.id}`}
@@ -115,7 +116,7 @@ export function SideNav() {
           aria-label="Mobile"
           className="menu-in fixed inset-0 z-40 flex flex-col items-center justify-center gap-6 bg-black px-6 sm:gap-8 lg:hidden"
         >
-          {items.map((it) => (
+          {visibleItems.map((it) => (
             <Link
               key={it.id}
               href={`/#${it.id}`}

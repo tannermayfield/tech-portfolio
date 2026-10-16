@@ -23,7 +23,7 @@ export function Hero() {
         style={{ "--d": "0.3s" } as React.CSSProperties}
         className="rise absolute left-1/2 top-14 z-10 inline-flex -translate-x-1/2 items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-4 py-2 font-mono text-[10px] font-medium tracking-[0.08em] text-white/70 shadow-[0_0_24px_rgba(74,222,128,0.06)] sm:top-16 sm:text-xs lg:top-8"
       >
-        <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+        <span className="relative mr-[1ch] flex h-2 w-2 shrink-0" aria-hidden="true">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]" />
         </span>
@@ -74,9 +74,11 @@ export function Hero() {
           <Link href="/resume/" className={btn}>
             Resume
           </Link>
-          <CenteredScrollLink targetId="fun" className="fun-outline-button inline-flex min-h-11 items-center justify-center rounded-full px-6 py-3 text-base font-bold text-white transition-transform duration-300 hover:-translate-y-0.5 sm:px-8 sm:py-4 sm:text-lg lg:min-h-0">
-            Fun Portfolio
-          </CenteredScrollLink>
+          <div className="hidden">
+            <CenteredScrollLink targetId="fun" className="fun-outline-button inline-flex min-h-11 items-center justify-center rounded-full px-6 py-3 text-base font-bold text-white transition-transform duration-300 hover:-translate-y-0.5 sm:px-8 sm:py-4 sm:text-lg lg:min-h-0">
+              Fun Portfolio
+            </CenteredScrollLink>
+          </div>
         </div>
       </div>
 

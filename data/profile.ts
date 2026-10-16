@@ -55,9 +55,9 @@ export type Role = {
 
 export const roles: Role[] = [
   {
-    tab: "Airline Operations Intelligence Platform",
+    tab: "Airline Intelligence",
     title: "Data & AI Developer",
-    org: "Airline Operations Intelligence Platform (Individual Project)",
+    org: "Airline Intelligence (Individual Project)",
     dates: "Oct 2026 – Present",
     kind: "project",
     projectSlug: "airline-operations",

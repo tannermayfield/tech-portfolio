@@ -8,12 +8,12 @@ import { Icon } from "@/components/Icon";
 type Params = { slug: string };
 
 export function generateStaticParams(): Params[] {
-  return projects.map((p) => ({ slug: p.slug }));
+  return projects.filter((p) => p.hasCaseStudy !== false).map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const p = getProject((await params).slug);
-  return p ? { title: p.title, description: p.tagline } : {};
+  return p && p.hasCaseStudy !== false ? { title: p.title, description: p.tagline } : {};
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -35,7 +35,7 @@ const List = ({ items }: { items: string[] }) => (
 
 export default async function CaseStudy({ params }: { params: Promise<Params> }) {
   const p = getProject((await params).slug);
-  if (!p) notFound();
+  if (!p || p.hasCaseStudy === false) notFound();
   const s = p.study;
 
   return (

@@ -14,7 +14,7 @@ const btn =
 export function FunPortfolio() {
   const href = profile.links.funPortfolio;
   return (
-    <section id="fun" aria-labelledby="fun-h" className="mx-auto min-w-0 max-w-6xl px-0 py-12 sm:py-16 lg:px-6 lg:py-24">
+    <section id="fun" aria-labelledby="fun-h" className="hidden mx-auto min-w-0 max-w-6xl px-0 py-12 sm:py-16 lg:px-6 lg:py-24">
       <SectionTitle>Fun Portfolio</SectionTitle>
       <Reveal className="min-w-0 text-center">
         <h3 id="fun-h" className="mb-6 px-2 text-xs font-bold uppercase tracking-[0.25em] text-[#aaa] sm:mb-8 sm:tracking-[0.4em]">

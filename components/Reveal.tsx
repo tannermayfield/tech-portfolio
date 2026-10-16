@@ -1,36 +1,39 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { observeViewport } from "@/lib/observeViewport";
 
-// Fades children up once when they scroll into view. Content is visible without JS
-// observers firing (reduced-motion CSS) and the observer disconnects after one use.
+// Content is visible by default; the observer only adds an entrance animation.
+// Missing hydration or observer callbacks must never hide the section.
 export function Reveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (!("IntersectionObserver" in window)) {
-      el.classList.add("in");
-      return;
-    }
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          el.classList.add("in");
-          io.disconnect();
-        }
-      },
-      // threshold 0: reveal as soon as any part enters. A fractional threshold can never
-      // be met by tall blocks (e.g. the stacked project grid on phones).
-      { threshold: 0, rootMargin: "0px 0px -8% 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+    let revealed = false;
+    let animation: Animation | undefined;
+    const stop = observeViewport(() => {
+      if (revealed || el.getClientRects().length === 0) return;
+      const rect = el.getBoundingClientRect();
+      // Any visible part is sufficient, including blocks taller than the screen
+      // and the footer at the very end of the page.
+      if (rect.top >= window.innerHeight || rect.bottom <= 0) return;
+      revealed = true;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !el.animate) return;
+      animation = el.animate(
+        [{ opacity: 0, transform: "translateY(20px)" }, { opacity: 1, transform: "none" }],
+        { duration: 700, delay, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "backwards" },
+      );
+    }, el);
+    return () => {
+      stop();
+      animation?.cancel();
+    };
+  }, [delay]);
 
   return (
-    <div ref={ref} className={`reveal ${className}`} style={delay ? { transitionDelay: `${delay}ms` } : undefined}>
+    <div ref={ref} className={`reveal ${className}`}>
       {children}
     </div>
   );
