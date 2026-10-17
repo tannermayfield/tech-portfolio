@@ -8,6 +8,12 @@ export const profile = {
   headline: "Software that adapts to people, problems, and goals.",
   intro:
     "I'm an Information Systems student at Brigham Young University building AI-assisted, full-stack software. I'm looking for software engineering, AI, and full-stack internships.",
+  // About section copy, one string per paragraph (written by Tanner).
+  about: [
+    "I’m an Information Systems student at BYU’s Marriott School of Business, and I love working where data, AI automation, and problem-solving meet.",
+    "I start with data because everything else depends on it, whether that’s turning 630,000 messy flight records into a database people can trust or building the systems behind an app. From there, I use AI and software to take repetitive work off people’s plates and make processes adapt to the people using them.",
+    "My background in teaching, leadership, and bilingual communication has taught me how to understand individual needs and explain complex ideas clearly. Those experiences have shaped the way I approach problems: figure out what people need and then build the technology around it.",
+  ],
   location: "Provo, UT",
   links: {
     github: "https://github.com/tannermayfield",

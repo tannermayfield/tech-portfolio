@@ -52,21 +52,14 @@ export default function Home() {
           </Reveal>
 
           <Reveal className="w-full min-w-0 space-y-5 sm:space-y-6 md:w-3/5 lg:space-y-8">
-            <p className="break-words text-base leading-relaxed text-white sm:text-lg lg:text-xl">
-              I’m an Information Systems student at Brigham Young University who enjoys using technology to solve real business and user
-              problems. My interests span data and analytics, AI and machine learning, software development, cloud and data systems, and
-              business automation.
-            </p>
-            <p className="break-words text-base leading-relaxed text-white sm:text-lg lg:text-xl">
-              I’m especially interested in understanding how data moves through systems, how AI can improve workflows and decision-making,
-              and how technology can make complex processes more efficient. Through coursework and personal projects, I’m building hands-on
-              experience with Python, SQL, relational databases, analytics, AI-assisted development, and cloud technologies.
-            </p>
-            <p className="break-words text-base leading-relaxed text-white/90 sm:text-lg lg:text-xl">
-              My background in teaching, leadership, and bilingual communication has also taught me how to understand individual needs,
-              explain complex ideas clearly, and work effectively with people—not just technology. Long term, I want to grow into a technology
-              leader who can connect technical systems with the people and organizations they serve.
-            </p>
+            {profile.about.map((paragraph, i) => (
+              <p
+                key={i}
+                className={`break-words text-base leading-relaxed sm:text-lg lg:text-xl ${i === 0 ? "text-white" : "text-white/90"}`}
+              >
+                {paragraph}
+              </p>
+            ))}
           </Reveal>
         </div>
 
