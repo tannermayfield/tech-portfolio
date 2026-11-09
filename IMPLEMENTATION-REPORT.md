@@ -36,3 +36,7 @@ Edit the standalone app, then run `node scripts/sync-session-tv.mjs` from the po
 ## Costs
 
 No paid service or API billing was activated. GitHub Pages, browser-local demo storage and the initial Supabase free plan minimize cost. Monitor Supabase database/egress/auth/email limits and inactivity pausing; production email or growth may add charges. Codex uses the owner's ChatGPT-managed account subject to plan limits and local machine costs. General-chat authorization remains unavailable, with no automatic paid fallback. See official current [Supabase pricing](https://supabase.com/pricing) and [OpenAI integration guidance](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt).
+
+## Published deployment
+
+Commit `975a3aef6c91f1c6ed2c463bad0d966930ae4ac6` was pushed to main. [GitHub Actions run 42570905142](https://github.com/tannermayfield/tech-portfolio/actions/runs/42570905142) passed both build and deploy, including CI installation, all Session TV tests, syntax checks, portfolio type checking and the combined production build. Live checks returned HTTP 200 for the homepage, `/session-tv/`, its config/bootstrap/cloud scripts and styles, the authentic preview image and the pre-existing Airline Intelligence project page. The deployed homepage contains Session TV, and the deployed client config identifies the supplied Supabase project. The database migration and private account setup remain pending as listed above.
