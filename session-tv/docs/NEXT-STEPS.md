@@ -1,33 +1,38 @@
-# Finish Session TV setup
+# Username and password sign-in
 
-## Enter your records manually
+The app now opens My Workspace with **Username**, **Password**, **Show/Hide**, and **Sign In**. **Use email instead** switches to email/password for initial setup. There is no email code or magic-link template requirement for ordinary password sign-ins. Account confirmation and password recovery remain email/account-administration concerns.
 
-The old local records are incorrect and must not be imported or published. Backup/import controls have been removed from Settings. The public preview remains read-only with clearly labeled sample records until a separate approved snapshot is published.
+## Required Supabase setup
 
-1. Apply `supabase/migrations/202611080001_session_tv.sql` once in your Supabase project's SQL Editor, if you have not already done so.
-2. Complete email-code configuration below.
-3. Open https://tannermayfield.dev/session-tv/, choose **My Workspace**, request a sign-in code and enter it.
-4. In your signed-in private workspace, choose **Settings → My Database → Assignments, Skills or Projects → Add** and enter your correct records. These records belong to your Supabase account. Private changes are not automatically published to the public preview.
+1. Apply the base app migration `supabase/migrations/202611080001_session_tv.sql` if it has not been applied. Then apply `supabase/migrations/202611090001_username_login.sql` in the project's SQL Editor.
+2. Deploy the `username-login` Supabase Edge Function. From this app's source folder, with an authorized Supabase CLI session:
 
-## Why the Magic Link template is locked
-
-Supabase's [June 3, 2026 change](https://supabase.com/changelog/46599-changes-to-email-template-customisation-on-free-tier) prevents newer free-tier projects using its built-in email sender from editing authentication templates. The earlier instruction to simply edit the body missed this restriction. Custom SMTP unlocks template editing on the free plan; a paid Supabase upgrade is not required for that route.
-
-1. Set up an external email provider and verify its sending address/domain as required by that provider. Obtain its SMTP host, port, username and password.
-2. In your Supabase project's **Authentication → Email / SMTP Settings**, enable **Custom SMTP**, enter those SMTP details plus the sender name/address and save. Dashboard labels can vary; look for SMTP configuration under authentication email settings. SMTP credentials stay in Supabase, not browser code.
-3. Open **Authentication → Emails → Templates → Magic Link**. Switch from preview to the body/code editor and use:
-
-   ```html
-   <p>Your Session TV sign-in code is {{ .Token }}</p>
+   ```powershell
+   supabase functions deploy username-login --project-ref tghzpzecxwerhwxoljkd
    ```
 
-4. Save, then request a fresh code from Session TV. An email already sent will not change.
-5. Under **Authentication → URL Configuration**, set Site URL to `https://tannermayfield.dev/session-tv/` and add that URL to allowed redirects. The current code flow does not use a redirect, but this prepares later magic-link support.
+   `supabase/config.toml` disables the pre-login JWT check only for this function, because the person does not have a session yet. The handler checks the supplied password through Supabase Auth, restricts browser origin and applies database-backed attempt limits. Supabase-managed function secrets supply its URL, anon key and service-role key; no administrator secret belongs in browser code or the repository. The production allowed origin defaults to `https://tannermayfield.dev`; set `SESSIONTV_ALLOWED_ORIGIN` only for an intentionally different deployment.
+3. Create your owner account with an email and password in **Supabase Authentication → Users**, or add a password to your existing account through a supported trusted account-management/recovery flow. Use the existing account UUID if there is already an account; do not create a duplicate just to get a username. Confirm the email according to the project's authentication settings. Keep the password private; it is not needed in this chat.
+4. Open the hosted app → **My Workspace → Use email instead**. Sign in with your email and password.
+5. In My Workspace, enter your preferred username under **Your username** and click **Save username**. Next time you can sign in with that username and the same password. Username matching is case-insensitive; allowed names are 3–32 letters, numbers, dots, underscores and hyphens, starting with a letter or number.
+6. Enter your correct courses, assignments, skills and projects through **Settings → My Database**. The incorrect local records are not imported or published. The public preview remains a separate read-only snapshot.
 
-[Supabase SMTP documentation](https://supabase.com/docs/guides/auth/auth-smtp) explains sender setup and built-in sender restrictions. The built-in sender is intended for testing, permits only project-team addresses and is rate-limited. External email-provider pricing/limits depend on that provider; no paid service has been activated by these code changes.
+The username migration and Edge Function cannot be deployed using the frontend publishable key; they need an authorized Supabase account/CLI connection. Until that setup is complete, the form is available to view, but true username sign-in is not operational. Email/password sign-in uses Supabase Auth directly and requires an account with a password. Base database setup is still required to load the private workspace.
 
-The app currently expects an emailed code. Keeping Supabase's default clickable-link email would require adding magic-link callback handling to the app; changing a dashboard URL alone does not implement that flow. Do not attempt to bypass Supabase's template restriction through its API.
+## Security and behavior
 
-## Optional AI
+- Supabase Auth stores and verifies passwords. The app does not keep passwords in localStorage or its database.
+- Email/password goes directly to the official Auth password endpoint. Username/password goes to the same project's Edge Function, which privately resolves the account email and forwards the password to Supabase Auth. Passwords and lookup emails are never logged or returned in an unauthenticated lookup response.
+- `private.stv_usernames` is not an anonymous email directory. Users can get/change only their own username through owner-checked functions. The lookup RPC is executable only by the service role on the server.
+- The login endpoint returns the same failure for unknown usernames and wrong passwords. Persistent limits allow 10 attempts per username and 30 per forwarded client-IP key in 10 minutes. The platform-provided forwarded-IP header is an additional signal; the username limit remains enforced independently. Limiter keys are HMACs, not stored raw emails/IP addresses. Supabase's own Auth limits also apply. No unrestricted lookup fallback exists.
+- Account UUIDs, homework ownership, RLS, session refresh, sign-out and demo/agent restrictions remain unchanged. No new user is created by the sign-in form.
+- This change does not include a public registration or password-reset form. The owner must provision the account/password through supported Supabase account-management tooling. A password-reset UI can be added separately with its authenticated callback flow; a reset-email button without that flow would be incomplete.
+- Password sign-in does not enable ChatGPT/Codex. No paid AI fallback is configured.
 
-Cloud saving does not authorize ChatGPT or install the Codex companion. ChatGPT general chat remains unavailable pending integration authorization. Codex setup is documented in `docs/AI.md` and requires owner login, pairing and a supported local sandbox. Neither is needed for manually entered homework or cloud saving.
+## Testing and deployment status
+
+Client/Edge Function behavior is tested with simulated Auth responses. PostgreSQL username ownership, private lookup restrictions, collision handling and limiter behavior are tested in `supabase/tests/usernames.sql`, executed using PGlite with a minimal Auth schema. No real password was submitted or owner account created by these tests. Live username login requires the Supabase setup above.
+
+The function and SQL are included in repository source, but GitHub Pages publishes only `public/`. Function invocations count toward Supabase's limits; no paid plan, email provider or API billing was enabled.
+
+Official references: [password auth](https://supabase.com/docs/guides/auth/passwords), [Edge Function secrets](https://supabase.com/docs/guides/functions/secrets), [function authorization](https://supabase.com/docs/guides/functions/auth).

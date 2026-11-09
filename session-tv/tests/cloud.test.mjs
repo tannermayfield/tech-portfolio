@@ -19,11 +19,19 @@ const session={access_token:'access',refresh_token:'refresh',expires_at:Math.flo
 test('unconfigured demo makes no cloud requests and cannot open private data',async()=>{
  const app=boot();await app.cloud.ready;assert.equal(app.calls.length,0);assert.equal(app.cloud.user,null);await assert.rejects(app.cloud.open(),/Sign in/);
 });
-test('OTP uses email auth and never configures paid inference',async()=>{
- const app=boot({configured:true});await app.cloud.signIn('learner@example.com');
- assert.match(app.calls[0].url,/\/auth\/v1\/otp$/);assert.equal(app.calls[0].headers.apikey,'sb_publishable_test');
- assert.equal(app.calls[0].headers.Authorization,undefined);assert.deepEqual(JSON.parse(app.calls[0].body),{email:'learner@example.com',create_user:true});
+test('email password login uses official Auth endpoint and stores no password',async()=>{
+ const app=boot({configured:true,handler:url=>url.endsWith('/user')?{id:'owner-id'}:session});await app.cloud.signInWithPassword('learner@example.com','example-password');
+ assert.match(app.calls[0].url,/\/auth\/v1\/token\?grant_type=password$/);assert.equal(app.calls[0].headers.apikey,'sb_publishable_test');assert.equal(app.calls[0].headers.Authorization,undefined);assert.deepEqual(JSON.parse(app.calls[0].body),{email:'learner@example.com',password:'example-password'});assert.equal(app.cloud.user.id,'owner-id');assert.equal(app.context.localStorage.getItem('sessiontv.auth.v1').includes('example-password'),false);
 });
+
+test('username password login resolves only through the private server endpoint',async()=>{
+ const app=boot({configured:true,handler:url=>url.endsWith('/user')?{id:'owner-id'}:session});await app.cloud.signInWithPassword('My.User','example-password');assert.match(app.calls[0].url,/\/functions\/v1\/username-login$/);assert.deepEqual(JSON.parse(app.calls[0].body),{username:'my.user',password:'example-password'});assert.equal(app.calls.some(c=>c.url.includes('lookup_login_email')),false);assert.equal(app.context.SessionWorkspace.id,'owner-id');
+});
+
+test('failed password verification never opens a private workspace or stores a session',async()=>{
+ const app=boot({configured:true,handler:()=>({status:401,body:{error:'Incorrect username or password.'}})});await assert.rejects(app.cloud.signInWithPassword('student','wrong'),/Incorrect/);assert.equal(app.cloud.user,null);assert.equal(app.context.localStorage.getItem('sessiontv.auth.v1'),null);assert.equal(app.context.SessionWorkspace.id,undefined);
+});
+
 test('authenticated writes use owner-scoped RPC and failed writes do not commit local data',async()=>{
  const app=boot({configured:true,session,handler:url=>url.endsWith('/user')?{id:'owner-id'}:url.endsWith('sessiontv_snapshot')?{database:{tasks:{first:{title:'Saved'}}},preferences:{'sb.ws.first':'draft'}}:{status:403,body:{message:'denied by RLS'}}});
  const db=await app.cloud.open();assert.equal(app.context.SessionWorkspace.id,'owner-id');assert.equal(app.context.SessionWorkspace.preferences['sb.ws.first'],'draft');

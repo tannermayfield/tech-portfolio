@@ -1,0 +1,4 @@
+# Password sign-in occurs before there is a user JWT. The function verifies
+# credentials with Supabase Auth and rate-limits requests itself.
+[functions.username-login]
+verify_jwt = false

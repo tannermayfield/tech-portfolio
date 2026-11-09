@@ -1,4 +1,4 @@
-> Current update: Backup/import controls have been removed from Settings. The owner will enter correct records manually in Supabase; incorrect local records will not be imported or published. The public preview stays read-only. Email-code setup requires custom SMTP on newer free-tier projects to unlock template editing; the earlier setup instructions missed that restriction. See [simple next steps](session-tv/docs/NEXT-STEPS.md).
+> Current update: My Workspace now shows a username/password form with an email/password fallback. Supabase Auth verifies passwords; aliases use a private username table, owner-only alias management and a server-side username-login Edge Function with generic failures and durable attempt limits. Both source and tests are implemented; live username login still requires applying the added migration, deploying the function and provisioning the owner password/account. No real password was used in tests. Backup/import controls remain removed and incorrect local records are not migrated. See [current setup](session-tv/docs/NEXT-STEPS.md).
 
 # Session TV integration report
 

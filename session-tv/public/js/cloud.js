@@ -11,7 +11,10 @@
   if(auth){await refresh();if(!session?.access_token)throw new Error('Sign in to your private workspace first.');}
   const response=await fetch(url+route,{method,headers:{apikey:key,'Content-Type':'application/json',...(auth?{Authorization:'Bearer '+session.access_token}:{})},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
   const text=await response.text();let data;try{data=text?JSON.parse(text):null}catch{throw new Error('Supabase returned an invalid response.');}
-  if(!response.ok)throw new Error(data?.msg||data?.message||data?.error_description||data?.error||'Cloud request failed ('+response.status+').');
+  if(!response.ok){
+   if(route==='/functions/v1/username-login'&&response.status===404)throw new Error('Username sign-in needs account setup. Use email sign-in until the username service is deployed.');
+   throw new Error(data?.msg||data?.message||data?.error_description||data?.error||'Cloud request failed ('+response.status+').');
+  }
   return data;
  }
  function saveSession(value){
@@ -29,9 +32,12 @@
   await refreshing;
  }
  async function activate(value){
-  saveSession(value);const user=await request('/auth/v1/user');session.user=user;
-  globalThis.SessionWorkspace?.setPrivate?.(user.id);
-  return user;
+  const previous=session;
+  session={...value,expires_at:Number(value.expires_at)||Math.floor(Date.now()/1000)+Number(value.expires_in||3600)};
+  try{
+   const user=await request('/auth/v1/user');if(!user?.id)throw new Error('Account verification failed.');
+   saveSession({...session,user});globalThis.SessionWorkspace?.setPrivate?.(user.id);return user;
+  }catch(e){session=previous;throw e;}
  }
  const ready=(async()=>{
   if(!configured)return;
@@ -82,8 +88,22 @@
  globalThis.SessionCloud={configured,ready,open,validateBackup,get user(){return signingOut?null:session?.user||null;},
   async accessToken(){await ready;await refresh();return session?.user?session.access_token:null;},
   async getAccessToken(){await ready;await refresh();if(!session?.user)throw new Error('Sign in first.');return session.access_token;},
-  async signIn(email){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error('Enter a valid email address.');await request('/auth/v1/otp',{method:'POST',auth:false,body:{email,create_user:true}});},
-  async verifyOTP(email,token){const value=await request('/auth/v1/verify',{method:'POST',auth:false,body:{email,token,type:'email'}});await activate(value);location.reload();},
+  async signInWithPassword(identifier,password){
+   identifier=String(identifier||'').trim();
+   if(!password||typeof password!=='string'||password.length>1024)throw new Error('Enter your password.');
+   let value;
+   if(identifier.includes('@')){
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier))throw new Error('Enter a valid email address.');
+    value=await request('/auth/v1/token?grant_type=password',{method:'POST',auth:false,body:{email:identifier,password}});
+   }else{
+    if(!/^[a-z0-9][a-z0-9_.-]{2,31}$/i.test(identifier))throw new Error('Enter a username of 3–32 letters, numbers, dots, underscores or hyphens.');
+    value=await request('/functions/v1/username-login',{method:'POST',auth:false,body:{username:identifier.toLowerCase(),password}});
+   }
+   // Persist only session tokens; never store the submitted password.
+   await activate(value);location.reload();
+  },
+  async getUsername(){await ready;return rpc('sessiontv_get_username');},
+  async setUsername(username){await ready;return rpc('sessiontv_set_username',{new_username:String(username||'').trim().toLowerCase()});},
   async signOut(){await ready;signingOut=true;database?.unsubscribe?.();if(database)clearInterval(database.timer);try{await database?.flush();if(session)await request('/auth/v1/logout',{method:'POST'});}finally{saveSession(null);globalThis.SessionWorkspace?.clearPrivate?.();location.reload();}},
   async exportBackup(){const db=await open();await db.flush();const snap=await rpc('sessiontv_snapshot');return {format:'session-tv-backup',version:1,createdAt:new Date().toISOString(),values:{[SessionStore.KEY]:JSON.stringify(snap.database),...snap.preferences}};},
   async importBackup(backup){validateBackup(backup);const db=await open();await db.flush();const result=await rpc('sessiontv_import',{backup_values:backup.values});await db.load();return result;}

@@ -10,9 +10,9 @@ The portfolio includes a deployable snapshot of this source in `tech-portfolio/s
 
 ## Demo and private workspace
 
-The public preview is read-only. It loads a deliberately published static snapshot and keeps navigation state in memory; old editable demo storage is ignored. Record writes, editing controls and AI actions are blocked. It never reads original local data or private cloud records. Sample records remain until the owner supplies the original JSON export. See [simple setup steps](docs/NEXT-STEPS.md). Ordinary navigation uses the existing hashes, so refresh/back/forward work on GitHub Pages without a server rewrite.
+The public preview is read-only. It loads a deliberately published static snapshot and keeps navigation state in memory; old editable demo storage is ignored. Record writes, editing controls and AI actions are blocked. It never reads original local data or private cloud records. Sample records remain until a reviewed snapshot of the corrected Supabase records is published. See [simple setup steps](docs/NEXT-STEPS.md). Ordinary navigation uses the existing hashes, so refresh/back/forward work on GitHub Pages without a server rewrite.
 
-My Workspace uses Supabase email OTP. Public project credentials are configured in `public/js/config.js`. Apply the schema and configure the email code template before private sign-in. Private app data and drafts load from owner-scoped Supabase tables; only the Supabase account session is browser-persisted separately. Signing out clears private memory and reloads the demo on the hosted route.
+My Workspace supports username/password and email/password sign-in through Supabase Auth. Username aliases require the additional migration and username-login Edge Function. See the current account setup guide; actual passwords stay private. Private app data and drafts load from owner-scoped Supabase tables; only the Supabase account session is browser-persisted separately. Signing out clears private memory and reloads the hosted preview.
 
 See [cloud setup](docs/CLOUD.md) and [simple next steps](docs/NEXT-STEPS.md). Enter correct records manually after signing in. The old local data is incorrect and will not be migrated or published; Settings no longer offers backup/import controls.
 

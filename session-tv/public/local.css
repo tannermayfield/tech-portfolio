@@ -14,4 +14,6 @@
 #companion-log{white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;font-size:11px}.workspace-error{position:fixed;inset:20%;padding:30px;background:#251d16;color:#fff;z-index:9999}
 @media(max-width:600px){#workspace-banner{top:3px;gap:7px;font-size:10px}.local-panel{max-height:80vh}}
 .local-panel details{margin:18px 0;border:1px solid #87765e;border-radius:8px;padding:12px}.local-panel summary{cursor:pointer;font-weight:600}.local-panel [hidden]{display:none!important}
-body[data-readonly="true"] #local-setup .local-actions{display:none}
+body[data-readonly="true"] #local-setup .local-panel > .local-actions{display:none}
+.password-field{display:flex;align-items:center;gap:8px}.password-field input{flex:1;min-width:0}.password-field .btn{flex:none}#workspace-signin{min-width:110px}#workspace-auth>p{margin-top:12px}
+#workspace-auth input,#workspace-profile input{background:var(--modal,#fffbf4);color:var(--ink,#1e3a44);border-color:var(--muted,#687b7f)}
