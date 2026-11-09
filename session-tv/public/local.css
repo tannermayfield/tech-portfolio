@@ -1,0 +1,15 @@
+/* Small additions for standalone setup; styles.css is the supplied TV design. */
+#local-setup{max-width:min(600px,calc(100% - 32px));width:600px;padding:0}
+.local-panel{padding:22px;overflow:auto;max-height:min(70vh,600px)}
+.local-panel h3{margin-top:20px}
+.local-actions{display:flex;flex-wrap:wrap;gap:8px}
+.local-import{position:relative;overflow:hidden;cursor:pointer}
+.local-import input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.local-panel p{line-height:1.5}
+#toast{z-index:10000;max-width:min(540px,90vw);overflow-wrap:anywhere}
+@media(max-width:700px){.local-panel{padding:15px}.local-panel h2{font-size:23px}.local-actions .btn{font-size:12px}}
+#workspace-banner{position:fixed;z-index:100;top:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:5px 12px;border:1px solid #a88c60;border-radius:12px;background:#251d16;color:#f4e4c8;font:12px system-ui;box-shadow:0 2px 12px #0005;max-width:95vw;white-space:nowrap}
+#workspace-banner .btn{font-size:11px;min-height:28px;padding:3px 9px}
+.local-panel label{display:block;margin:10px 0;font-size:13px}.local-panel input,.local-panel select,.local-panel textarea{display:block;width:100%;max-width:100%;box-sizing:border-box;margin:5px 0;padding:8px;background:var(--panel,#29231f);color:inherit;border:1px solid #87765e;border-radius:6px}
+#companion-log{white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;font-size:11px}.workspace-error{position:fixed;inset:20%;padding:30px;background:#251d16;color:#fff;z-index:9999}
+@media(max-width:600px){#workspace-banner{top:3px;gap:7px;font-size:10px}.local-panel{max-height:80vh}}

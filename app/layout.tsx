@@ -1,14 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Poppins } from "next/font/google";
+import "./fonts.css";
 import "./globals.css";
 import { Ambient } from "@/components/Ambient";
 import { SideNav } from "@/components/SideNav";
 import { SocialRail } from "@/components/SocialRail";
 import { profile } from "@/data/profile";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter-src", display: "swap" });
-const poppins = Poppins({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-poppins-src", display: "swap" });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-src", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(`https://${profile.domain}`),
@@ -22,7 +18,7 @@ export const viewport: Viewport = { themeColor: "#04080f", colorScheme: "dark" }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${poppins.variable} ${mono.variable}`}>
+    <html lang="en">
       <body className="bg-[#04080f]">
         <div className="relative min-h-screen selection:bg-moonstone/30 selection:text-moonstone-light">
           <a

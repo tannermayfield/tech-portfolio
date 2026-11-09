@@ -1,0 +1,38 @@
+# Session TV integration report
+
+## Implemented
+
+- The existing Next.js portfolio and vanilla JavaScript Session TV remain separate frameworks. Session TV is first in Projects; all previous project ordering is preserved. Desktop hover and mobile Demo links open https://tannermayfield.dev/session-tv/. The preview is an authentic running-app screenshot.
+- One GitHub Actions Pages artifact contains the portfolio at `/` and static app at `/session-tv/`. Relative assets and existing hash navigation preserve refresh/back/forward. CNAME remains `tannermayfield.dev`. Only the app public directory is hosted. Original cached portfolio fonts are self-hosted to make the production build independent of Google downloads.
+- Public demo has seven fictional assignments/skills/project tasks, isolated per-browser storage, reload persistence, Reset Demo and memory fallback. Demo cannot use private backups, cloud records, or agents. Original local origin data is preserved for export.
+- Supabase email OTP, refresh and sign-out; private in-memory application state hydrated from PostgreSQL; owner UUIDs; separate demo/private/editor/preferences storage. Public project URL/key supplied by the owner are configured. Repository variables can override public defaults.
+- PostgreSQL migration creates courses, projects, tasks, sessions, workspace state, settings, preferences, sprints, sprint-task memberships, conversations, messages and import receipts. Composite ownership foreign keys, UUIDs, timestamps, indexes, RLS on all private tables, and security-invoker RPCs protect data. Legacy identifiers and original document payloads preserve artifact compatibility.
+- Transactional import verifies records, preserves identifiers, rejects conflicting cloud data, and records an idempotency fingerprint. Cloud export includes original-compatible documents, drafts and preferences. No source browser records are deleted.
+- AI Connections separates app authentication, ChatGPT authorization and local Codex status. Companion binds loopback and requires owner Supabase verification plus one-use pairing, exact origin/host checks, explicitly selected canonical project directories and a restricted Codex permission profile. Streaming progress, file-change/command events, cancellation and errors are supported. No API billing fallback is enabled.
+
+## Not yet completed in the owner's accounts
+
+1. Apply `session-tv/supabase/migrations/202611080001_session_tv.sql` to project `tghzpzecxwerhwxoljkd`. Public Auth settings returned 200 with email enabled; `sessiontv_snapshot` returned PGRST202 (function absent). An authorized Supabase connection is required; URL/publishable key cannot apply DDL. The Supabase connector was offered but is not confirmed connected. Native dashboard access timed out.
+2. Configure the Supabase email Magic Link template to include `{{ .Token }}`, site URL and redirect allowlist as documented in `session-tv/docs/CLOUD.md`. Verify real email OTP, sign-out, two-account isolation and another-device persistence after migration. These are not reported as passed.
+3. In the original browser profile and exact local address, export a backup. Sign into the configured hosted workspace and import it. Preserve the original and compare a cloud export. Existing private browser records have not been accessed, backed up or migrated by this implementation. `Applications/session-tv/backups/pre-cloud-public` is a local source backup only.
+4. Set up a dedicated Codex profile, ChatGPT login, authorized workspace list, owner UUID and pairing. A live read-only app-server probe confirmed protocol initialization, signed-out status and the named permission profile. Thread creation refused this environment's insufficient Windows sandbox; no inference or coding turn was run. Complete official Windows sandbox setup or use a supported isolated runtime before coding. Additional permission requests are declined; reviewed actions must be performed separately.
+5. Confirm admission/eligibility for subscription-backed general chat in the hosted frontend plus local companion architecture. Official OpenAI docs distinguish identity from plan-use permission and require access for hosted apps. General chat is unavailable until authorized; no fake login/connected state, undocumented endpoints, token extraction or paid fallback is present. The Supabase schema preserves existing application conversations; it does not import ChatGPT history/memory.
+
+## Verification
+
+- Session TV: `npm run check` passed; 24 Node tests passed, including original assignment/skills/sprints/SQL/draft behavior, demo isolation/fallback, Auth/RPC errors, concurrent cloud bootstrap, stale preference responses, companion owner/origin/pairing/workspace restrictions and fail-closed permission checks.
+- PostgreSQL: migration executed in PGlite and `supabase/tests/rls.sql` passed owner isolation, forged ownership rejection, anonymous RPC denial, relational sprint/message extraction, verified/idempotent imports and conflict rollback. This is not a live production Supabase test.
+- Portfolio: `npm run typecheck`, production `npm run build`, and all five Playwright browser tests passed. No separate lint command exists in either original project. Session TV is plain JavaScript with syntax checks, not a TypeScript app.
+- Combined static output: `node scripts/verify-session-tv.mjs` passed editable/reloaded demo data, visitor isolation, hash route refresh, reset, private-agent gate, mobile controls and local asset responses; captured the authentic preview.
+
+## Files and maintenance
+
+Portfolio changes: `.github/workflows/deploy.yml`, `data/projects.ts`, `components/ProjectsShowcase.tsx`, `app/layout.tsx`, `app/fonts.css`, `public/fonts/*`, `public/images/session-tv.png`, `package.json`, `tests/home.spec.ts`, `scripts/package-session-tv.mjs`, `scripts/sync-session-tv.mjs`, `scripts/verify-session-tv.mjs`, `SESSION-TV-DEPLOYMENT.md`, this report, and the vendored `session-tv/` source.
+
+Standalone app changes: `public/index.html`, `public/local.css`, `public/js/config.js`, `workspace.js`, `cloud.js`, `boot.js`, `platform.js`, `local.js`, `companion-client.js`, numbered artifact storage references/AI labels, `companion/*`, `supabase/*`, tests, `scripts/check-cloud.mjs`, `docs/CLOUD.md`, `docs/AI.md` and `README.md`. Original artifact execution order and TV design are preserved.
+
+Edit the standalone app, then run `node scripts/sync-session-tv.mjs` from the portfolio to refresh its deployable snapshot. The script excludes credentials, dependencies and backups. CI installs/tests that snapshot, type-checks/builds the portfolio, packages `/session-tv/`, and deploys one Pages artifact. Only publishable/anon Supabase keys are accepted by the build.
+
+## Costs
+
+No paid service or API billing was activated. GitHub Pages, browser-local demo storage and the initial Supabase free plan minimize cost. Monitor Supabase database/egress/auth/email limits and inactivity pausing; production email or growth may add charges. Codex uses the owner's ChatGPT-managed account subject to plan limits and local machine costs. General-chat authorization remains unavailable, with no automatic paid fallback. See official current [Supabase pricing](https://supabase.com/pricing) and [OpenAI integration guidance](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt).

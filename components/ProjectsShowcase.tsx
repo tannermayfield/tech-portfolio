@@ -103,7 +103,7 @@ export function ProjectsShowcase({ projects }: { projects: Project[] }) {
                     )}
                     {p.links.demo && (
                       <a href={p.links.demo} target="_blank" rel="noopener noreferrer" className={`${pill} translate-y-2 transition-transform duration-300 hover:translate-y-0 focus-visible:translate-y-0`}>
-                        <span className={`${pillLabel} text-white`}>Live</span>
+                        <span className={`${pillLabel} text-white`}>Demo</span>
                       </a>
                     )}
                   </div>
@@ -143,6 +143,11 @@ export function ProjectsShowcase({ projects }: { projects: Project[] }) {
                 ))}
               </div>
               <div className="flex flex-wrap justify-center gap-3 pt-1">
+                {p.links.demo && (
+                  <a href={p.links.demo} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-white/80 transition-colors duration-300 hover:bg-white/15 hover:text-white">
+                    <span className={pillLabel}>Demo</span>
+                  </a>
+                )}
                 {p.hasCaseStudy !== false && <Link href={`/projects/${p.slug}/`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-white/80 transition-colors duration-300 hover:bg-white/15 hover:text-white">
                   <span className={pillLabel}>Case study</span>
                 </Link>}

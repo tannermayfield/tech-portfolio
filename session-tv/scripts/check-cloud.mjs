@@ -1,0 +1,3 @@
+import {readFile} from 'node:fs/promises';
+const text=await readFile(new URL('../public/js/config.js',import.meta.url),'utf8'),config=JSON.parse(text.match(/window\.SessionTVConfig\s*=\s*(\{[^;]+\})/)[1]);
+for(const route of ['/auth/v1/settings','/rest/v1/rpc/sessiontv_snapshot']){const response=await fetch(config.supabaseUrl+route,{method:route.includes('rpc')?'POST':'GET',headers:{apikey:config.supabasePublishableKey,'Content-Type':'application/json'},...(route.includes('rpc')?{body:'{}'}:{})});const result=await response.json();console.log(route,response.status,route.includes('rpc')?result:{emailEnabled:result.external?.email,signupDisabled:result.disable_signup});}

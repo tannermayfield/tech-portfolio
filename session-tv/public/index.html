@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tanner’s Session TV</title>
+<meta name="description" content="A vintage television workspace for classwork, skills, and projects.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Archivo+Black&family=Limelight&family=Fraunces:opsz,wght,SOFT@9..144,500..700,100&family=DM+Mono:wght@400;500&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="local.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+</head>
+<body class="tv" data-view="work" data-mood="tv">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ic-skill" viewBox="0 0 24 24"><path fill="currentColor" d="M7.2 19h10.3a4.2 4.2 0 0 0 .5-8.37A6.2 6.2 0 0 0 6.1 9.4 4.8 4.8 0 0 0 7.2 19z"/></symbol>
+  <symbol id="ic-class" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/><circle cx="19" cy="18.5" r="1.6" fill="currentColor"/><circle cx="5" cy="19.5" r="1" fill="currentColor"/></symbol>
+  <symbol id="ic-project" viewBox="0 0 24 24"><circle cx="12" cy="11" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2.8v1.8M12 17.4v1.2M4.2 11H3M21 11h-1.2M6.4 5.4l1.2 1.2M17.6 5.4l-1.2 1.2"/><path d="M3 21c2-1.4 4-1.4 6 0s4 1.4 6 0 4-1.4 6 0" fill="none"/></g></symbol>
+</svg>
+
+<div class="tech" aria-hidden="true"></div>
+
+<div class="scene" id="scene" aria-hidden="true">
+  <div class="pan">
+    <canvas class="stars" id="stars"></canvas>
+    <canvas class="twinkle" id="twinkle"></canvas>
+    <div class="shoot"></div>
+    <div class="skyclouds">
+      <svg viewBox="0 0 2160 900" preserveAspectRatio="xMidYMid slice">
+        <defs><filter id="cl-soft" x="-10%" y="-20%" width="120%" height="140%"><feGaussianBlur stdDeviation="1.6"/></filter>
+          <radialGradient id="skyglow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".75"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+          <symbol id="cl-a" viewBox="0 0 300 140" overflow="visible"><g fill="#CBE3F6" transform="translate(0 7)"><circle cx="72" cy="84" r="40"/><circle cx="122" cy="60" r="52"/><circle cx="184" cy="68" r="44"/><circle cx="234" cy="88" r="30"/><rect x="40" y="84" width="214" height="40" rx="20.0"/></g><g fill="#FFFFFF"><circle cx="72" cy="84" r="40"/><circle cx="122" cy="60" r="52"/><circle cx="184" cy="68" r="44"/><circle cx="234" cy="88" r="30"/><rect x="40" y="84" width="214" height="40" rx="20.0"/></g></symbol><symbol id="cl-b" viewBox="0 0 300 140" overflow="visible"><g fill="#CBE3F6" transform="translate(0 7)"><circle cx="66" cy="78" r="30"/><circle cx="106" cy="58" r="40"/><circle cx="156" cy="62" r="36"/><circle cx="198" cy="80" r="24"/><rect x="38" y="78" width="178" height="32" rx="16.0"/></g><g fill="#FFFFFF"><circle cx="66" cy="78" r="30"/><circle cx="106" cy="58" r="40"/><circle cx="156" cy="62" r="36"/><circle cx="198" cy="80" r="24"/><rect x="38" y="78" width="178" height="32" rx="16.0"/></g></symbol><symbol id="cl-c" viewBox="0 0 300 140" overflow="visible"><g fill="#CBE3F6" transform="translate(0 7)"><circle cx="60" cy="84" r="24"/><circle cx="98" cy="66" r="34"/><circle cx="140" cy="58" r="42"/><circle cx="186" cy="70" r="32"/><circle cx="222" cy="86" r="20"/><rect x="36" y="84" width="200" height="28" rx="14.0"/></g><g fill="#FFFFFF"><circle cx="60" cy="84" r="24"/><circle cx="98" cy="66" r="34"/><circle cx="140" cy="58" r="42"/><circle cx="186" cy="70" r="32"/><circle cx="222" cy="86" r="20"/><rect x="36" y="84" width="200" height="28" rx="14.0"/></g></symbol></defs>
+        <circle cx="1640" cy="200" r="300" fill="url(#skyglow)"/>
+        <g class="cl-far" filter="url(#cl-soft)"><use href="#cl-c" x="0" y="0" width="300" height="140" transform="translate(110 170) scale(0.55)" opacity="0.6"/><use href="#cl-b" x="0" y="0" width="300" height="140" transform="translate(640 150) scale(0.5)" opacity="0.55"/><use href="#cl-a" x="0" y="0" width="300" height="140" transform="translate(1150 190) scale(0.45)" opacity="0.55"/><use href="#cl-c" x="0" y="0" width="300" height="140" transform="translate(1600 160) scale(0.55)" opacity="0.6"/><use href="#cl-b" x="0" y="0" width="300" height="140" transform="translate(1950 230) scale(0.45)" opacity="0.5"/><use href="#cl-a" x="0" y="0" width="300" height="140" transform="translate(380 360) scale(0.42)" opacity="0.5"/><use href="#cl-c" x="0" y="0" width="300" height="140" transform="translate(1480 390) scale(0.42)" opacity="0.5"/></g>
+        <g class="cl-mid" filter="url(#cl-soft)"><use href="#cl-a" x="0" y="0" width="300" height="140" transform="translate(170 250) scale(0.9)" opacity="0.85"/><use href="#cl-b" x="0" y="0" width="300" height="140" transform="translate(860 290) scale(0.85)" opacity="0.85"/><use href="#cl-c" x="0" y="0" width="300" height="140" transform="translate(1740 320) scale(0.9)" opacity="0.85"/><use href="#cl-b" x="0" y="0" width="300" height="140" transform="translate(520 520) scale(0.8)" opacity="0.8"/><use href="#cl-a" x="0" y="0" width="300" height="140" transform="translate(1300 530) scale(0.85)" opacity="0.8"/></g>
+        <g class="cl-near" filter="url(#cl-soft)"><use href="#cl-c" x="0" y="0" width="300" height="140" transform="translate(240 560) scale(1.2)" opacity="0.95"/><use href="#cl-a" x="0" y="0" width="300" height="140" transform="translate(1000 590) scale(1.25)" opacity="0.95"/><use href="#cl-b" x="0" y="0" width="300" height="140" transform="translate(1640 560) scale(1.15)" opacity="0.95"/></g>
+      </svg>
+    </div>
+    <div class="beach">
+      <div class="sun"><i></i></div>
+      <div class="birds">
+        <span class="bird b1"><svg viewBox="0 0 40 16" aria-hidden="true"><g class="flap"><path d="M2 9 Q11 1 20 9 Q29 1 38 9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg></span><span class="bird b2"><svg viewBox="0 0 40 16" aria-hidden="true"><g class="flap"><path d="M2 9 Q11 1 20 9 Q29 1 38 9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg></span><span class="bird b3"><svg viewBox="0 0 40 16" aria-hidden="true"><g class="flap"><path d="M2 9 Q11 1 20 9 Q29 1 38 9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg></span>
+        <span class="bird b4"><svg viewBox="0 0 40 16" aria-hidden="true"><g class="flap"><path d="M2 9 Q11 1 20 9 Q29 1 38 9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg></span><span class="bird b5"><svg viewBox="0 0 40 16" aria-hidden="true"><g class="flap"><path d="M2 9 Q11 1 20 9 Q29 1 38 9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg></span>
+      </div>
+      <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice">
+        <defs>
+          <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5DBBD0"/><stop offset=".6" stop-color="#3A9DB6"/><stop offset="1" stop-color="#58C2C9"/></linearGradient>
+          <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3E1BD"/><stop offset="1" stop-color="#E8CB98"/></linearGradient>
+          <linearGradient id="wet" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D8C08F" stop-opacity=".55"/><stop offset="1" stop-color="#E8CB98" stop-opacity="0"/></linearGradient>
+        </defs>
+        <rect x="-40" y="470" width="1520" height="440" fill="url(#sea)"/>
+        <rect x="-40" y="468" width="1520" height="4" fill="#E9F7FA" opacity=".7"/>
+        <g class="boat"><path d="M0 0 L46 0 L38 9 L8 9 Z" fill="#F7F2E8"/><path d="M22 -2 L22 -40 L42 -4 Z" fill="#FFFFFF"/><path d="M20 -4 L20 -30 L6 -4 Z" fill="#F2B544"/></g>
+        <g class="glints" fill="#FFFFFF">
+          <circle cx="1000" cy="500" r="2.2"/><circle cx="1060" cy="520" r="1.8"/><circle cx="1130" cy="490" r="2.4"/><circle cx="1180" cy="530" r="1.6"/><circle cx="1240" cy="505" r="2"/>
+          <circle cx="1090" cy="560" r="1.8"/><circle cx="1160" cy="580" r="2.2"/><circle cx="300" cy="560" r="1.6"/><circle cx="560" cy="530" r="2"/><circle cx="760" cy="600" r="1.8"/>
+        </g>
+        <g class="waves" stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".45">
+          <path d="M80 540 q30 -10 60 0 t60 0"/><path d="M420 520 q30 -10 60 0 t60 0"/><path d="M900 560 q30 -10 60 0 t60 0"/><path d="M1220 530 q30 -10 60 0 t60 0"/>
+        </g>
+        <g class="waves w2" stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".4">
+          <path d="M250 610 q40 -12 80 0 t80 0"/><path d="M680 640 q40 -12 80 0 t80 0"/><path d="M1080 620 q40 -12 80 0 t80 0"/>
+        </g>
+        <path class="wash" d="M-40 712 C 200 690 420 708 640 698 S 1040 680 1240 694 S 1420 704 1480 698 L1480 760 L-40 760 Z" fill="url(#wet)"/>
+        <path class="foam" d="M-40 700 C 160 668 320 690 520 676 S 900 650 1120 672 S 1360 690 1480 676 L1480 720 L-40 740 Z" fill="#BFE6E6" opacity=".9"/>
+        <path class="foam f2" d="M-40 712 C 180 690 360 706 560 694 S 940 672 1140 690 S 1380 704 1480 694" stroke="#FFFFFF" stroke-width="5" fill="none" opacity=".85"/>
+        <path d="M-40 728 C 200 704 420 722 640 712 S 1040 694 1240 708 S 1420 718 1480 712 L1480 920 L-40 920 Z" fill="url(#sand)"/>
+        <g fill="#D9B87F" opacity=".5"><circle cx="300" cy="800" r="3"/><circle cx="720" cy="830" r="2.5"/><circle cx="1100" cy="790" r="3"/><circle cx="520" cy="860" r="2"/><circle cx="1300" cy="850" r="2.5"/></g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+<div class="backdrop" id="backdrop" hidden></div>
+<section class="panel drawer" id="add-drawer" aria-labelledby="add-title">
+      <div class="row spread"><h2 id="add-title">Add an item</h2><button class="btn ghost" data-close>Close</button></div>
+      <form id="add-form" class="form-grid">
+        <label class="field wide">Type
+          <select id="f-track">
+            <option value="class">Classwork</option>
+            <option value="skill">Skill</option>
+            <option value="project">Personal Project</option>
+          </select>
+        </label>
+        <label class="field wide" data-skill-only hidden>How well you know it
+          <select id="f-level"><option value="1">New</option><option value="2">Learned</option><option value="3">Experienced</option><option value="4">Mastered</option></select>
+        </label>
+        <label class="field wide" id="f-course-wrap">Course, project, or skill area<input id="f-course" placeholder="IS 402, PolyBot, SQL…"></label>
+        <label class="field full">Title<input id="f-title" required placeholder="What to do or which skill"></label>
+        <label class="field" data-class-only>Due date<input id="f-due" type="date"></label>
+        <label class="field" data-class-only>Due time<input id="f-time" type="time" value="23:59"></label>
+        <label class="field wide" data-class-only>Start this many days before due<input id="f-lead" type="number" min="0" max="30" step="1" value="1"></label>
+        <label class="field full">By the end, I can explain…<input id="f-goal" placeholder="The idea you should be able to teach back"></label>
+        <div class="full" style="margin-top:14px"><button class="btn primary" type="submit">Add</button></div>
+      </form>
+    </section>
+
+    <section class="panel drawer" id="music-drawer" aria-labelledby="music-title">
+      <div class="row spread"><h2 id="music-title">Playlists</h2><button class="btn ghost" data-close>Close</button></div>
+      <p class="small muted" style="margin:0">Paste the share link for each Apple Music playlist (in Music: ··· → Share → Copy Link). When you switch pages, the board opens that playlist in a new tab or in the Music app. Press play there; the board can't start or stop music itself.</p>
+      <form id="music-form" class="form-grid">
+        <label class="field full"><span><svg class="mood-ic class-ic"><use href="#ic-class"/></svg> Class playlist</span><input id="m-class" type="url" placeholder="https://music.apple.com/us/playlist/…"></label>
+        <label class="field full"><span><svg class="mood-ic skill-ic"><use href="#ic-skill"/></svg> Skills playlist</span><input id="m-skill" type="url" placeholder="https://music.apple.com/us/playlist/…"></label>
+        <label class="field full"><span><svg class="mood-ic project-ic"><use href="#ic-project"/></svg> Projects playlist</span><input id="m-project" type="url" placeholder="https://music.apple.com/us/playlist/…"></label>
+        <label class="full row small" style="gap:8px"><input id="m-auto" type="checkbox" style="width:auto"> Open the playlist automatically when I start or switch pages</label>
+        <div class="full"><button class="btn primary" type="submit">Save playlists</button></div>
+      </form>
+    </section>
+<dialog class="confirm-dlg task-dlg" id="task-dlg" aria-labelledby="td-title">
+  <div id="td-view"></div>
+  <form id="td-form" hidden>
+    <h3 id="td-ftitle">Edit assignment</h3>
+    <div class="td-grid">
+      <label class="field full">Title<input id="td-t" required></label>
+      <label class="field">Course<input id="td-course" list="td-courses"></label>
+      <datalist id="td-courses"><option>IS 401</option><option>IS 402</option><option>IS 403</option><option>IS 404</option></datalist>
+      <label class="field">Start this many days early<input id="td-lead" type="number" min="0" max="21" step="1"></label>
+      <label class="field">Due date<input id="td-due" type="date"></label>
+      <label class="field">Due time<input id="td-time" type="time"></label>
+      <label class="field full">By the end, you should be able to explain…<textarea id="td-goal" rows="3"></textarea></label>
+    </div>
+    <div class="dd-btns"><button type="button" class="btn ghost" id="td-cancel">Cancel</button><button type="submit" class="btn primary">Save</button></div>
+  </form>
+</dialog>
+<dialog class="confirm-dlg erd-dlg" id="erd-dlg" aria-label="Airline database diagram">
+  <div class="td-head"><h3>Airline sample database</h3><button type="button" class="td-x" onclick="this.closest('dialog').close()" aria-label="Close">×</button></div>
+  <div class="erd-wrap big" id="erd-dlg-body"></div>
+</dialog>
+<dialog class="confirm-dlg past-dlg" id="past-dlg" aria-labelledby="pa-title">
+  <div class="pa-head"><h3 id="pa-title">Past Assignments</h3><button type="button" class="pa-x" id="pa-close" aria-label="Close">×</button></div>
+  <ol class="pa-list" id="pa-list"></ol>
+</dialog>
+<dialog class="confirm-dlg" id="finish-dlg" aria-labelledby="fd-title">
+  <h3 id="fd-title">Finish this session?</h3>
+  <p id="fd-msg"></p>
+  <div class="dd-btns"><button class="btn ghost" id="fd-cancel">Keep going</button><button class="btn" id="fd-discard">Discard session</button><button class="btn primary" id="fd-save" autofocus>Save to learning log</button></div>
+</dialog>
+<dialog class="confirm-dlg" id="discard-dlg" aria-labelledby="dd-title">
+  <h3 id="dd-title">Discard this session?</h3>
+  <p>Your time and anything you wrote here won't be saved to the learning log. This can't be undone.</p>
+  <div class="dd-btns"><button class="btn" id="dd-cancel" autofocus>Keep session</button><button class="btn dd-danger" id="dd-ok">Discard session</button></div>
+</dialog>
+
+<!-- ============ PLAN ============ -->
+<section id="view-plan" aria-label="Plan your session">
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <header class="top">
+      <div class="row" style="gap:10px;align-items:baseline">
+        <h1>Session Planning</h1>
+        <span class="small muted">Set your finish time, shape the plan, then start working.</span>
+      </div>
+      <nav class="links">
+        <button class="btn" id="open-add">Add item</button>
+        <button class="btn" id="open-music">Playlists</button>
+        <button class="btn" id="go-log">Learning log</button>
+      </nav>
+    </header>
+
+
+
+    <div class="home">
+      <!-- left: classwork + personal projects -->
+      <section class="panel" id="col-left" aria-labelledby="left-title">
+        <div class="side-head"><span id="left-ic"></span><h2 id="left-title">Classwork</h2></div>
+        <div class="toggle" id="left-toggle" role="group" aria-label="Classwork or Personal Projects">
+          <button data-v="class">Classwork</button><button data-v="project">Personal Projects</button>
+        </div>
+        <div class="filters" id="left-sum" role="group" aria-label="Filter list"></div>
+        <div class="scroll" id="left-list"><div class="muted small">Loading…</div></div>
+      </section>
+
+      <!-- middle: session -->
+      <section class="panel" id="col-mid" aria-labelledby="plan-title">
+        <div class="row spread">
+          <h2 id="plan-title" style="font-size:18px">Start a new session</h2>
+          <button class="btn ghost" id="reset-plan" hidden>Reset to suggested</button>
+        </div>
+        <div class="finish">
+          <label for="end-time">Finish by</label>
+          <input type="time" id="end-time" step="300">
+          <span class="avail" id="avail"></span>
+        </div>
+        <div class="graph-wrap"><svg id="graph" role="img" aria-label="Session energy graph"></svg></div>
+        <div class="legend" id="legend" hidden></div>
+        <div class="why" id="why" hidden></div>
+        <div style="flex:1"></div><div class="scroll" id="flow-wrap" hidden><div class="flow" id="flow"></div></div>
+        <div class="start-row">
+          <span id="plan-total" hidden></span>
+          <button class="btn primary big" id="begin-btn" title="Start with the full lightspeed jump">Begin your Session Experience</button>
+          <button class="btn big" id="start-btn" title="Skip the animation and go straight to work">Quick Start</button>
+        </div>
+      </section>
+
+      <!-- right: every skill, with your level -->
+      <section class="panel" id="col-skills" aria-labelledby="skills-title">
+        <div class="side-head"><svg class="mood-ic skill-ic"><use href="#ic-skill"/></svg><h2 id="skills-title">Skills</h2><button type="button" class="sort-btn" id="lvl-sort"></button></div>
+        <div class="filters" id="skill-sum" role="group" aria-label="Filter skills"></div>
+        <div class="scroll" id="skill-list"><div class="muted small">Loading…</div></div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE TV ============ -->
+<div class="tv-stub" aria-hidden="true">    <div class="wbar">
+      <div class="left">
+        <div class="moodswitch" role="group" aria-label="Work page">
+          <button data-m="class"><svg class="mood-ic"><use href="#ic-class"/></svg>Class</button>
+          <button data-m="skill"><svg class="mood-ic"><use href="#ic-skill"/></svg>Skills</button>
+          <button data-m="project"><svg class="mood-ic"><use href="#ic-project"/></svg>Projects</button>
+        </div>
+        <div class="wprog" id="w-clock">
+          <div class="wp-row"><span class="wp-lbl" id="wp-cat-lbl"></span><div class="wp-bar"><i id="wp-cat"></i></div><span class="wp-val" id="wp-cat-val"></span></div>
+          <div class="wp-row"><span class="wp-lbl">Session</span><div class="wp-bar"><i id="wp-ses"></i></div><span class="wp-val" id="wp-ses-val"></span></div>
+        </div>
+        <span id="w-mood-name" hidden></span>
+      </div>
+      <div class="right">
+        <div class="np" id="w-music" aria-label="Now playing (preview)"></div>
+        <button class="btn end-btn" id="w-end">End session</button>
+      </div>
+    </div>
+
+      <aside class="glass tasklist" aria-labelledby="tl-title">
+        <div class="tl-head"><button type="button" class="tl-logo" id="tl-logo" aria-label="Show list" title="Show list"></button><h3 id="tl-title">Classwork</h3><span class="small muted" id="tl-count" hidden></span><button type="button" class="tl-hide" id="tl-hide" aria-label="Hide list" title="Hide list"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Hide</button></div>
+        <div class="filters" id="tl-filters" role="group" aria-label="Filter list"></div>
+        <div id="tl"></div>
+        <div class="tl-rail" aria-hidden="true"></div>
+      </aside></div>
+<div class="room" id="room">
+ <div class="tv-set">
+  <div class="tv-body">
+   <div class="tv-bezel">
+    <div class="crt" id="crt">
+     <canvas id="tv-amb" aria-hidden="true"></canvas>
+     <div class="crt-content" id="crt-content">
+      <div class="tv-osd" id="tv-osd" aria-live="polite"></div>
+<!-- ============ WORK ============ -->
+<section id="view-work" hidden aria-label="Work session">
+  <div class="work-ui">
+    <div class="work-grid" id="work-main">
+
+      <div class="work-mid" id="work-mid">
+        <section class="glass chat" id="coach-wrap" aria-label="Claude chat for the current item">
+          <header class="chat-head" id="focus"></header>
+          <div class="coach">
+            <div class="coach-log" id="coach-log" aria-live="polite"></div>
+            <div class="coach-quick" id="coach-quick"></div>
+            <form class="coach-form" id="coach-form">
+              <textarea id="coach-input" rows="1" placeholder="Reply to Claude…" aria-label="Message to Claude"></textarea>
+              <button class="send-btn" type="submit" id="coach-send" aria-label="Send"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            </form>
+          </div>
+        </section>
+        <div class="ws-split" id="ws-split" role="separator" aria-orientation="vertical" aria-label="Resize chat and editor" tabindex="0" hidden></div>
+        <section class="glass workspace" id="ws" hidden aria-labelledby="ws-title">
+          <header class="ws-head">
+            <span id="ws-file" hidden></span><h3 id="ws-title">SQL editor</h3>
+            <div class="ws-acts">
+              <button type="button" class="btn ghost" id="ws-tables" title="Show the airline database tables">Tables</button>
+              <button type="button" class="btn ghost" id="ws-reset" title="Start over with the example">Reset</button>
+              <button type="button" class="btn" id="ws-run" title="Ctrl/⌘ + Enter">Run query</button>
+              <button type="button" class="btn primary" id="ws-send" title="Submit your code and its output to Claude">Submit</button>
+            </div>
+          </header>
+          <div class="ws-ed" id="ws-ed"></div>
+          <button type="button" class="ws-flagnote" id="ws-flagnote" hidden></button>
+          <div class="ws-hsplit" id="ws-hsplit" role="separator" aria-orientation="horizontal" aria-label="Resize editor and results" tabindex="0"></div>
+        <div class="ws-out" id="ws-out" aria-live="polite"></div>
+        </section>
+        <section class="glass workspace pp" id="pp" hidden aria-labelledby="pp-title">
+          <header class="ws-head pp-head"><h3 id="pp-title">Sprint</h3><div class="pp-acts" id="pp-acts"></div></header>
+          <div class="pp-body" id="pp-body"></div>
+        </section>
+        <div class="pp-detail" id="pp-detail" hidden></div>
+      </div>
+    </div>
+
+    <section class="glass focus" id="wrapup" hidden aria-labelledby="wrap-title">
+      <div class="wrap-left" aria-labelledby="wrap-rev-title">
+        <div><h3 id="wrap-rev-title" style="margin:0">Session Breakdown</h3></div>
+        <div id="wrap-summary" class="small"></div>
+      </div>
+      <div class="wrap-right">
+      <div class="row spread">
+        <div><h2 id="wrap-title">Session Review</h2></div>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex:none"><div id="wc-acts-slot" style="display:contents"></div><button class="btn ghost" id="back-to-work">Back to work</button><button class="btn primary" id="wrap-finish">Finish</button></div>
+      </div>
+      <section class="wrap-chat" aria-label="Skill check with Claude">
+        <header class="chat-head" id="wc-head"></header>
+        <div class="coach-log" id="wc-log" aria-live="polite"></div>
+        <form class="coach-form" id="wc-form">
+          <textarea id="wc-input" rows="1" placeholder="Explain it in your own words…" aria-label="Your explanation"></textarea>
+          <button class="send-btn" type="submit" id="wc-send" aria-label="Send"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </form>
+      </section>
+      <div class="wrap-foot">
+        <div class="row" style="gap:10px" hidden><span class="small muted">How well could you explain this in an interview?</span>
+          <div class="conf" id="conf" role="group" aria-label="Confidence 1 to 5"><button data-c="1">1</button><button data-c="2">2</button><button data-c="3">3</button><button data-c="4">4</button><button data-c="5">5</button></div>
+        </div>
+        <div class="row" style="gap:10px"><button class="btn ghost" id="discard-btn">Discard session</button><button class="btn primary big" id="finish-btn">Save to learning log</button></div>
+      </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+     </div>
+     <canvas id="tv-cut" aria-hidden="true"></canvas>
+     <div class="cut-card"><div class="t"><small id="cut-ch"></small><b id="cut-name"></b></div><button type="button" class="cut-skip" id="cut-skip">Skip ▸</button></div>
+     <div class="cut-bar" id="cut-bar"></div>
+     <div class="tb-card" aria-hidden="true"><b>Please Stand By</b><small>TEACH BACK IN A MOMENT</small></div>
+     <section class="tv-sheet" id="tv-guide" aria-label="Channel guide">
+      <header class="sheet-head"><h2>Channel Guide</h2><div class="guide-tabs" id="guide-tabs" role="group" aria-label="Channel group"></div><button type="button" class="sheet-x" id="guide-x" aria-label="Close guide">×</button></header>
+      <div class="sheet-body" id="guide-body"></div>
+     </section>
+     <section class="tv-sheet" id="tv-settings" aria-label="Settings">
+      <header class="sheet-head"><h2>Settings</h2><button type="button" class="sheet-x" id="set-x" aria-label="Close settings"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
+      <div class="sheet-body" id="set-body"></div>
+     </section>
+     <canvas id="tv-static" aria-hidden="true"></canvas>
+     <div class="crt-fx" aria-hidden="true"></div>
+    </div>
+   </div>
+   <div class="tv-panel">
+<div class="knob-wrap" id="kw-main"><div class="dial2" aria-hidden="true">
+      <div class="dial2-clip"><svg class="dial2-disc" id="dial-disc" viewBox="0 0 152 152">
+       <defs><radialGradient id="d2-face" cx="50%" cy="50%" r="50%"><stop offset=".55" stop-color="#FFF3CE"/><stop offset=".85" stop-color="#F0D597"/><stop offset="1" stop-color="#C99A4E"/></radialGradient>
+       <path id="d2-arc" d="M 76 132 A 56 56 0 1 1 76.01 132"/></defs>
+       <circle cx="76" cy="76" r="75" fill="url(#d2-face)"/>
+       <g class="d2-ticks"><line x1="76.0" y1="8.0" x2="76.0" y2="4.0"/><line x1="87.8" y1="9.0" x2="88.5" y2="5.1"/><line x1="99.3" y1="12.1" x2="100.6" y2="8.3"/><line x1="110.0" y1="17.1" x2="112.0" y2="13.6"/><line x1="119.7" y1="23.9" x2="122.3" y2="20.8"/><line x1="128.1" y1="32.3" x2="131.2" y2="29.7"/><line x1="134.9" y1="42.0" x2="138.4" y2="40.0"/><line x1="139.9" y1="52.7" x2="143.7" y2="51.4"/><line x1="143.0" y1="64.2" x2="146.9" y2="63.5"/><line x1="144.0" y1="76.0" x2="148.0" y2="76.0"/><line x1="143.0" y1="87.8" x2="146.9" y2="88.5"/><line x1="139.9" y1="99.3" x2="143.7" y2="100.6"/><line x1="134.9" y1="110.0" x2="138.4" y2="112.0"/><line x1="128.1" y1="119.7" x2="131.2" y2="122.3"/><line x1="119.7" y1="128.1" x2="122.3" y2="131.2"/><line x1="110.0" y1="134.9" x2="112.0" y2="138.4"/><line x1="99.3" y1="139.9" x2="100.6" y2="143.7"/><line x1="87.8" y1="143.0" x2="88.5" y2="146.9"/><line x1="76.0" y1="144.0" x2="76.0" y2="148.0"/><line x1="64.2" y1="143.0" x2="63.5" y2="146.9"/><line x1="52.7" y1="139.9" x2="51.4" y2="143.7"/><line x1="42.0" y1="134.9" x2="40.0" y2="138.4"/><line x1="32.3" y1="128.1" x2="29.7" y2="131.2"/><line x1="23.9" y1="119.7" x2="20.8" y2="122.3"/><line x1="17.1" y1="110.0" x2="13.6" y2="112.0"/><line x1="12.1" y1="99.3" x2="8.3" y2="100.6"/><line x1="9.0" y1="87.8" x2="5.1" y2="88.5"/><line x1="8.0" y1="76.0" x2="4.0" y2="76.0"/><line x1="9.0" y1="64.2" x2="5.1" y2="63.5"/><line x1="12.1" y1="52.7" x2="8.3" y2="51.4"/><line x1="17.1" y1="42.0" x2="13.6" y2="40.0"/><line x1="23.9" y1="32.3" x2="20.8" y2="29.7"/><line x1="32.3" y1="23.9" x2="29.7" y2="20.8"/><line x1="42.0" y1="17.1" x2="40.0" y2="13.6"/><line x1="52.7" y1="12.1" x2="51.4" y2="8.3"/><line x1="64.2" y1="9.0" x2="63.5" y2="5.1"/></g>
+       <text class="d2-lbl" data-k="class"><textPath href="#d2-arc" startOffset="50%">CLASS</textPath></text>
+       <text class="d2-lbl" data-k="skill"><textPath href="#d2-arc" startOffset="16.667%">SKILLS</textPath></text>
+       <text class="d2-lbl" data-k="project"><textPath href="#d2-arc" startOffset="83.333%">PROJECTS</textPath></text>
+      </svg></div>
+      <svg class="dial2-glass" viewBox="0 0 152 152">
+       <defs><linearGradient id="d2-glass" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset=".4" stop-color="#fff" stop-opacity=".1"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+       <linearGradient id="d2-chrome" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7F4EC"/><stop offset=".45" stop-color="#9C9890"/><stop offset=".55" stop-color="#E4E1DA"/><stop offset="1" stop-color="#6E6A62"/></linearGradient></defs>
+       <path d="M 15.4 33.6 A 74 74 0 0 1 136.6 33.6 L 113.7 49.6 A 46 46 0 0 0 38.3 49.6 Z" fill="url(#d2-glass)"/>
+       <path d="M 15.4 33.6 A 74 74 0 0 1 136.6 33.6 L 113.7 49.6 A 46 46 0 0 0 38.3 49.6 Z" fill="none" stroke="url(#d2-chrome)" stroke-width="3" stroke-linejoin="round"/>
+       <path d="M 76 5 L 72 0 L 80 0 Z" fill="#A8281A" transform="translate(0 2)"/>
+      </svg>
+     </div><button type="button" class="knob" id="knob-main"></button></div>
+    <div class="knob-wrap small" id="kw-sub"><button type="button" class="knob" id="knob-sub"></button></div>
+    <div class="sub-name" id="sub-name"></div>
+    <div class="btn-row"><button type="button" class="rbtn" id="btn-menu" aria-pressed="false"><i></i>Menu</button><button type="button" class="rbtn" id="btn-set" aria-pressed="false"><i></i>Settings</button></div>
+    <div style="position:relative;width:100%">
+     <button type="button" class="timer" id="tv-timer"></button>
+     <div class="timer-pop" id="timer-pop" hidden role="dialog" aria-label="Set finish time">
+      <form id="tp-form">
+       <h4>When do you want to finish?</h4>
+       <p>The timer counts down to this time, then teach back starts.</p>
+       <div class="tp-in"><input id="tp-h" type="number" min="1" max="12" aria-label="Hour"><span>:</span><input id="tp-m" type="number" min="0" max="59" aria-label="Minutes"></div>
+       <div class="tp-act"><button type="button" id="tp-clear">Clear</button><button type="submit" class="go">Set</button></div>
+      </form>
+     </div>
+    </div>
+    <div class="speaker" aria-hidden="true"></div>
+    <div class="song-note" id="song-note"></div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ============ LOG (popup) ============ -->
+<section id="view-log" hidden aria-label="Learning log">
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <header class="top">
+      <div><div class="eyebrow">Read before an interview</div><h1>Learning log</h1></div>
+      <button class="btn" id="log-back">Close</button>
+    </header>
+    <div class="log-grid">
+      <section class="panel"><div id="log-skills"></div><h2 class="log-h">Sessions</h2><div id="log"></div></section>
+      <section class="panel" aria-labelledby="bal-title">
+        <div><h2 id="bal-title" style="font-size:18px">Time by type</h2><div class="small muted">Last 14 days.</div></div>
+        <div class="bal" id="bal"></div>
+      </section>
+    </div>
+  </div>
+</section>
+
+</div>
+<canvas id="warp" aria-hidden="true"></canvas>
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/config.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/workspace.js"></script>
+<script src="js/cloud.js"></script>
+<script src="js/platform.js"></script>
+<script src="js/companion-client.js"></script>
+<script src="js/boot.js"></script>
+</body>
+</html>

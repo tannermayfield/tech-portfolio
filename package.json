@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "node scripts/package-session-tv.mjs",
     "preview": "npx --yes serve@14 out -l 3000",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test"

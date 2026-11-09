@@ -1,21 +1,39 @@
 import { expect, test } from "@playwright/test";
 
+test("Session TV is first and its demo is accessible on desktop and mobile", async ({ page }) => {
+  await page.goto("/");
+  const preview = page.locator('[data-project-preview="session-tv"]');
+  await expect(page.locator("[data-project-preview]").first()).toHaveAttribute("data-project-preview", "session-tv");
+  await preview.scrollIntoViewIfNeeded();
+  await preview.hover();
+  const desktopDemo = preview.getByRole("link", { name: "Demo", exact: true });
+  await expect(desktopDemo).toBeVisible();
+  await expect(desktopDemo).toHaveAttribute("href", "https://tannermayfield.dev/session-tv/");
+  await page.setViewportSize({ width: 390, height: 844 });
+  const card = page.locator("#projects article").first();
+  await expect(card.getByRole("heading")).toHaveText("Session TV");
+  const mobileDemo = card.getByRole("link", { name: "Demo", exact: true });
+  await mobileDemo.scrollIntoViewIfNeeded();
+  await expect(mobileDemo).toBeVisible();
+  await expect(mobileDemo).toHaveAttribute("href", "https://tannermayfield.dev/session-tv/");
+});
+
 test("project descriptions follow every preview in both directions and after reload/resize", async ({ page }) => {
   await page.goto("/");
   const previews = page.locator("#projects .lg\\:flex").first().locator("[data-project-preview]");
   const title = page.locator("#projects .swap h3");
-  const names = ["Polybot", "Airline Intelligence", "BravOS", "AppliedLoop", "This Portfolio"];
-  for (const i of [0, 1, 2, 3, 4, 3, 2, 1, 0]) {
+  const names = ["Session TV", "Polybot", "Airline Intelligence", "BravOS", "AppliedLoop", "This Portfolio"];
+  for (const i of [0, 1, 2, 3, 4, 5, 4, 3, 2, 1, 0]) {
     await previews.nth(i).evaluate(el => el.scrollIntoView({ block: "center", behavior: "instant" }));
     await expect(title).toHaveText(names[i]);
   }
-  await previews.nth(3).evaluate(el => el.scrollIntoView({ block: "center", behavior: "instant" }));
+  await previews.nth(4).evaluate(el => el.scrollIntoView({ block: "center", behavior: "instant" }));
   await page.reload();
   await expect(title).toHaveText("AppliedLoop");
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator("#projects article")).toHaveCount(5);
+  await expect(page.locator("#projects article")).toHaveCount(6);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await previews.nth(4).evaluate(el => el.scrollIntoView({ block: "center", behavior: "instant" }));
+  await previews.nth(5).evaluate(el => el.scrollIntoView({ block: "center", behavior: "instant" }));
   await expect(title).toHaveText("This Portfolio");
 });
 
@@ -60,5 +78,5 @@ test("reduced motion skips entrances and mobile sections remain visible", async 
     await expect(block).toHaveCSS("opacity", "1");
     expect(await block.evaluate(el => el.getAnimations().length)).toBe(0);
   }
-  await expect(page.locator("#projects article")).toHaveCount(5);
+  await expect(page.locator("#projects article")).toHaveCount(6);
 });

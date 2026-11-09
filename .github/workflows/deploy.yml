@@ -21,10 +21,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run build # static export to ./out
+      - run: npm ci --prefix session-tv
+      - run: npm run check --prefix session-tv
+      - run: npm test --prefix session-tv
+      - uses: actions/configure-pages@v5
+      - run: npm run typecheck
+      - run: npm run build # Next export + Session TV static files to ./out
+        env:
+          SESSION_TV_SUPABASE_URL: ${{ vars.SESSION_TV_SUPABASE_URL }}
+          SESSION_TV_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SESSION_TV_SUPABASE_PUBLISHABLE_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

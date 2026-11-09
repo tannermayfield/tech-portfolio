@@ -1,0 +1,9 @@
+function projectTasks(name){return tasks.filter(x=>typeOf(x)==='project'&&(x.course||'Other')===name).sort(byOrder)}
+function projectIntro(t){
+  const name=t.course||'Project',all=projectTasks(name),open=all.filter(x=>x.status!=='done'),ps=((settings&&settings.projectSkills)||{})[name]||[];
+  return `<div class="msg ai intro"><div class="ai-name">${CLAUDE_MARK} AI coach</div>This is your <b>${esc(name)}</b> chat. Everything about this project happens here. ${({plan:'<b>Plan</b> mode: we plan with Scrum. The current sprint is on the right; no building.',apply:'<b>Apply</b> mode: you build it with the skill you pick on the right; I only give hints and small suggestions.',work:'<b>Work</b> mode: I do the building here, and explain and teach it on the right as I go, then quiz you.'})[projMode(t)]}${ps.length?`<br><br>Skills it builds: ${esc(ps.join(', '))}.`:''}<br><br>${open.length?`Next up: <b>${esc(open[0].title)}</b>. `:''}${all.length-open.length} of ${all.length} tasks done.${sample?' Tell me what you want to work on, ask for help, or explain what you built and I\'ll push back.':'<br><br><span class="muted">AI coaching is optional. See Settings → AI Connections for connection status.</span>'}</div>`;
+}
+function projectCtx(t){
+  const name=t.course||'Project',all=projectTasks(name),open=all.filter(x=>x.status!=='done'),done=all.filter(x=>x.status==='done'),ps=((settings&&settings.projectSkills)||{})[name]||[];
+  return `\nCurrent project: ${name}. This is the single chat for the whole project; help with whatever part he brings up.${ps.length?`\nSkills this project builds (most-used first): ${ps.join(', ')}.`:''}\nOpen tasks in order:\n${open.slice(0,12).map((x,i)=>`${i+1}. [id ${x.id}] ${x.title}${x.goal?` (goal: explain ${x.goal})`:''}`).join('\n')||'none'}${done.length?`\nAlready done: ${done.map(x=>x.title).join('; ')}`:''}${projExtraCtx(t)}`;
+}

@@ -41,6 +41,25 @@ export type Project = {
 
 export const projects: Project[] = [
   {
+    slug: "session-tv",
+    title: "Session TV",
+    tagline: "An interactive academic workspace for managing homework, learning technical skills, organizing projects, and studying with AI assistance.",
+    status: "MVP",
+    statusConfirmed: true,
+    hasCaseStudy: false,
+    tier: "featured",
+    order: -1,
+    lenses: ["fullstack", "data", "ai"],
+    stack: ["JavaScript", "HTML/CSS", "Supabase", "PostgreSQL", "SQL.js", "CodeMirror"],
+    links: { demo: "https://tannermayfield.dev/session-tv/" },
+    image: "/images/session-tv.png",
+    card: {
+      problem: "Coursework, technical practice, and project work need one place to stay organized.",
+      built: "Explore a working vintage TV workspace with editable sample assignments, skills, projects, and study sessions.",
+    },
+    study: {},
+  },
+  {
     slug: "airline-operations",
     title: "Airline Intelligence",
     tagline: "A data pipeline and analytics platform for airline operations.",
