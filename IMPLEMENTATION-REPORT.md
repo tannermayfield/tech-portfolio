@@ -1,4 +1,4 @@
-> Current update: The public demo is now a read-only preview. Editing and AI are disabled. The original sample data remains until the owner supplies a browser backup for the approved public snapshot (courses, assignments, deadlines, skills and projects; no chats/drafts/session notes/personal settings). Settings now separates sign-in, AI Connections and Backups & import. See [simple next steps](session-tv/docs/NEXT-STEPS.md). This supersedes the editable-demo descriptions below.
+> Current update: Backup/import controls have been removed from Settings. The owner will enter correct records manually in Supabase; incorrect local records will not be imported or published. The public preview stays read-only. Email-code setup requires custom SMTP on newer free-tier projects to unlock template editing; the earlier setup instructions missed that restriction. See [simple next steps](session-tv/docs/NEXT-STEPS.md).
 
 # Session TV integration report
 

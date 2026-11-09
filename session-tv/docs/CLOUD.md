@@ -1,3 +1,5 @@
+> Current owner setup: Enter correct records manually after signing in. The existing local data is incorrect and will not be migrated. Backup/import controls have been removed from Settings; the import APIs below are retained as maintenance utilities only. See [simple setup instructions](NEXT-STEPS.md).
+
 # Supabase private workspace
 
 The hosted application defaults to fictional browser-local demo data. Signing in selects a separate private workspace. Supabase is the only cloud persistence service; the local AI companion is never involved in database access.

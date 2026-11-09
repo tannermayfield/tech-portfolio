@@ -14,7 +14,7 @@ The public preview is read-only. It loads a deliberately published static snapsh
 
 My Workspace uses Supabase email OTP. Public project credentials are configured in `public/js/config.js`. Apply the schema and configure the email code template before private sign-in. Private app data and drafts load from owner-scoped Supabase tables; only the Supabase account session is browser-persisted separately. Signing out clears private memory and reloads the demo on the hosted route.
 
-See [cloud setup and migration](docs/CLOUD.md). Back up at the original browser profile/address first; import only after signing into the destination account. Import is transactional, verified and idempotent. Conflicts abort. Original browser data is never deleted. An automatic source backup lives locally in `backups/pre-cloud-public`; that is a source backup, not a backup of browser records.
+See [cloud setup](docs/CLOUD.md) and [simple next steps](docs/NEXT-STEPS.md). Enter correct records manually after signing in. The old local data is incorrect and will not be migrated or published; Settings no longer offers backup/import controls.
 
 ## AI Connections
 
