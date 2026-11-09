@@ -7,14 +7,14 @@ import jsdom from 'jsdom';
 const {JSDOM,VirtualConsole}=jsdom;
 const publicDir=fileURLToPath(new URL('../public/',import.meta.url));
 async function until(check){for(let i=0;i<150;i++){if(check())return;await new Promise(r=>setTimeout(r,10))}throw new Error('App did not reach expected state')}
-async function boot(saved={}){
+async function boot(saved={},url='http://127.0.0.1:4173'){
  const errors=[],vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
  const html=readFileSync(path.join(publicDir,'index.html'),'utf8').replace(/<script src="([^"]+)"><\/script>/g,(_,src)=>'<script>'+(src==='js/boot.js'?"(async()=>{await SessionCloud.ready;for(const source of window.__testSources){const s=document.createElement('script');s.textContent=source;document.body.appendChild(s)}})()":readFileSync(path.join(publicDir,src),'utf8'))+'</script>');
 
  const dom=new JSDOM(html,{
-  url:'http://127.0.0.1:4173',runScripts:'dangerously',virtualConsole:vc,pretendToBeVisual:true,
+  url,runScripts:'dangerously',virtualConsole:vc,pretendToBeVisual:true,
   beforeParse(w){
-   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(readFileSync(path.join(publicDir,'js/local.js'),'utf8'));
+   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
    for(const [k,v]of Object.entries(saved))w.localStorage.setItem(k,v);
    w.fetch=async()=>({ok:true,json:async()=>({aiConfigured:false})});
    w.matchMedia=q=>({matches:q.includes('reduced-motion'),media:q,addEventListener(){},removeEventListener(){}});
@@ -144,3 +144,5 @@ test('project sprint planning and completion persist through the local database'
   assert.deepEqual(errors,[]);
  }finally{dom.window.close()}
 });
+
+test('public preview keeps sign-in usable and blocks record editing in the DOM',async()=>{const {dom,w,errors}=await boot({},'https://tannermayfield.dev/session-tv/');try{assert.equal(w.SessionWorkspace.readOnly,true);assert.equal(w.document.body.dataset.readonly,'true');assert.equal(w.eval('tasks.length'),7);await assert.rejects(w.eval("db.doc('tasks/demo-cs').update({title:'Forbidden'})"),/read-only/);w.document.getElementById('add-form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));assert.equal(w.eval('tasks.length'),7);assert.equal(w.document.getElementById('workspace-email').disabled,false);assert.equal(w.document.getElementById('workspace-data').hidden,true);assert.deepEqual(errors,[])}finally{dom.window.close()}});

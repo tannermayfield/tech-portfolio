@@ -6,10 +6,10 @@
  window.sessionPlatform={config,async use(capability){
   await ready;await window.SessionCloud?.ready;
   try{
-   if(capability==='db')return database||=SessionWorkspace.mode==='private'?await SessionCloud.open():new SessionStore.LocalDatabase(SessionWorkspace.storage);
+   if(capability==='db')return database||=SessionWorkspace.mode==='private'?await SessionCloud.open():new SessionStore[SessionWorkspace.mode==='demo'?'PreviewDatabase':'LocalDatabase'](SessionWorkspace.storage);
    if(capability==='sample')return null;
    throw new Error('Unknown capability.');
   }catch(error){window.dispatchEvent(new CustomEvent('sessiontv:error',{detail:'Could not load saved data: '+error.message}));return null}
  }};
- addEventListener('storage',event=>{const key=SessionWorkspace.mode==='demo'?'sessiontv.demo.v1:'+SessionStore.KEY:SessionStore.KEY;if(event.key===key&&database&&SessionWorkspace.mode!=='private'){try{database.reload()}catch(error){window.dispatchEvent(new CustomEvent('sessiontv:error',{detail:error.message}))}}});
+ addEventListener('storage',event=>{if(event.key===SessionStore.KEY&&database&&SessionWorkspace.mode==='legacy'){try{database.reload()}catch(error){window.dispatchEvent(new CustomEvent('sessiontv:error',{detail:error.message}))}}});
 })();

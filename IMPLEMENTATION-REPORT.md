@@ -1,3 +1,5 @@
+> Current update: The public demo is now a read-only preview. Editing and AI are disabled. The original sample data remains until the owner supplies a browser backup for the approved public snapshot (courses, assignments, deadlines, skills and projects; no chats/drafts/session notes/personal settings). Settings now separates sign-in, AI Connections and Backups & import. See [simple next steps](session-tv/docs/NEXT-STEPS.md). This supersedes the editable-demo descriptions below.
+
 # Session TV integration report
 
 ## Implemented

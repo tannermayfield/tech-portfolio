@@ -64,5 +64,15 @@
    for(const listener of this.listeners)queueMicrotask(listener.deliver);
   }
  }
- globalThis.SessionStore={LocalDatabase,validate,KEY};
+ class PreviewDatabase extends LocalDatabase {
+  async write(name,id,value,mode) {
+   // Channel navigation needs transient playback state; published records stay immutable.
+   if(name!=='state'){
+    for(const listener of this.listeners)if(listener.name===name)queueMicrotask(listener.deliver);
+    throw new Error('This public preview is read-only. Sign in to edit your own workspace.');
+   }
+   return super.write(name,id,value,mode);
+  }
+ }
+ globalThis.SessionStore={LocalDatabase,PreviewDatabase,validate,KEY};
 })();
