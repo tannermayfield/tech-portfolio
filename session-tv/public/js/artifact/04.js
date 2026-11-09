@@ -1992,7 +1992,7 @@ window.addEventListener('resize',()=>{renderPanel()});
   const fill=()=>{const d=img.data;for(let i=0;i<d.length;i+=4){const v=Math.random()*255|0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255}nx.putImageData(img,0,0)};
   function frame(ts){
     requestAnimationFrame(frame);
-    if(document.hidden||ts-last<41)return;const dt=Math.min(.1,(ts-last)/1000);last=ts;
+    if(document.hidden||document.body.dataset.screenEffect==='off'||ts-last<41)return;const dt=Math.min(.1,(ts-last)/1000);last=ts;
     const {W,H}=canvasFit(cv,.6);x.clearRect(0,0,W,H);
     if(reduce())return;
     const busy=crt.classList.contains('cut');

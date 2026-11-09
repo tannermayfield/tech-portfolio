@@ -1,3 +1,5 @@
+> Current Settings UI: Removed the floating workspace/demo banner. The first row is Appearance & Preferences, Session Login, and Exit SessionTV. The appearance popup has Auto/Light/Dark, TV Screen Effect Off/On and Channel Cutscenes Off/On; preferences persist using the existing account-scoped storage. Login is reached from Settings and Exit returns to the portfolio Projects anchor. Existing database/time stats and authentication behavior are retained.
+
 > Current update: My Workspace now shows a username/password form with an email/password fallback. Supabase Auth verifies passwords; aliases use a private username table, owner-only alias management and a server-side username-login Edge Function with generic failures and durable attempt limits. Both source and tests are implemented; live username login still requires applying the added migration, deploying the function and provisioning the owner password/account. No real password was used in tests. Backup/import controls remain removed and incorrect local records are not migrated. See [current setup](session-tv/docs/NEXT-STEPS.md).
 
 # Session TV integration report

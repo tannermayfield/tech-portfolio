@@ -1,6 +1,6 @@
 # Username and password sign-in
 
-The app now opens My Workspace with **Username**, **Password**, **Show/Hide**, and **Sign In**. **Use email instead** switches to email/password for initial setup. There is no email code or magic-link template requirement for ordinary password sign-ins. Account confirmation and password recovery remain email/account-administration concerns.
+Open Settings ? Session Login ? Open session login for **Username**, **Password**, **Show/Hide**, and **Sign In**. **Use email instead** switches to email/password for initial setup. There is no email code or magic-link template requirement for ordinary password sign-ins. Account confirmation and password recovery remain email/account-administration concerns.
 
 ## Required Supabase setup
 
@@ -14,7 +14,7 @@ The app now opens My Workspace with **Username**, **Password**, **Show/Hide**, a
    `supabase/config.toml` disables the pre-login JWT check only for this function, because the person does not have a session yet. The handler checks the supplied password through Supabase Auth, restricts browser origin and applies database-backed attempt limits. Supabase-managed function secrets supply its URL, anon key and service-role key; no administrator secret belongs in browser code or the repository. The production allowed origin defaults to `https://tannermayfield.dev`; set `SESSIONTV_ALLOWED_ORIGIN` only for an intentionally different deployment.
 3. Create your owner account with an email and password in **Supabase Authentication → Users**, or add a password to your existing account through a supported trusted account-management/recovery flow. Use the existing account UUID if there is already an account; do not create a duplicate just to get a username. Confirm the email according to the project's authentication settings. Keep the password private; it is not needed in this chat.
 4. Open the hosted app → **My Workspace → Use email instead**. Sign in with your email and password.
-5. In My Workspace, enter your preferred username under **Your username** and click **Save username**. Next time you can sign in with that username and the same password. Username matching is case-insensitive; allowed names are 3–32 letters, numbers, dots, underscores and hyphens, starting with a letter or number.
+5. In Session Login, enter your preferred username under **Your username** and click **Save username**. Next time you can sign in with that username and the same password. Username matching is case-insensitive; allowed names are 3–32 letters, numbers, dots, underscores and hyphens, starting with a letter or number.
 6. Enter your correct courses, assignments, skills and projects through **Settings → My Database**. The incorrect local records are not imported or published. The public preview remains a separate read-only snapshot.
 
 The username migration and Edge Function cannot be deployed using the frontend publishable key; they need an authorized Supabase account/CLI connection. Until that setup is complete, the form is available to view, but true username sign-in is not operational. Email/password sign-in uses Supabase Auth directly and requires an account with a password. Base database setup is still required to load the private workspace.
@@ -36,3 +36,7 @@ Client/Edge Function behavior is tested with simulated Auth responses. PostgreSQ
 The function and SQL are included in repository source, but GitHub Pages publishes only `public/`. Function invocations count toward Supabase's limits; no paid plan, email provider or API billing was enabled.
 
 Official references: [password auth](https://supabase.com/docs/guides/auth/passwords), [Edge Function secrets](https://supabase.com/docs/guides/functions/secrets), [function authorization](https://supabase.com/docs/guides/functions/auth).
+
+## Appearance and exit
+
+Settings starts with three cards: **Appearance & Preferences**, **Session Login**, and **Exit SessionTV**. Appearance & Preferences opens a separate popup for Auto/Light/Dark, TV Screen Effect Off/On and Channel Cutscenes Off/On. Screen effects include the CRT scanline/reflection/noise layers and grayscale filter. Preferences use the existing workspace storage and sync to Supabase for signed-in users. The top status banner has been removed; sign-in is accessed from Settings. Exit SessionTV returns in the same tab to `https://tannermayfield.dev/#projects`.

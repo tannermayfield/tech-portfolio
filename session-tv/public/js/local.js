@@ -4,9 +4,9 @@
  toast=message=>{const el=$('toast');el.textContent=message;el.hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>el.hidden=true,6500)};
  addEventListener('sessiontv:error',event=>toast(event.detail));
  const baseSettings=renderSettings;
- renderSettings=function(){baseSettings();if(TV.dbView)return;const card=$('set-end')?.closest('.set-card');if(card){card.querySelector('h3').textContent='Workspace & AI';card.querySelector('.row').innerHTML='<button class="btn primary" id="local-open">Open workspace</button>';card.querySelector('#set-leave-note')?.remove();$('local-open').onclick=openLocalSetup}};
+ renderSettings=function(){baseSettings();if(TV.dbView)return;$('local-open').onclick=openLocalSetup;$('preferences-open').onclick=openPreferences};
  const dialog=document.createElement('dialog');dialog.id='local-setup';dialog.className='confirm-dlg';dialog.setAttribute('aria-labelledby','local-heading');
- dialog.innerHTML=`<div class="local-panel"><div class="row spread"><h2 id="local-heading">My Workspace</h2><button class="btn ghost" id="local-close" autofocus>Close</button></div>
+ dialog.innerHTML=`<div class="local-panel"><div class="row spread"><h2 id="local-heading">Session Login</h2><button class="btn ghost" id="local-close" autofocus>Close</button></div>
  <p id="workspace-status" class="small"></p>
  <section id="workspace-auth"><p class="small muted">Sign in to your private workspace.</p><form id="workspace-login">
  <label for="workspace-username" id="workspace-identifier-label">Username</label><input id="workspace-username" name="username" type="text" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Your username">
@@ -22,8 +22,17 @@
  <div class="local-actions"><button class="btn" id="local-add">Add item</button><button class="btn" id="local-playlists">Playlists</button><button class="btn" id="local-log">Learning log</button><button class="btn" id="local-end">End session &amp; teach back</button></div>
  <p class="small" id="local-message" role="status"></p></div>`;
  document.body.appendChild(dialog);
- const banner=document.createElement('div');banner.id='workspace-banner';banner.innerHTML='<span id="workspace-label"></span><button class="btn" id="workspace-open">My Workspace</button>';document.body.appendChild(banner);$('workspace-open').onclick=openLocalSetup;
- function update(){const mode=SessionWorkspace.mode,privateMode=mode==='private';$('workspace-label').textContent=privateMode?'Private workspace':mode==='demo'?'Read-only preview · '+(SessionWorkspace.snapshotSource==='owner'?'Tanner’s data':'sample data'):'Original local workspace';$('workspace-status').textContent=privateMode?'Private account active. Records are saved to Supabase.':mode==='demo'?'Browse courses, assignments, skills and projects. Editing and AI are disabled.':'Sign in to use Supabase, then add your records in My Database.';$('workspace-auth').hidden=privateMode;$('workspace-profile').hidden=!privateMode;$('workspace-signout').hidden=!privateMode;$('companion-controls').hidden=!privateMode;}
+ const preferences=document.createElement('dialog');preferences.id='appearance-preferences';preferences.className='confirm-dlg';preferences.setAttribute('aria-labelledby','preferences-heading');
+ const group=(label,name,options)=>`<section class="preference-row"><h3>${label}</h3><div class="seg" role="group" aria-label="${label}">${options.map(([value,text])=>`<button type="button" data-pref="${name}" data-value="${value}" aria-pressed="false">${text}</button>`).join('')}</div></section>`;
+ preferences.innerHTML=`<div class="local-panel"><div class="row spread"><h2 id="preferences-heading">Appearance &amp; Preferences</h2><button class="btn ghost" id="preferences-close" autofocus>Close</button></div>${group('Light / Dark Mode','scheme',[['auto','Auto'],['light','Light'],['dark','Dark']])}${group('TV Screen Effect','screenEffect',[['off','Off'],['on','On']])}${group('Channel Cutscenes','cut',[['0','Off'],['4','On']])}</div>`;
+ document.body.appendChild(preferences);
+ TV.screenEffect=recall('sb.screenEffect',true)!==false;
+ function syncPreferences(){document.body.dataset.screenEffect=TV.screenEffect?'on':'off';preferences.querySelectorAll('[data-pref]').forEach(button=>{const value=button.dataset.pref==='scheme'?TV.scheme:button.dataset.pref==='screenEffect'?(TV.screenEffect?'on':'off'):String(TV.cutLen);button.setAttribute('aria-pressed',String(button.dataset.value===value))})}
+ function openPreferences(){syncPreferences();preferences.showModal()}
+ $('preferences-close').onclick=()=>preferences.close();
+ preferences.addEventListener('click',event=>{const button=event.target.closest('[data-pref]');if(!button)return;const name=button.dataset.pref,value=button.dataset.value;if(name==='scheme'){TV.scheme=value;store('sb.scheme',value);applyScheme()}else if(name==='screenEffect'){TV.screenEffect=value==='on';store('sb.screenEffect',TV.screenEffect)}else if(name==='cut'){TV.cutLen=Number(value);store('sb.cutLen',TV.cutLen)}syncPreferences()});
+ syncPreferences();
+ function update(){const mode=SessionWorkspace.mode,privateMode=mode==='private';$('workspace-status').textContent=privateMode?'Private account active. Records are saved to Supabase.':mode==='demo'?'Browse courses, assignments, skills and projects. Editing and AI are disabled.':'Sign in to use Supabase, then add your records in My Database.';$('workspace-auth').hidden=privateMode;$('workspace-profile').hidden=!privateMode;$('workspace-signout').hidden=!privateMode;$('companion-controls').hidden=!privateMode;}
  async function openLocalSetup(){update();$('local-message').textContent='';dialog.showModal();if(SessionCloud.user){try{$('workspace-chosen-username').value=await SessionCloud.getUsername()||''}catch{$('local-message').textContent='Username setup is not available yet. Apply the username account migration first.'}}}
  function fail(error){$('local-message').textContent=error.message}
  let emailMode=false;

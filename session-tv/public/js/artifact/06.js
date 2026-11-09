@@ -2,23 +2,19 @@
 TV.dbView=null;
 function renderSettings(){
   if(TV.dbView)return renderDbView(TV.dbView);
-  const seg=(name,opts,val)=>`<div class="seg" role="group" aria-label="${name}">${opts.map(([v,l])=>`<button type="button" data-${name}="${v}" aria-pressed="${String(v)===String(val)}">${l}</button>`).join('')}</div>`;
   const live=tasks.filter(t=>t.status!=='archived'),cls=live.filter(t=>typeOf(t)==='class'),sk=live.filter(t=>typeOf(t)==='skill'),pj=live.filter(t=>typeOf(t)==='project');
   const courses=[...new Set(cls.map(t=>t.course).filter(Boolean))],projects=[...new Set(pj.map(t=>t.course||'Other'))];
   const exp=pj.filter(t=>t.status==='done').length;
   const stat=(n,l,v)=>`<button type="button" class="db-stat" data-db="${v}" title="Open ${l}"><b>${n}</b><span>${l}</span></button>`;
   $('set-body').innerHTML=`<div class="set-grid">
-    <div class="set-card"><h3>Appearance</h3>${seg('scheme',[['auto','Auto'],['light','Light'],['dark','Dark']],TV.scheme)}</div>
-    <div class="set-card"><h3>Channel Cutscenes</h3>${seg('cut',[[4,'On'],[0,'Off']],TV.cutLen)}</div>
-    <div class="set-card"><h3>Leave SessionTV</h3><div class="row"><button class="btn primary" id="set-end">Return to Fun Portfolio</button></div><div class="set-note" id="set-leave-note" hidden>Portfolio link not set yet.</div></div>
+    <div class="set-card"><h3>Appearance &amp; Preferences</h3><p>Choose your theme, screen effect and channel transitions.</p><div class="row"><button class="btn" id="preferences-open">Open preferences</button></div></div>
+    <div class="set-card"><h3>Session Login</h3><p>Sign in to your private workspace or manage your session.</p><div class="row"><button class="btn" id="local-open">Open session login</button></div></div>
+    <div class="set-card"><h3>Exit SessionTV</h3><p>Return to Session TV in the technology portfolio.</p><div class="row"><a class="btn" id="session-exit" href="https://tannermayfield.dev/#projects">Return to portfolio</a></div></div>
     <div class="set-card db-card"><h3>My Database</h3>
       <div class="db-stats">${stat(courses.length,'Classes','classes')}${stat(cls.length,'Assignments','classes')}${stat(sk.length,'Skills','skills')}${stat(projects.length,'Projects','projects')}</div>
       <div class="db-btns"><button class="btn" data-db="learning">Learning Logs</button><button class="btn" data-db="experience">Experience Logs</button></div></div>
     ${setTimeCard()}
   </div>`;
-  $('set-body').querySelectorAll('[data-scheme]').forEach(b=>b.onclick=()=>{TV.scheme=b.dataset.scheme;store('sb.scheme',TV.scheme);applyScheme();renderSettings()});
-  $('set-body').querySelectorAll('[data-cut]').forEach(b=>b.onclick=()=>{TV.cutLen=+b.dataset.cut;store('sb.cutLen',TV.cutLen);renderSettings()});
-  $('set-end').onclick=()=>{const u=settings&&settings.portfolioUrl;if(u){window.open(u,'_blank','noopener')}else{const n=$('set-leave-note');if(n)n.hidden=false}};
   if($('tt-range'))$('tt-range').onclick=()=>{const i=TT_RANGES.findIndex(x=>x[0]===TV.ttRange);TV.ttRange=TT_RANGES[(i+1)%TT_RANGES.length][0];try{SessionWorkspace.storage.setItem('sb.ttRange',TV.ttRange)}catch(e){}renderSettings()};
   $('set-body').querySelectorAll('[data-db]').forEach(b=>b.onclick=()=>{if(b.dataset.db==='learning'){closeSheets();go('log');return}TV.dbView=b.dataset.db;renderSettings()});
 }
