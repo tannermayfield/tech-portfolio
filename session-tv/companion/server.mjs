@@ -13,7 +13,7 @@ export async function canonicalWorkspaces(values){
  const roots=[];for(const value of values){const root=await realpath(value);if(!(await stat(root)).isDirectory()||path.parse(root).root===root)throw new Error('Select a project directory, not a filesystem root.');roots.push(root)}
  if(!roots.length)throw new Error('Select at least one project directory with SESSIONTV_WORKSPACES (JSON array).');return [...new Set(roots)];
 }
-export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now}){
+export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now,deviceToken}){
  if(!/^https:\/\//.test(supabaseUrl||'')||!publishableKey||!ownerId||!home||!workspaces?.length)throw new Error('Supabase URL, public key, owner UUID, dedicated CODEX_HOME and selected workspaces are required.');
  if(new URL(origin).origin!==origin)throw new Error('SESSIONTV_ORIGIN must be an exact origin.');
  const code=secret(),expires=now()+600000,pairs=new Map();let attempts=0,paired=false,active=null,activeConfirmed=false;
@@ -25,7 +25,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
  async function authorize(req,pair=true){
   const token=req.headers.authorization?.match(/^Bearer ([^\s]+)$/)?.[1];if(!token)throw failure(401,'Sign in to your private workspace first.');
   const user=await verify(token);if(user?.id!==ownerId)throw failure(403,'Only the configured owner can access this companion.');
-  if(pair){const record=pairs.get(req.headers['x-sessiontv-pair']);if(!record||record.userId!==user.id||record.expires<=now())throw failure(401,'Pair the local companion again.');}
+  if(pair&&!(deviceToken&&equal(req.headers['x-sessiontv-pair'],deviceToken))){const record=pairs.get(req.headers['x-sessiontv-pair']);if(!record||record.userId!==user.id||record.expires<=now())throw failure(401,'Pair the local companion again.');}
   return user;
  }
  const server=http.createServer(async(req,res)=>{
@@ -42,7 +42,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    if(route==='/pair'){
     const user=await authorize(req,false),body=await readJSON(req);
     if(paired||now()>expires||++attempts>10||!equal(body.code,code))throw failure(403,'Pairing code expired or invalid. Restart the companion for a new code.');
-    paired=true;const token=secret();pairs.set(token,{userId:user.id,expires:now()+1800000});json(res,200,{token,expiresIn:1800});return;
+    paired=true;const token=deviceToken||secret();pairs.set(token,{userId:user.id,expires:now()+1800000});json(res,200,{token,remember:!!deviceToken,expiresIn:deviceToken?null:1800});return;
    }
    await authorize(req);
    if(route==='/disconnect'){pairs.delete(req.headers['x-sessiontv-pair']);active?.stop();json(res,200,{disconnected:true});return}
@@ -83,7 +83,7 @@ async function main(){
  if(!env.SESSIONTV_CODEX_HOME)throw new Error('Set SESSIONTV_CODEX_HOME to a dedicated profile directory, then sign in with codex login using that CODEX_HOME.');
  const workspaces=await canonicalWorkspaces(JSON.parse(env.SESSIONTV_WORKSPACES||'[]'));
  if(workspaces.some(root=>home===root||home.startsWith(root+path.sep)))throw new Error('Keep the Codex credential profile outside selected project directories.');
- const companion=createCompanion({supabaseUrl:env.SUPABASE_URL,publishableKey:env.SUPABASE_PUBLISHABLE_KEY,ownerId:env.SESSIONTV_OWNER_ID,origin:env.SESSIONTV_ORIGIN||'https://tannermayfield.dev',home,workspaces,executable:env.SESSIONTV_CODEX_BINARY||'codex',port:Number(env.SESSIONTV_COMPANION_PORT||4319)});
+ const companion=createCompanion({supabaseUrl:env.SUPABASE_URL,publishableKey:env.SUPABASE_PUBLISHABLE_KEY,ownerId:env.SESSIONTV_OWNER_ID,origin:env.SESSIONTV_ORIGIN||'https://tannermayfield.dev',home,workspaces,deviceToken:env.SESSIONTV_DEVICE_TOKEN,executable:env.SESSIONTV_CODEX_BINARY||'codex',port:Number(env.SESSIONTV_COMPANION_PORT||4319)});
  await companion.listen();console.log('Session TV companion listening on 127.0.0.1:'+companion.server.address().port+'\nPairing code (one use, valid 10 minutes): '+companion.pairingCode+'\nAuthorized workspaces:\n'+workspaces.join('\n')+'\nStop with Ctrl+C. No API billing fallback is configured.');
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{console.error(error.message);process.exitCode=1});

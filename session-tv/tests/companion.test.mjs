@@ -91,3 +91,14 @@ test('saved conversations resume only in their original restricted folder',async
  await assert.rejects(bridge.start('/different-folder','continue','saved-chat'),/different folder/);
  assert.equal(calls.some(c=>c.method==='turn/start'),false);
 });
+
+test('remembered device token still requires owner authentication and exact origin',async()=>{
+ const companion=createCompanion({port:0,origin:'https://tannermayfield.dev',supabaseUrl:'https://test.supabase.co',publishableKey:'public',ownerId:'owner',home:tmpdir(),workspaces:[tmpdir()],deviceToken:'remembered-device-secret',verifyUser:async token=>({id:token}),bridgeFactory:()=>new FakeBridge()});
+ await companion.listen();
+ try {
+  const request=(user,origin)=>fetch('http://127.0.0.1:'+companion.server.address().port+'/status',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json',Authorization:'Bearer '+user,'X-SessionTV-Pair':'remembered-device-secret'},body:'{}'});
+  assert.equal((await request('owner','https://tannermayfield.dev')).status,200);
+  assert.equal((await request('visitor','https://tannermayfield.dev')).status,403);
+  assert.equal((await request('owner','https://foreign.example')).status,403);
+ } finally {await new Promise(resolve=>companion.server.close(resolve))}
+});

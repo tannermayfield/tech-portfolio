@@ -1,7 +1,8 @@
-param([switch]$Configure)
+param([switch]$Configure, [switch]$Background)
 $ErrorActionPreference = 'Stop'
 $sessionTvConfigDirectory = Join-Path $env:LOCALAPPDATA 'SessionTV-Companion'
 $sessionTvConfigFile = Join-Path $sessionTvConfigDirectory 'settings.json'
+if ($Background -and !(Test-Path -LiteralPath $sessionTvConfigFile)) { throw 'Complete companion setup before enabling background startup.' }
 if ($Configure -or !(Test-Path -LiteralPath $sessionTvConfigFile)) {
     New-Item -ItemType Directory -Path $sessionTvConfigDirectory -Force | Out-Null
     $sessionTvOwner = (Read-Host 'Paste your Supabase User UID, then press Enter').Trim()
@@ -20,6 +21,15 @@ if ($Configure -or !(Test-Path -LiteralPath $sessionTvConfigFile)) {
     @{ownerId=$sessionTvOwner;folders=@($sessionTvFolders | Select-Object -Unique)} | ConvertTo-Json | Set-Content -LiteralPath $sessionTvConfigFile -Encoding UTF8
 }
 $sessionTvConfig = Get-Content -LiteralPath $sessionTvConfigFile -Raw | ConvertFrom-Json
+if (!$sessionTvConfig.deviceToken) {
+    $sessionTvRandom = New-Object byte[] 32
+    $sessionTvGenerator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    $sessionTvGenerator.GetBytes($sessionTvRandom)
+    $sessionTvGenerator.Dispose()
+    $sessionTvConfig | Add-Member -NotePropertyName deviceToken -NotePropertyValue ([Convert]::ToBase64String($sessionTvRandom))
+    $sessionTvConfig | ConvertTo-Json | Set-Content -LiteralPath $sessionTvConfigFile -Encoding UTF8
+}
+$env:SESSIONTV_DEVICE_TOKEN = $sessionTvConfig.deviceToken
 $env:SESSIONTV_OWNER_ID = $sessionTvConfig.ownerId
 $env:SESSIONTV_WORKSPACES = ConvertTo-Json -Compress -InputObject @($sessionTvConfig.folders)
 $env:SESSIONTV_CODEX_HOME = Join-Path $env:LOCALAPPDATA 'SessionTV-Codex'
