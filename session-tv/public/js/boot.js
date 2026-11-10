@@ -4,7 +4,7 @@
  try {
   await window.SessionCloud?.ready;
   if(window.SessionCloud?.user)await SessionCloud.open();
-  const scripts=Array.from({length:17},(_,i)=>'artifact/'+String(i+1).padStart(2,'0')+'.js').concat('local.js','project-chats.js','preview.js');
+  const scripts=Array.from({length:17},(_,i)=>'artifact/'+String(i+1).padStart(2,'0')+'.js').concat('local.js','project-chats.js','add-forms.js','preview.js');
   for(const name of scripts)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='js/'+name;s.onload=resolve;s.onerror=()=>reject(Error('Could not load '+name));document.body.appendChild(s)});
   loading.remove();
  } catch(error) {

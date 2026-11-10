@@ -25,3 +25,5 @@ body[data-screen-effect="off"] .crt{filter:none}
 #local-setup,#appearance-preferences{width:min(600px,calc(var(--crt-w,100vw) - 32px));max-width:calc(100vw - 32px)!important}.local-panel .row.spread > h2{min-width:0}.local-panel .row.spread > button{flex-shrink:0}
 
 #project-chats{width:min(760px,calc(100vw - 32px));max-width:calc(100vw - 32px)!important} #project-chats input,#project-chats select,#project-chats textarea{width:100%;box-sizing:border-box} #project-chats form{margin:16px 0} #pc-history{max-height:40vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.create-record{width:min(560px,calc(100vw - 32px));max-width:calc(100vw - 32px)!important}.create-record label{display:block;margin:12px 0}.create-record input,.create-record select{display:block;width:100%;box-sizing:border-box}

@@ -56,3 +56,9 @@ References: [Codex app-server](https://learn.chatgpt.com/docs/app-server), [perm
 ## Project chats and folder links
 
 Open Settings → My Database → Projects, then choose Create linked project or a project’s Folder & chats button. Active project panels also provide a chat shortcut. Sign in and pair the companion first. Refresh computer folders and select an authorized folder before creating a new project. Existing projects can select a folder and save its link. New project creation requires a folder, including when adding project tasks through the general Add Item form. Create a named chat and send a message. Each chat saves its own Codex thread reference and transcript in private account preferences. Further messages resume that thread in its original folder. A changed folder link requires a new chat or restoring the previous link. Chats require the same computer and dedicated Codex profile where the thread was created. Restart the companion after updating its source. One request can run at a time. Polybot folders currently remain separate folder choices.
+
+## Simple startup and dedicated forms
+
+Double-click Start Session TV.cmd in the standalone app directory. First run asks for the Supabase User UID and authorized project folders, saving them to %LOCALAPPDATA%/SessionTV-Companion/settings.json. Later launches reuse those settings. Run Start Session TV.cmd -Configure to replace the folder list or UID. Keep the companion window open and pair from the private website. This launcher starts manually and does not install a background or login service.
+
+Settings → My Database has distinct Classes, Assignments, Skills and Projects entry points. Each opens its own form. Create the class before adding assignments. Project creation includes a required authorized computer folder. The Projects section has no Add project task action.

@@ -3,7 +3,7 @@ TV.dbView=null;
 function renderSettings(){
   if(TV.dbView)return renderDbView(TV.dbView);
   const live=tasks.filter(t=>t.status!=='archived'),cls=live.filter(t=>typeOf(t)==='class'),sk=live.filter(t=>typeOf(t)==='skill'),pj=live.filter(t=>typeOf(t)==='project');
-  const courses=[...new Set(cls.map(t=>t.course).filter(Boolean))],projects=[...new Set([...pj.map(t=>t.course||'Other'),...Object.values(PROJ.data).map(p=>p.name).filter(Boolean)])];
+  const courses=[...new Set([...cls.map(t=>t.course).filter(Boolean),...Object.keys(recall('sb.classes',{}))])],projects=[...new Set([...pj.map(t=>t.course||'Other'),...Object.values(PROJ.data).map(p=>p.name).filter(Boolean)])];
   const exp=pj.filter(t=>t.status==='done').length;
   const stat=(n,l,v)=>`<button type="button" class="db-stat" data-db="${v}" title="Open ${l}"><b>${n}</b><span>${l}</span></button>`;
   $('set-body').innerHTML=`<div class="set-grid">
@@ -11,7 +11,7 @@ function renderSettings(){
     <div class="set-card"><h3>Session Login</h3><p>Sign in to your private workspace or manage your session.</p><div class="row"><button class="btn" id="local-open">Open session login</button></div></div>
     <div class="set-card"><h3>Exit SessionTV</h3><p>Return to Session TV in the technology portfolio.</p><div class="row"><a class="btn" id="session-exit" href="https://tannermayfield.dev/#projects">Return to portfolio</a></div></div>
     <div class="set-card db-card"><h3>My Database</h3>
-      <div class="db-stats">${stat(courses.length,'Classes','classes')}${stat(cls.length,'Assignments','classes')}${stat(sk.length,'Skills','skills')}${stat(projects.length,'Projects','projects')}</div>
+      <div class="db-stats">${stat(courses.length,'Classes','classes')}${stat(cls.length,'Assignments','assignments')}${stat(sk.length,'Skills','skills')}${stat(projects.length,'Projects','projects')}</div>
       <div class="db-btns"><button class="btn" data-db="learning">Learning Logs</button><button class="btn" data-db="experience">Experience Logs</button></div></div>
     ${setTimeCard()}
   </div>`;
@@ -37,15 +37,15 @@ function renderDbView(v){
   const row=(t,meta,done)=>`<li><button type="button" class="db-row${done?' done':''}" data-open="${esc(t.id)}"><span class="db-t">${esc(t.title)}</span><span class="db-m">${meta}</span></button></li>`;
   const group=(h,sub,items)=>`<section class="db-grp"><h4>${esc(h)}${sub?` <small>${esc(sub)}</small>`:''}</h4><ul>${items||'<li class="db-empty">Nothing here yet.</li>'}</ul></section>`;
   let title='',body='',add='';
-  if(v==='classes'){title='Classes';add='Add assignment';
-    const cls=live.filter(t=>typeOf(t)==='class'),courses=[...new Set(cls.map(t=>t.course||'Other'))].sort();
+  if(v==='classes'||v==='assignments'){title=v==='classes'?'Classes':'Assignments';add=v==='classes'?'Add class':'Add assignment';
+    const cls=live.filter(t=>typeOf(t)==='class'),courses=[...new Set([...cls.map(t=>t.course||'Other'),...Object.keys(recall('sb.classes',{}))])].sort();
     body=courses.map(c=>{const l=cls.filter(t=>(t.course||'Other')===c).sort((a,b)=>(a.status==='done')-(b.status==='done')||String(a.due||'9').localeCompare(String(b.due||'9')));
       const open=l.filter(t=>t.status!=='done').length;
       return group(c+(GD_COURSE_NAMES[c]?' · '+GD_COURSE_NAMES[c]:''),`${open} open · ${l.length-open} done`,l.map(t=>row(t,t.status==='done'?`Done ${d(t.doneAt)}`:(t.due?esc(fmtDue(t)):'No due date'),t.status==='done')).join(''))}).join('');}
   else if(v==='skills'){title='Skills';add='Add skill';
     const sk=live.filter(t=>typeOf(t)==='skill');
     body=subsOf('skill').map(c=>{const l=sk.filter(t=>catOf(t)===c).sort(byOrder);return group(c,`${l.length} skill${l.length===1?'':'s'}`,l.map(t=>row(t,`${LVL_TAG(skillLevel(t))} · ${esc(agoLabel(t.lastPracticed))}`)).join(''))}).join('');}
-  else if(v==='projects'){title='Projects';add='Add project task';
+  else if(v==='projects'){title='Projects';add='Create project';
     const pj=live.filter(t=>typeOf(t)==='project'),names=[...new Set(pj.map(t=>t.course||'Other'))];
     body=names.map(n=>{const l=pj.filter(t=>(t.course||'Other')===n).sort((a,b)=>(a.status==='done')-(b.status==='done')||byOrder(a,b));const open=l.filter(t=>t.status!=='done').length;
       return group(n,`${open} open · ${l.length-open} done`,l.map(t=>row(t,t.status==='done'?`Done ${d(t.doneAt)}`:(t.phase?esc(t.phase):'Open'),t.status==='done')).join(''))}).join('');}
@@ -54,6 +54,6 @@ function renderDbView(v){
     body=`<p class="db-note">Proof of your skills: every project task you finish lands here, newest first.</p>`+(l.length?group('Finished project work',`${l.length} entr${l.length===1?'y':'ies'}`,l.map(t=>row(t,`${esc(t.course||'Project')} · ${t.doneAt?'Done '+d(t.doneAt):'Done'}${t.goal?' · '+esc(t.goal):''}`,true)).join('')):`<p class="db-empty">Nothing yet. Finish a project task and it shows up here as proof of the work.</p>`);}
   $('set-body').innerHTML=`<div class="db-view"><div class="db-head"><button type="button" class="btn ghost" id="db-back">‹ Back</button><h3>${title}</h3>${add?`<button type="button" class="btn" id="db-add">+ <span class="db-al">${add}</span><span class="db-as">Add</span></button>`:''}</div><div class="db-list">${body}</div></div>`;
   $('db-back').onclick=()=>{TV.dbView=null;renderSettings()};
-  if($('db-add'))$('db-add').onclick=()=>{closeSheets();openDrawer('add-drawer')};
+  if($('db-add'))$('db-add').onclick=()=>SessionAddForms.open(v==='classes'?'class':v==='assignments'?'assignment':v==='skills'?'skill':'project');
   $('set-body').querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openTask(b.dataset.open));
 }

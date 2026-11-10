@@ -14,7 +14,7 @@ async function boot(saved={},url='http://127.0.0.1:4173'){
  const dom=new JSDOM(html,{
   url,runScripts:'dangerously',virtualConsole:vc,pretendToBeVisual:true,
   beforeParse(w){
-   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','project-chats','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
+   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','project-chats','add-forms','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
    for(const [k,v]of Object.entries(saved))w.localStorage.setItem(k,v);
    w.fetch=async()=>({ok:true,json:async()=>({aiConfigured:false})});
    w.matchMedia=q=>({matches:q.includes('reduced-motion'),media:q,addEventListener(){},removeEventListener(){}});
@@ -165,14 +165,15 @@ test('project chat creation links an authorized folder and preserves named conve
   w.document.querySelector('[data-db=projects]').click();
   w.document.getElementById('project-chats-open').click();
   const submit=id=>w.document.getElementById(id).dispatchEvent(new w.Event('submit',{cancelable:true}));
-  w.document.getElementById('pc-name').value='Example project';submit('pc-create');
-  assert.match(w.document.getElementById('pc-status').textContent,/Choose an authorized/);
-  await until(()=>w.document.getElementById('pc-folder').options.length===2);
-  w.document.getElementById('pc-folder').value='C:\\Projects\\example';submit('pc-create');
-  await until(()=>w.document.getElementById('pc-project').value==='Example project');
-  await w.SessionCompanion.status();w.document.getElementById('pc-refresh').click();
-  await until(()=>w.document.getElementById('pc-folder').options.length===2);
-  w.document.getElementById('pc-folder').value='C:\\Projects\\example';w.document.getElementById('pc-link').click();
+  const create=w.document.getElementById('create-project');
+  create.querySelector('[name=name]').value='Example project';
+  create.querySelector('form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  await until(()=>create.textContent.includes('choose an authorized'));
+  await until(()=>create.querySelector('[name=folder]').options.length===2);
+  create.querySelector('[name=folder]').value='C:\\Projects\\example';
+  create.querySelector('form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  await until(()=>!create.open);
+  w.SessionProjectChats.open('Example project');
   w.document.getElementById('pc-title').value='Planning';submit('pc-new');
   w.document.getElementById('pc-message').value='Hello';submit('pc-send');
   await until(()=>w.document.getElementById('pc-status').textContent==='Turn completed');
@@ -181,5 +182,24 @@ test('project chat creation links an authorized folder and preserves named conve
   w.SessionCompanion.start=async({threadId})=>assert.equal(threadId,'persistent-thread');
   w.document.getElementById('pc-message').value='Continue';submit('pc-send');
   await until(()=>!w.document.getElementById('pc-submit').disabled);
+ } finally {dom.window.close()}
+});
+
+test('class, assignment, and skill creation use separate forms and save their records',async()=>{
+ const {dom,w}=await boot();
+ try {
+  w.SessionWorkspace={...w.SessionWorkspace,mode:'private'};
+  const submit=kind=>w.document.querySelector('#create-'+kind+' form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  w.SessionAddForms.open('class');
+  w.document.querySelector('#create-class [name=name]').value='CS 500';submit('class');
+  await until(()=>!w.document.getElementById('create-class').open);
+  w.SessionAddForms.open('assignment');
+  w.document.querySelector('#create-assignment [name=course]').value='CS 500';
+  w.document.querySelector('#create-assignment [name=title]').value='My assignment';submit('assignment');
+  await until(()=>w.eval("tasks.some(t=>t.title==='My assignment'&&t.course==='CS 500')"));
+  w.SessionAddForms.open('skill');
+  w.document.querySelector('#create-skill [name=course]').value='Programming';
+  w.document.querySelector('#create-skill [name=title]').value='My skill';submit('skill');
+  await until(()=>w.eval("tasks.some(t=>t.title==='My skill'&&typeOf(t)==='skill')"));
  } finally {dom.window.close()}
 });

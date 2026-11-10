@@ -77,7 +77,9 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
  return {server,pairingCode:code,listen:()=>new Promise(resolve=>server.listen(port,'127.0.0.1',resolve))};
 }
 async function main(){
- const env=process.env,home=await realpath(env.SESSIONTV_CODEX_HOME||'');
+ const env=process.env;
+ if(!env.SESSIONTV_CODEX_HOME)throw new Error('Start the companion with Start Session TV.cmd to load your saved setup.');
+ const home=await realpath(env.SESSIONTV_CODEX_HOME);
  if(!env.SESSIONTV_CODEX_HOME)throw new Error('Set SESSIONTV_CODEX_HOME to a dedicated profile directory, then sign in with codex login using that CODEX_HOME.');
  const workspaces=await canonicalWorkspaces(JSON.parse(env.SESSIONTV_WORKSPACES||'[]'));
  if(workspaces.some(root=>home===root||home.startsWith(root+path.sep)))throw new Error('Keep the Codex credential profile outside selected project directories.');
