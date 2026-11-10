@@ -23,3 +23,5 @@ body[data-screen-effect="off"] .crt{filter:none}
 #session-exit{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 #tv-settings .set-grid > .set-card:nth-child(-n+3){display:flex;flex-direction:column}#tv-settings .set-grid > .set-card:nth-child(-n+3) > .row{margin-top:auto;padding-top:4px}
 #local-setup,#appearance-preferences{width:min(600px,calc(var(--crt-w,100vw) - 32px));max-width:calc(100vw - 32px)!important}.local-panel .row.spread > h2{min-width:0}.local-panel .row.spread > button{flex-shrink:0}
+
+#project-chats{width:min(760px,calc(100vw - 32px));max-width:calc(100vw - 32px)!important} #project-chats input,#project-chats select,#project-chats textarea{width:100%;box-sizing:border-box} #project-chats form{margin:16px 0} #pc-history{max-height:40vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}

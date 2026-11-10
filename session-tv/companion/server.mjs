@@ -68,7 +68,8 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     });
     bridge.on('stopped',error=>{if(!res.destroyed&&!res.writableEnded){write({method:'sessiontv/stopped',params:{error:error.message}});res.end()}});
     timeout=setTimeout(()=>{write({method:'sessiontv/error',params:{error:'Request reached the 30-minute limit.'}});stop();res.end()},1800000);
-    await bridge.start(cwd,body.prompt);if(active===bridge)activeConfirmed=true;
+    if(body.threadId!==undefined&&(typeof body.threadId!=='string'||body.threadId.length>200))throw failure(400,'Invalid chat reference.');
+    await bridge.start(cwd,body.prompt,body.threadId);if(active===bridge)activeConfirmed=true;
    }catch(error){if(res.headersSent){write({method:'sessiontv/error',params:{error:error.message}});res.end()}else throw error;stop()}
   }catch(error){if(!res.headersSent)json(res,error.status||500,{error:error.status?error.message:'Companion request failed. Check local setup.'});else res.end()}
  });

@@ -52,6 +52,4 @@
  const originalCoachLog=renderCoachLog;renderCoachLog=function(){if(current){const saved=recall('sb.localChats',null);if(saved?.startedAt===current.startedAt&&!Object.keys(coachTurns).length)coachTurns=saved.turns||{};store('sb.localChats',{startedAt:current.startedAt,turns:coachTurns})}return originalCoachLog()};
  addEventListener('pagehide',()=>{if(SessionWorkspace.mode==='private'&&!SessionCloud.user)return;wsSave();if(current){accumulate();saveState();store('sb.localChats',{startedAt:current.startedAt,turns:coachTurns})}});
  window.SessionTVLocal={backup,validateBackup,openSetup:openLocalSetup};update();
- // Settings is available from every project channel; offer a direct coding action there too.
- const baseProjectPanel=ppRender;ppRender=function(t){baseProjectPanel(t);if($('pp').hidden||$('project-codex'))return;const button=document.createElement('button');button.id='project-codex';button.className='btn';button.textContent='Codex workspace';button.onclick=()=>{openLocalSetup();$('companion-prompt').value='Project: '+(t.course||'Project')+'\nTask: '+t.title+'\n'+(t.goal||'');$('ai-connections').open=true;$('companion-status').scrollIntoView({block:'center'})};$('pp-body').prepend(button)};
 })();

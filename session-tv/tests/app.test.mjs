@@ -14,7 +14,7 @@ async function boot(saved={},url='http://127.0.0.1:4173'){
  const dom=new JSDOM(html,{
   url,runScripts:'dangerously',virtualConsole:vc,pretendToBeVisual:true,
   beforeParse(w){
-   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
+   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','project-chats','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
    for(const [k,v]of Object.entries(saved))w.localStorage.setItem(k,v);
    w.fetch=async()=>({ok:true,json:async()=>({aiConfigured:false})});
    w.matchMedia=q=>({matches:q.includes('reduced-motion'),media:q,addEventListener(){},removeEventListener(){}});
@@ -148,3 +148,32 @@ test('project sprint planning and completion persist through the local database'
 test('public preview keeps sign-in usable and blocks record editing in the DOM',async()=>{const {dom,w,errors}=await boot({},'https://tannermayfield.dev/session-tv/');try{assert.equal(w.SessionWorkspace.readOnly,true);assert.equal(w.document.body.dataset.readonly,'true');assert.equal(w.eval('tasks.length'),7);await assert.rejects(w.eval("db.doc('tasks/demo-cs').update({title:'Forbidden'})"),/read-only/);w.document.getElementById('add-form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));assert.equal(w.eval('tasks.length'),7);assert.equal(w.document.getElementById('workspace-username').disabled,false);assert.equal(w.document.getElementById('workspace-data'),null);assert.deepEqual(errors,[])}finally{dom.window.close()}});
 
 test('appearance preferences persist without changing workspace data',async()=>{const {dom,w,errors}=await boot();try{assert.equal(w.document.getElementById('workspace-banner'),null);w.document.getElementById('btn-set').click();const titles=[...w.document.querySelectorAll('#set-body .set-card>h3')].map(x=>x.textContent);assert.deepEqual(titles.slice(0,3),['Appearance & Preferences','Session Login','Exit SessionTV']);assert.equal(w.document.getElementById('session-exit').href,'https://tannermayfield.dev/#projects');w.document.getElementById('preferences-open').click();assert.equal(w.document.getElementById('appearance-preferences').open,true);w.document.querySelector('[data-pref="scheme"][data-value="dark"]').click();w.document.querySelector('[data-pref="screenEffect"][data-value="off"]').click();w.document.querySelector('[data-pref="cut"][data-value="0"]').click();assert.equal(w.document.body.dataset.scheme,'dark');assert.equal(w.document.body.dataset.screenEffect,'off');assert.equal(w.eval('TV.cutLen'),0);const saved=w.SessionTVLocal.backup().values;const reload=await boot(saved);try{assert.equal(reload.w.document.body.dataset.scheme,'dark');assert.equal(reload.w.document.body.dataset.screenEffect,'off');assert.equal(reload.w.eval('TV.cutLen'),0);assert.equal(reload.w.eval('tasks.length'),0)}finally{reload.dom.window.close()}assert.deepEqual(errors,[])}finally{dom.window.close()}});
+
+test('project chat creation links an authorized folder and preserves named conversations',async()=>{
+ const {dom,w}=await boot();
+ try {
+  w.SessionWorkspace={...w.SessionWorkspace,mode:'private'};
+  w.SessionCompanion.status=async()=>({connected:true,workspaces:['C:\\Projects\\example']});
+  w.SessionCompanion.start=async({threadId,onEvent})=>{
+   assert.equal(threadId,undefined);
+   onEvent({method:'sessiontv/thread',params:{threadId:'persistent-thread'}});
+   onEvent({method:'item/agentMessage/delta',params:{delta:'Saved reply'}});
+   onEvent({method:'turn/completed',params:{turn:{status:'completed'}}});
+  };
+  w.SessionProjectChats.open();
+  const submit=id=>w.document.getElementById(id).dispatchEvent(new w.Event('submit',{cancelable:true}));
+  w.document.getElementById('pc-name').value='Example project';submit('pc-create');
+  await until(()=>w.document.getElementById('pc-project').value==='Example project');
+  await w.SessionCompanion.status();w.document.getElementById('pc-refresh').click();
+  await until(()=>w.document.getElementById('pc-folder').options.length===2);
+  w.document.getElementById('pc-folder').value='C:\\Projects\\example';submit('pc-link');
+  w.document.getElementById('pc-title').value='Planning';submit('pc-new');
+  w.document.getElementById('pc-message').value='Hello';submit('pc-send');
+  await until(()=>w.document.getElementById('pc-status').textContent==='Turn completed');
+  w.SessionProjectChats.open('Example project');
+  assert.match(w.document.getElementById('pc-history').textContent,/Saved reply/);
+  w.SessionCompanion.start=async({threadId})=>assert.equal(threadId,'persistent-thread');
+  w.document.getElementById('pc-message').value='Continue';submit('pc-send');
+  await until(()=>!w.document.getElementById('pc-submit').disabled);
+ } finally {dom.window.close()}
+});

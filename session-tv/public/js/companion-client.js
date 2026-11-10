@@ -17,11 +17,11 @@
    if(!pairToken)return {connected:false,available:false,signedIn:false,workspaces:[],error:'Start the local companion and enter its pairing code.'};
    try{return await (await request('/status')).json()}catch(error){return {connected:false,available:false,signedIn:false,workspaces:[],error:error.message+' Allow browser local-network access when prompted; check that the companion is running.'}}
   },
-  async start({workspace,prompt,onEvent=()=>{}}){
-   if(!pairToken)throw new Error('Pair the local companion first.');controller?.abort();controller=new AbortController();
-   const response=await request('/run',{workspace,prompt},controller.signal),reader=response.body.getReader(),decoder=new TextDecoder();let text='';
-   try{while(true){const {done,value}=await reader.read();text+=decoder.decode(value,{stream:!done});let index;while((index=text.indexOf('\n'))>=0){const line=text.slice(0,index);text=text.slice(index+1);if(line)onEvent(JSON.parse(line))}if(done)break}if(text.trim())onEvent(JSON.parse(text))}
-   finally{reader.releaseLock();controller=null}
+  async start({workspace,prompt,threadId,onEvent=()=>{}}){
+   if(!pairToken)throw new Error('Pair the local companion first.');if(controller)throw new Error('A coding request is already running. Stop it before starting another.');controller=new AbortController();
+   let reader;
+   try{const response=await request('/run',{workspace,prompt,threadId},controller.signal);reader=response.body.getReader();const decoder=new TextDecoder();let text='';while(true){const {done,value}=await reader.read();text+=decoder.decode(value,{stream:!done});let index;while((index=text.indexOf('\n'))>=0){const line=text.slice(0,index);text=text.slice(index+1);if(line)onEvent(JSON.parse(line))}if(done)break}if(text.trim())onEvent(JSON.parse(text))}
+   finally{reader?.releaseLock();controller=null}
   },
   cancel(){controller?.abort();controller=null},
   async disconnect(){try{if(pairToken)await request('/disconnect')}finally{pairToken=null;this.cancel()}}

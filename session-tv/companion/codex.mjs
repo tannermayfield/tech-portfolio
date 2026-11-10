@@ -44,15 +44,20 @@ export class CodexBridge extends EventEmitter {
  }
  async initialize(){await this.request('initialize',{clientInfo:{name:'session_tv_companion',title:'Session TV local companion',version:'1.0.0'},capabilities:{experimentalApi:true}});this.send({method:'initialized',params:{}})}
  async account(){const result=await this.request('account/read',{refreshToken:false});return {signedIn:result.account?.type==='chatgpt',authType:result.account?.type||null}}
- async start(cwd,prompt){
+ async start(cwd,prompt,threadId){
   const account=await this.account();if(!account.signedIn)throw new Error('Sign in with ChatGPT using codex login in the dedicated companion profile. API-key authentication is disabled.');
   const profile=await this.request('permissionProfile/list',{cwd});
   if(!profile.data?.some(p=>p.id==='sessiontv'&&p.allowed))throw new Error('This Codex installation cannot enforce the required sessiontv permission profile. Update Codex; no unrestricted fallback is allowed.');
-  const started=await this.request('thread/start',{cwd,runtimeWorkspaceRoots:[cwd],permissions:'sessiontv',approvalPolicy:'on-request',approvalsReviewer:'user',modelProvider:'openai',
+  if(threadId){
+   const saved=await this.request('thread/read',{threadId});
+   if(saved.thread?.cwd!==cwd)throw new Error('This chat belongs to a different folder. Create a new chat.');
+  }
+  const started=await this.request(threadId?'thread/resume':'thread/start',{...(threadId?{threadId,excludeTurns:true}:{}),cwd,runtimeWorkspaceRoots:[cwd],permissions:'sessiontv',approvalPolicy:'on-request',approvalsReviewer:'user',modelProvider:'openai',
    developerInstructions:'Work only in the selected workspace. Report modified files and test results. Before a dangerous or destructive command, request user approval. This companion declines all additional permissions and command approvals, so explain the action for the owner to run separately. Never use paid API credentials or other providers.'});
   if(started.activePermissionProfile!=='sessiontv'||started.approvalPolicy!=='on-request'||started.approvalsReviewer!=='user'||started.modelProvider!=='openai'||started.cwd!==cwd||
    started.runtimeWorkspaceRoots?.length!==1||started.runtimeWorkspaceRoots[0]!==cwd)throw new Error('Codex did not confirm the required restricted workspace policy. No coding turn was started.');
   const {thread}=started;
+  this.emit('event',{method:'sessiontv/thread',params:{threadId:thread.id}});
   await this.request('turn/start',{threadId:thread.id,input:[{type:'text',text:prompt}],permissions:'sessiontv',approvalPolicy:'on-request'});
   return thread.id;
  }

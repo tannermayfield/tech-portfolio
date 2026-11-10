@@ -72,3 +72,22 @@ test('coding does not begin with API authentication or an unconfirmed permission
  await assert.rejects(bridge.start(tmpdir(),'hello'),/No coding turn was started/);
  assert.deepEqual(calls,['permissionProfile/list','thread/start']);
 });
+
+test('saved conversations resume only in their original restricted folder',async()=>{
+ const calls=[];
+ const bridge=Object.create(CodexBridge.prototype);
+ bridge.account=async()=>({signedIn:true});
+ bridge.emit=()=>{};
+ bridge.request=async(method,params)=>{
+  calls.push({method,params});
+  if(method==='permissionProfile/list')return {data:[{id:'sessiontv',allowed:true}]};
+  if(method==='thread/read')return {thread:{cwd:tmpdir()}};
+  return {thread:{id:'saved-chat'},cwd:tmpdir(),runtimeWorkspaceRoots:[tmpdir()],activePermissionProfile:'sessiontv',approvalPolicy:'on-request',approvalsReviewer:'user',modelProvider:'openai'};
+ };
+ assert.equal(await bridge.start(tmpdir(),'continue','saved-chat'),'saved-chat');
+ assert.equal(calls.find(c=>c.method==='thread/resume').params.threadId,'saved-chat');
+ assert.equal(calls.at(-1).method,'turn/start');
+ calls.length=0;
+ await assert.rejects(bridge.start('/different-folder','continue','saved-chat'),/different folder/);
+ assert.equal(calls.some(c=>c.method==='turn/start'),false);
+});
