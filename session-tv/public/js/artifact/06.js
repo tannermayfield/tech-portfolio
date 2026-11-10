@@ -3,7 +3,7 @@ TV.dbView=null;
 function renderSettings(){
   if(TV.dbView)return renderDbView(TV.dbView);
   const live=tasks.filter(t=>t.status!=='archived'),cls=live.filter(t=>typeOf(t)==='class'),sk=live.filter(t=>typeOf(t)==='skill'),pj=live.filter(t=>typeOf(t)==='project');
-  const courses=[...new Set(cls.map(t=>t.course).filter(Boolean))],projects=[...new Set(pj.map(t=>t.course||'Other'))];
+  const courses=[...new Set(cls.map(t=>t.course).filter(Boolean))],projects=[...new Set([...pj.map(t=>t.course||'Other'),...Object.values(PROJ.data).map(p=>p.name).filter(Boolean)])];
   const exp=pj.filter(t=>t.status==='done').length;
   const stat=(n,l,v)=>`<button type="button" class="db-stat" data-db="${v}" title="Open ${l}"><b>${n}</b><span>${l}</span></button>`;
   $('set-body').innerHTML=`<div class="set-grid">

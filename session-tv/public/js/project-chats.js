@@ -7,10 +7,9 @@
  dialog.innerHTML = `<div class="local-panel">
  <div class="row spread"><h2 id="project-chats-heading">Project chats & folder</h2><button class="btn" id="pc-close">Close</button></div>
  <label>Project<select id="pc-project"></select></label>
- <form id="pc-create"><label>New project name<input id="pc-name" required maxlength="100"></label><button class="btn">Create project</button></form>
  <p class="small">Pair your computer in Settings → Session Login → AI Connections, then refresh folders here.</p>
  <button class="btn" id="pc-refresh">Refresh computer folders</button>
- <form id="pc-link"><label>Computer project folder<select id="pc-folder" required></select></label><button class="btn">Save folder link</button></form>
+ <form id="pc-create"><label>Computer project folder<select id="pc-folder" required></select></label><button type="button" class="btn" id="pc-link">Save folder link for selected project</button><label>New project name<input id="pc-name" required maxlength="100"></label><button class="btn">Create linked project</button></form>
  <p id="pc-linked" class="small"></p>
  <label>Chat<select id="pc-chat"></select></label>
  <form id="pc-new"><label>New chat name<input id="pc-title" required maxlength="100"></label><button class="btn">Create chat</button></form>
@@ -19,6 +18,7 @@
  <p id="pc-status" role="status"></p></div>`;
  document.body.appendChild(dialog);
  let project = '', chatId = '', busy = false;
+ let authorizedFolders = [];
  const data = () => recall('sb.projectCodingChats', {});
  const entry = () => data()[project] || {folder:'', chats:[]};
  function save(value) { const all = data(); all[project] = value; store('sb.projectCodingChats', all); }
@@ -50,6 +50,7 @@
  }
  async function folders() {
   const state = await SessionCompanion.status();
+  authorizedFolders = state.connected ? state.workspaces || [] : [];
   $('pc-folder').replaceChildren(new Option('Choose a folder', ''), ...(state.workspaces || []).map(path => new Option(path, path)));
   $('pc-folder').value = entry().folder;
   message(state.connected ? 'Computer connected. Choose a folder and save the link.' : state.error);
@@ -64,14 +65,19 @@
  $('pc-chat').onchange = () => { chatId = $('pc-chat').value; render(); };
  $('pc-create').onsubmit = async event => {
   event.preventDefault(); const name = $('pc-name').value.trim(); if (!name) return;
+  const folder = $('pc-folder').value;
+  if (!authorizedFolders.includes(folder)) return message('Choose an authorized computer folder before creating the project. Pair your companion and refresh folders if needed.');
+  if (Object.keys(data()).some(existing => pslug(existing) === pslug(name)) || PROJ.data[pslug(name)]) return message('That project already exists. Select it above to manage its folder.');
   try {
-   await db.doc('projects/' + pslug(name)).set({...projData(name), name});
-   if (!data()[name]) { const all = data(); all[name] = {folder:'',chats:[]}; store('sb.projectCodingChats', all); }
-   projects(name); $('pc-name').value = ''; message('Project created. Choose its computer folder below.');
+   await db.doc('projects/' + pslug(name)).set({...projData(name), name, computerFolder:folder});
+   if (!data()[name]) { const all = data(); all[name] = {folder,chats:[]}; store('sb.projectCodingChats', all); }
+   projects(name); $('pc-name').value = ''; message('Project created and linked. You can create a chat below.');
+   if (TV.dbView === 'projects') renderSettings();
   } catch (error) { message(error.message); }
  };
- $('pc-link').onsubmit = event => {
+ $('pc-link').onclick = event => {
   event.preventDefault(); if (!project) return message('Create a project first.');
+  if (!authorizedFolders.includes($('pc-folder').value)) return message('Choose an authorized computer folder first.');
   const value = entry(); value.folder = $('pc-folder').value; save(value); render();
   message('Folder linked. Existing chats keep the folder where they started.');
  };
@@ -103,12 +109,30 @@
   } catch (error) { message(error.name === 'AbortError' ? 'Stopped. You can continue this chat.' : error.message); }
   finally { busy = false; save(value); render(); }
  };
- const settings = renderSettings;
- renderSettings = function() {
-  settings(); if (TV.dbView || !$('local-open')) return;
-  const button = document.createElement('button'); button.className = 'btn'; button.id = 'project-chats-open'; button.textContent = 'Project chats & folders'; button.onclick = () => open();
-  $('local-open').parentElement.appendChild(button);
+ const databaseView = renderDbView;
+ renderDbView = function(view) {
+  databaseView(view); if (view !== 'projects') return;
+  const section = document.createElement('section'); section.className = 'db-grp';
+  const heading = document.createElement('h4'); heading.textContent = 'Project folders & chats'; section.appendChild(heading);
+  const create = document.createElement('button'); create.className = 'btn'; create.id = 'project-chats-open'; create.textContent = 'Create linked project'; create.onclick = () => { open(); $('pc-name').focus(); }; section.appendChild(create);
+  const names = [...new Set([...Object.values(PROJ.data).map(p => p.name), ...tasks.filter(t => typeOf(t) === 'project').map(t => t.course), ...Object.keys(data())])].filter(Boolean).sort();
+  for (const name of names) {
+   const row = document.createElement('div'); row.className = 'row spread';
+   const label = document.createElement('span'); label.textContent = name;
+   const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Folder & chats'; button.onclick = () => open(name);
+   row.append(label,button); section.appendChild(row);
+  }
+  $('set-body').querySelector('.db-list').prepend(section);
  };
+ // A project task can use an existing project only after its folder is linked.
+ $('add-form').addEventListener('submit', event => {
+  if ($('f-track').value !== 'project') return;
+  const name = $('f-course').value.trim();
+  if (!data()[name]?.folder) {
+   event.preventDefault(); event.stopImmediatePropagation();
+   toast('Create or link this project in Settings → My Database → Projects first.');
+  }
+ }, true);
  const panel = ppRender;
  ppRender = function(task) {
   panel(task); if ($('pp').hidden) return;
