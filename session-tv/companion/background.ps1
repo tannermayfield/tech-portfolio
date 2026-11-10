@@ -9,8 +9,9 @@ try {
         $sessionTvConnection = Get-NetTCPConnection -LocalPort 4319 -State Listen -ErrorAction SilentlyContinue
         if (!$sessionTvConnection) {
             try { & (Join-Path $PSScriptRoot 'start.ps1') -Background *> (Join-Path $sessionTvLogDirectory 'companion.log') }
-            catch { 'Companion startup failed. Check saved settings and restart the helper.' | Set-Content (Join-Path $sessionTvLogDirectory 'companion.log') }
+            catch { $_.Exception.Message | Set-Content (Join-Path $sessionTvLogDirectory 'companion.log') }
         }
         Start-Sleep -Seconds 15
     }
 } finally { $sessionTvMutex.ReleaseMutex(); $sessionTvMutex.Dispose() }
+
