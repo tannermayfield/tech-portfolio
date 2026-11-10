@@ -7,9 +7,9 @@ function renderSettings(){
   const exp=pj.filter(t=>t.status==='done').length;
   const stat=(n,l,v)=>`<button type="button" class="db-stat" data-db="${v}" title="Open ${l}"><b>${n}</b><span>${l}</span></button>`;
   $('set-body').innerHTML=`<div class="set-grid">
-    <div class="set-card"><h3>Appearance &amp; Preferences</h3><p>Choose your theme, screen effect and channel transitions.</p><div class="row"><button class="btn" id="preferences-open">Open preferences</button></div></div>
-    <div class="set-card"><h3>Session Login</h3><p>Sign in to your private workspace or manage your session.</p><div class="row"><button class="btn" id="local-open">Open session login</button></div></div>
-    <div class="set-card"><h3>Exit SessionTV</h3><p>Return to Session TV in the technology portfolio.</p><div class="row"><a class="btn" id="session-exit" href="https://tannermayfield.dev/#projects">Return to portfolio</a></div></div>
+    <div class="set-card"><h3>Appearance &amp; Preferences</h3><div class="row"><button class="btn" id="preferences-open">Open preferences</button></div></div>
+    <div class="set-card"><h3>Private Session</h3><div class="row"><button class="btn" id="local-open">${SessionWorkspace.mode==='private'?'Session preferences':'Login to Session'}</button></div></div>
+    <div class="set-card"><h3>Exit SessionTV</h3><div class="row"><a class="btn" id="session-exit" href="https://tannermayfield.dev/#projects">Return to portfolio</a></div></div>
     <div class="set-card db-card"><h3>My Database</h3>
       <div class="db-stats">${stat(courses.length,'Classes','classes')}${stat(cls.length,'Assignments','assignments')}${stat(sk.length,'Skills','skills')}${stat(projects.length,'Projects','projects')}</div>
       <div class="db-btns"><button class="btn" data-db="learning">Learning Logs</button><button class="btn" data-db="experience">Experience Logs</button></div></div>

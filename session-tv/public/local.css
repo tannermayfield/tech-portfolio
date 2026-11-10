@@ -27,3 +27,29 @@ body[data-screen-effect="off"] .crt{filter:none}
 #project-chats{width:min(760px,calc(100vw - 32px));max-width:calc(100vw - 32px)!important} #project-chats input,#project-chats select,#project-chats textarea{width:100%;box-sizing:border-box} #project-chats form{margin:16px 0} #pc-history{max-height:40vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 
 .create-record{width:min(560px,calc(100vw - 32px));max-width:calc(100vw - 32px)!important}.create-record label{display:block;margin:12px 0}.create-record input,.create-record select{display:block;width:100%;box-sizing:border-box}
+/* Screen content stays behind the rounded glass on every view. */
+#crt{overflow:hidden;isolation:isolate}
+#crt>.crt-content,#crt>.tv-sheet{border-radius:inherit;overflow:hidden}
+#tv-home{position:absolute;inset:0;z-index:24;display:grid;place-items:center;border-radius:inherit;background:radial-gradient(ellipse,#27322a 0%,#101a14 55%,#050906 100%);color:#e9e1bf;text-align:center}
+#tv-home[hidden]{display:none}
+.tv-home-inner{transform:translateY(-6%);animation:tv-power-on .65s ease-out both}
+#tv-home .gd-logo{font-size:clamp(48px,8vw,112px);line-height:1.15;margin:0 0 28px;text-shadow:0 0 16px #c3d4a95c}
+#tv-home-start{display:inline-flex;align-items:center;gap:14px;padding:10px 30px;border:3px double currentColor;border-radius:5px;background:#18231b;color:inherit;font:28px 'VT323',monospace;text-transform:uppercase;cursor:pointer;box-shadow:0 0 15px #b7c2a52b}
+#tv-home-start:focus-visible{outline:3px solid #fff;outline-offset:6px}
+body.tv-home-active #crt>.crt-content,body.tv-home-active #crt>.tv-sheet{visibility:hidden;pointer-events:none}
+.signal-lost{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#101411;color:#dedbc5;text-align:center;font-family:'VT323',monospace;overflow:hidden;border-radius:inherit}
+.signal-lost h2{font:clamp(30px,5vw,64px) 'VT323',monospace;text-transform:uppercase;letter-spacing:.12em;margin:16px 0 0}
+.signal-bars{width:65%;height:22%;background:repeating-linear-gradient(90deg,#dad8c8 0 14%,#aaa990 14% 28%,#7d8777 28% 42%,#b8b0a0 42% 56%,#687365 56% 70%,#444b40 70% 84%,#242c24 84% 100%)}
+#tv-settings .set-grid>.set-card:nth-child(-n+3) .btn{min-height:48px;padding:12px 20px;font-size:15px}
+#appearance-preferences .local-panel{padding:10px 20px;max-height:none;overflow:visible}
+#appearance-preferences{overflow:hidden}
+#appearance-preferences h2{margin:4px 0;font-size:clamp(18px,3vw,25px)}
+#appearance-preferences .preference-row{padding:10px 0}
+#appearance-preferences .preference-row h3{margin:0 0 7px;font-size:16px}
+@keyframes tv-power-on{from{opacity:0;transform:scaleY(.03) scaleX(.6)}to{opacity:1;transform:scaleY(1) scaleX(1) translateY(-6%)}}
+@media(prefers-reduced-motion:reduce){.tv-home-inner{animation:none}}
+@media(max-height:500px){#appearance-preferences .local-panel{padding:5px 14px}#appearance-preferences .preference-row{padding:5px 0}#appearance-preferences h2{font-size:18px}}
+
+body.tv-home-active #view-log{visibility:hidden;pointer-events:none}#tv-home .gd-logo b{font-size:.48em;vertical-align:baseline}
+
+#local-setup .local-panel{padding:16px 22px}#local-setup #workspace-auth{margin-top:16px}#local-setup #workspace-profile,#local-setup #session-music{padding:10px 0;border-bottom:1px solid var(--line)}#local-setup details{margin:12px 0}#local-setup h3{margin:8px 0}#workspace-status[hidden],#ai-connections[hidden],#session-music[hidden]{display:none!important}

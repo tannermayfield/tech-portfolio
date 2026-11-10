@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="local.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 </head>
-<body class="tv" data-view="work" data-mood="tv">
+<body class="tv tv-home-active" data-view="work" data-mood="tv">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="ic-skill" viewBox="0 0 24 24"><path fill="currentColor" d="M7.2 19h10.3a4.2 4.2 0 0 0 .5-8.37A6.2 6.2 0 0 0 6.1 9.4 4.8 4.8 0 0 0 7.2 19z"/></symbol>
   <symbol id="ic-class" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/><circle cx="19" cy="18.5" r="1.6" fill="currentColor"/><circle cx="5" cy="19.5" r="1" fill="currentColor"/></symbol>
@@ -233,6 +233,9 @@
   <div class="tv-body">
    <div class="tv-bezel">
     <div class="crt" id="crt">
+     <section id="tv-home" aria-labelledby="tv-home-logo">
+      <div class="tv-home-inner"><h1 class="gd-logo" id="tv-home-logo">Session<b>TV</b></h1><button type="button" id="tv-home-start"><span aria-hidden="true">▶</span> Start</button></div>
+     </section>
      <canvas id="tv-amb" aria-hidden="true"></canvas>
      <div class="crt-content" id="crt-content">
       <div class="tv-osd" id="tv-osd" aria-live="polite"></div>

@@ -1949,7 +1949,7 @@ function renderWork(){
   const t=T(current.active),f=$('focus');
   wsMount(t&&typeOf(t)==='skill'?t:null);if(typeof ppMount==='function')ppMount(t);
   if(typeof ppNoSignal==='function')ppNoSignal(!t);
-  if(!t){f.innerHTML=`<div class="chat-title"><h2>No program on this channel</h2></div>`;$('coach-log').innerHTML=`<div class="msg ai">Nothing is scheduled on <b>${esc(MAIN_LBL[current.mood])} · ${esc(curSub(current.mood))}</b>. Turn the sub-channel knob, or press Menu to see every channel.</div>`;$('coach-quick').innerHTML='';$('coach-form').hidden=true;renderClock();return}
+  if(!t){f.innerHTML=`<div class="signal-lost" role="status"><div class="signal-bars" aria-hidden="true"></div><h2>Signal lost</h2><p>Choose a channel from Menu</p></div>`;$('coach-log').innerHTML='';$('coach-quick').innerHTML='';$('coach-form').hidden=true;renderClock();return}
   const type=typeOf(t),doneNow=isDoneNow(t);
   const doneBtn=doneNow?(isSkill(t)?`<span class="small" style="color:var(--ok)">Practiced ✓</span>`:`<button class="btn" id="undo-done">Mark not done</button>`)
     :isSkill(t)?(current.wrapUp?.[t.id]?`<button class="btn primary" id="done-btn" title="Save this conversation and move to the next skill">Next Skill</button>`:`<button class="btn primary" id="wrapup-btn" title="Stop practicing and teach back what you know">Wrap Up</button>`)
