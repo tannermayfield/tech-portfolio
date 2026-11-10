@@ -6,16 +6,93 @@ import {randomUUID} from 'node:crypto';
 const failure=(status,message)=>Object.assign(new Error(message),{status});
 function run(executable,args) {
  return new Promise((resolve,reject)=>{
-  const child=spawn(executable,args,{windowsHide:false,stdio:['ignore','pipe','pipe'],shell:false});
+  const child=spawn(executable,args,{windowsHide:true,stdio:['ignore','pipe','pipe'],shell:false});
   let output='';
-  child.stdout.on('data',chunk=>{output+=chunk;if(output.length>65536)child.kill()});
-  child.on('error',()=>reject(failure(503,'Windows could not open the folder picker.')));
-  child.on('exit',code=>code===0?resolve(output.trim()):reject(failure(503,'Windows folder selection failed. Try again.')));
+  const timer=setTimeout(()=>{
+   child.kill();
+   reject(failure(408,'Folder selection timed out. Choose a folder again and complete the Windows dialog within two minutes.'));
+  },150000);
+  child.stdout.on('data',chunk=>{output+=chunk;if(output.length>65536){child.kill();clearTimeout(timer);reject(failure(503,'Windows returned an invalid folder selection.'))}});
+  child.stderr.resume();
+  child.once('error',()=>{clearTimeout(timer);reject(failure(503,'Windows could not open the folder picker.'))});
+  child.once('close',code=>{
+   clearTimeout(timer);
+   if(code===0){resolve(output.trim());return}
+   reject(failure(503,'Windows folder selection failed. Try again.'));
+  });
  });
 }
 export async function pickWindowsFolder() {
  if(process.platform!=='win32')throw failure(503,'Native folder selection is supported on Windows.');
- const script=`Add-Type -AssemblyName System.Windows.Forms; $dialog = New-Object System.Windows.Forms.FolderBrowserDialog; $dialog.Description = 'Choose the computer folder for your Session TV project'; $dialog.ShowNewFolderButton = $true; $owner = New-Object System.Windows.Forms.Form; $owner.TopMost = $true; $owner.ShowInTaskbar = $false; $owner.Opacity = 0; $owner.Show(); try { if ($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); [Console]::Write($dialog.SelectedPath) } } finally { $dialog.Dispose(); $owner.Dispose() }`;
+ const script=`$ErrorActionPreference = 'Stop';
+Add-Type -TypeDefinition 'using System;
+using System.Runtime.InteropServices;
+public static class SessionTVFolderPicker {
+ [ComImport, Guid("DC1C5A9C-E88A-4DDE-A5A1-60F82A20AEF7")]
+ private class FileOpenDialog {}
+ [ComImport, Guid("42F85136-DB7E-439C-85F1-E4075D135FC8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+ private interface IFileDialog {
+  [PreserveSig] int Show(IntPtr owner);
+  void SetFileTypes(uint count, IntPtr types);
+  void SetFileTypeIndex(uint index);
+  void GetFileTypeIndex(out uint index);
+  void Advise(IntPtr events, out uint cookie);
+  void Unadvise(uint cookie);
+  void SetOptions(uint options);
+  void GetOptions(out uint options);
+  void SetDefaultFolder(IShellItem folder);
+  void SetFolder(IShellItem folder);
+  void GetFolder(out IShellItem folder);
+  void GetCurrentSelection(out IShellItem selection);
+  void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string name);
+  void GetFileName([MarshalAs(UnmanagedType.LPWStr)] out string name);
+  void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string title);
+  void SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string label);
+  void SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string label);
+  void GetResult(out IShellItem result);
+  void AddPlace(IShellItem item, uint location);
+  void SetDefaultExtension([MarshalAs(UnmanagedType.LPWStr)] string extension);
+  void Close(int result);
+  void SetClientGuid(ref Guid guid);
+  void ClearClientData();
+  void SetFilter(IntPtr filter);
+ }
+ [ComImport, Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+ private interface IShellItem {
+  void BindToHandler(IntPtr context, ref Guid handler, ref Guid iid, out IntPtr result);
+  void GetParent(out IShellItem parent);
+  void GetDisplayName(uint kind, out IntPtr name);
+  void GetAttributes(uint mask, out uint attributes);
+  void Compare(IShellItem other, uint hint, out int order);
+ }
+ public static string Choose() {
+  IFileDialog dialog = (IFileDialog)new FileOpenDialog();
+  IShellItem result = null;
+  IntPtr name = IntPtr.Zero;
+  try {
+   uint options;
+   dialog.GetOptions(out options);
+   // Pick an existing filesystem folder with the standard Explorer dialog.
+   dialog.SetOptions(options | 0x20u | 0x40u | 0x800u | 0x02000000u);
+   dialog.SetTitle("Choose your Session TV project folder");
+   dialog.SetOkButtonLabel("Choose folder");
+   int status = dialog.Show(IntPtr.Zero);
+   if (status == unchecked((int)0x800704C7)) return null;
+   Marshal.ThrowExceptionForHR(status);
+   dialog.GetResult(out result);
+   result.GetDisplayName(0x80058000u, out name);
+   return Marshal.PtrToStringUni(name);
+  } finally {
+   if (name != IntPtr.Zero) Marshal.FreeCoTaskMem(name);
+   if (result != null) Marshal.ReleaseComObject(result);
+   Marshal.ReleaseComObject(dialog);
+  }
+ }
+}';
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false);
+[Console]::Write([SessionTVFolderPicker]::Choose());
+`;
+
  const folder=await run('powershell.exe',['-NoProfile','-STA','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')]);
  if(!folder)throw failure(409,'Folder selection was cancelled.');
  return folder;

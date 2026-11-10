@@ -120,6 +120,8 @@
  function renderProjectChat() {
   const active = selected(); if(!active)return false;
   const {name,mode,task} = active, value = entry(name), chat = modeChat(name,mode);
+  $('coach-wrap').setAttribute('aria-label','Codex project chat');
+  $('coach-input').setAttribute('aria-label','Message to Codex');
   const log = $('coach-log');
   $('coach-wrap').hidden = false; $('coach-quick').innerHTML = '';
   $('coach-form').hidden = SessionWorkspace.mode !== 'private' || !chat?.threadId;
@@ -159,7 +161,8 @@
   const {name,mode,task}=active, value=entry(name), chat=value.chats.find(chat=>chat.mode===mode);
   if(!chat?.threadId)return toast('Prepare the project’s starter chats in Manage first.');
   chat.messages.push({role:'user',text:show||prompt});const reply={role:'assistant',text:''};chat.messages.push(reply);
-  running={name,mode};save(name,value);$('coach-input').value='';renderProjectChat();
+  running={name,mode,value};save(name,value);$('coach-input').value='';renderProjectChat();
+  let lastRender=0;
   try {
    const learnedSkills=tasks.filter(item=>typeOf(item)==='skill').map(item=>item.title+' ('+skillLevel(item)+')').join(', ');
    const context='Project: '+name+'\nPreviously learned skills and self-rated levels: '+(learnedSkills||'None recorded yet')+'\n'+projectCtx(task);
@@ -168,11 +171,13 @@
     if(event.method==='item/agentMessage/delta')reply.text+=event.params.delta||'';
     if(event.method==='sessiontv/error'||event.method==='sessiontv/approvalDenied')reply.text+='\n'+(event.params.error||event.params.reason);
     if(event.method==='turn/completed'&&event.params.turn?.status==='failed')reply.text+='\n'+(event.params.turn.error?.message||'The Codex turn failed. You can retry.');
-    save(name,value);if(selected()?.name===name&&selected()?.mode===mode)renderProjectChat();
+    if(event.method==='sessiontv/thread')save(name,value);
+    if(Date.now()-lastRender>100||event.method==='turn/completed'){lastRender=Date.now();if(selected()?.name===name&&selected()?.mode===mode)renderProjectChat();}
    }});
   } catch(error) { reply.text+=(error.name==='AbortError'?'\nStopped.':'\n'+error.message); }
   finally { running=null;save(name,value);if(selected()?.name===name)renderProjectChat(); }
  };
+ addEventListener('pagehide',()=>{if(running)save(running.name,running.value)});
  globalThis.SessionProjectChats = {
   names, entry, channel, open:openManage, create:(name,folder)=>provision(name.trim(),folder),
   timeTotals:()=>Object.fromEntries(names().map(name=>[name,totalTime(name,current?.timeOn)]))
