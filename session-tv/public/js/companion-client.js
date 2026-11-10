@@ -6,7 +6,7 @@
  function restore(){if(!pairToken){try{pairToken=localStorage.getItem(rememberedKey())}catch{}}}
  function base(){const url=new URL(globalThis.SessionTVConfig?.companionUrl||'http://127.0.0.1:4319');if(url.hostname!=='127.0.0.1'||!['http:','https:'].includes(url.protocol)||url.username||url.password||url.pathname!=='/')throw new Error('Companion must use a loopback 127.0.0.1 address.');return url.origin;}
  async function request(route,body={},signal){
-  owner();const token=await SessionCloud.accessToken();if(!token)throw new Error('Your workspace session expired. Sign in again.');
+  owner();restore();const token=await SessionCloud.accessToken();if(!token)throw new Error('Your workspace session expired. Sign in again.');
   const response=await fetch(base()+route,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,...(pairToken?{'X-SessionTV-Pair':pairToken}:{})},body:JSON.stringify(body),signal:signal||AbortSignal.timeout(35000),credentials:'omit',cache:'no-store',targetAddressSpace:'loopback'});
   if(!response.ok){let result;try{result=await response.json()}catch{}if(response.status===401)pairToken=null;throw new Error(result?.error||'Local companion request failed ('+response.status+').')}
   return response;
@@ -20,10 +20,13 @@
    if(!pairToken)return {connected:false,available:false,signedIn:false,workspaces:[],error:'Start the local companion and enter its pairing code.'};
    try{return await (await request('/status')).json()}catch(error){return {connected:false,available:false,signedIn:false,workspaces:[],error:error.message+' Allow browser local-network access when prompted; check that the companion is running.'}}
   },
-  async start({workspace,prompt,threadId,onEvent=()=>{}}){
+  async pickFolder(){return (await request('/folders/pick',{},AbortSignal.timeout(180000))).json()},
+  async openFolder(folder){return (await request('/folders/open',{folder})).json()},
+  async prepareProject(folder,projectId){return (await request('/projects/prepare',{folder,projectId},AbortSignal.timeout(180000))).json()},
+  async start({workspace,prompt,threadId,mode='work',onEvent=()=>{}}){
    restore();if(!pairToken)throw new Error('Pair the local companion first.');if(controller)throw new Error('A coding request is already running. Stop it before starting another.');controller=new AbortController();
    let reader;
-   try{const response=await request('/run',{workspace,prompt,threadId},controller.signal);reader=response.body.getReader();const decoder=new TextDecoder();let text='';while(true){const {done,value}=await reader.read();text+=decoder.decode(value,{stream:!done});let index;while((index=text.indexOf('\n'))>=0){const line=text.slice(0,index);text=text.slice(index+1);if(line)onEvent(JSON.parse(line))}if(done)break}if(text.trim())onEvent(JSON.parse(text))}
+   try{const response=await request('/run',{workspace,prompt,threadId,mode},controller.signal);reader=response.body.getReader();const decoder=new TextDecoder();let text='';while(true){const {done,value}=await reader.read();text+=decoder.decode(value,{stream:!done});let index;while((index=text.indexOf('\n'))>=0){const line=text.slice(0,index);text=text.slice(index+1);if(line)onEvent(JSON.parse(line))}if(done)break}if(text.trim())onEvent(JSON.parse(text))}
    finally{reader?.releaseLock();controller=null}
   },
   cancel(){controller?.abort();controller=null},

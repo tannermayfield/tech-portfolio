@@ -61,7 +61,7 @@ function dueLabel(t){
 function agoLabel(iso){if(!iso)return 'Not practiced yet';const d=Math.floor((Date.now()-new Date(iso).getTime())/864e5);return d<=0?'Practiced today':d===1?'Practiced yesterday':`Practiced ${d}d ago`}
 const byOrder=(a,b)=>(a.order??999)-(b.order??999);
 function byDue(a,b){const x=(a.due||'9999-12-31')+(a.dueTime||'23:59'),y=(b.due||'9999-12-31')+(b.dueTime||'23:59');return x<y?-1:x>y?1:byOrder(a,b)}
-const T=id=>tasks.find(t=>t.id===id)||archived.find(t=>t.id===id);
+const T=id=>tasks.find(t=>t.id===id)||archived.find(t=>t.id===id)||globalThis.SessionProjectChats?.channel(id);
 // one main skill per area (SQL, AWS, Python for Data…). Older sub-skills were archived and point at their main skill.
 const mainSkillName=t=>{if(!t||!isSkill(t))return null;if(t.mainId){const m=T(t.mainId);return m?m.title:(t.course||t.title)}return t.title};
 const mainSkillTask=n=>tasks.find(t=>isSkill(t)&&t.title===n);
@@ -1085,7 +1085,7 @@ $('finish-btn').onclick=async()=>{
   await guard(async()=>{
     const live=touched().filter(t=>isSkill(t)&&coachTurns[t.id]?.length&&!current.skillChats?.[t.id]);live.forEach(t=>saveSkillChat(t.id));
     await db.collection('sessions').add({date:new Date().toISOString(),minutes:Math.round(total),byTrack,track:dom,skillChats:current.skillChats||{},
-      tasks:list.map(t=>({id:t.id,title:t.title,done:isDoneNow(t)})),recap:rc.recap,feedback:rc.feedback,skills:rc.skills,confidence});
+      tasks:list.map(t=>({id:t.id,title:t.title,done:isDoneNow(t)})),projectTime:globalThis.SessionProjectChats?.timeTotals()||{},recap:rc.recap,feedback:rc.feedback,skills:rc.skills,confidence});
     await db.doc('state/current').delete();
   },'Saved to your learning log');
   current=null;wrapping=false;feedbackText='';confidence=0;
@@ -1661,13 +1661,15 @@ applyScheme();
 function subsOf(k){
   if(k==='class')return ['Due Date','IS 401','IS 402','IS 403','IS 404'];
   if(k==='skill')return Object.keys(SKILL_TAGS);
-  const p=filterOptions('project');return p.length?p:['All'];
+  const p=[...new Set([...filterOptions('project'),...(globalThis.SessionProjectChats?.names()||[])])];return p.length?p:['All'];
 }
 function curSub(k){const s=subsOf(k);return s.includes(TV.sub[k])?TV.sub[k]:s[0]}
 function listFor(k,sub){
   let l=candidates(k).filter(t=>t.status!=='done');
   if(k==='class')return (sub==='Due Date'?l:l.filter(t=>t.course===sub)).sort(byDue);
   if(k==='skill')return l.filter(t=>catOf(t)===sub).sort((a,b)=>byOrder(a,b)||skillLevel(a)-skillLevel(b));
+  const channel=globalThis.SessionProjectChats?.channel('project:'+pslug(sub));
+  if(channel)return [channel,...l.filter(t=>(t.course||'Other')===sub)];
   return sub==='All'?l:l.filter(t=>(t.course||'Other')===sub);
 }
 function allChannels(k){return k==='class'?listFor('class','Due Date'):subsOf(k).flatMap(s=>listFor(k,s))}
@@ -2063,12 +2065,12 @@ function gdInfoHTML(k){
     return `<div class="gd-sel"><div class="gd-t">${esc(skShort(t))}</div></div>
       <div class="gd-desc">${esc(catOf(t))} · ${lvlTag(t)} · ${esc(agoLabel(t.lastPracticed))}${t.goal?` — ${esc(t.goal.charAt(0).toUpperCase()+t.goal.slice(1))}.`:''}</div>
       <div class="gd-acts"><button type="button" class="btn primary" data-act="tune">Open chat ▸</button></div>`}
-  const p=sel;if(!p)return `<div class="gd-sel"><div class="gd-t">No projects yet</div></div><div class="gd-desc">Add a project task from Settings.</div>`;
+  const p=sel;if(!p)return `<div class="gd-sel"><div class="gd-t">No projects yet</div></div><div class="gd-desc">Create a project from Settings → My Database → Projects.</div>`;
   const l=listFor('project',p);
   const ps=((settings&&settings.projectSkills)||{})[p]||[];
   return `<div class="gd-sel"><div class="gd-t">${esc(p)}</div></div>
     <div class="gd-pskills">${ps.length?esc(ps.join(', ')):'<span class="gd-psk none">Skills not listed yet</span>'}</div>
-    <div class="gd-desc">${l.length?`Up next: ${esc(l[0].title)}${l[1]?` · then ${esc(l[1].title)}`:''}`:'No open tasks. Open it anyway and plan the next step with AI coach.'}</div>
+    <div class="gd-desc">${l.some(task=>!task.projectChannel)?`Open tasks: ${l.filter(task=>!task.projectChannel).length}`:'Plan, Apply and Work chats'}</div>
     <div class="gd-acts"><button type="button" class="btn primary" data-act="tune">Work on it ▸</button></div>`;
 }
 function gdBindInfo(k){

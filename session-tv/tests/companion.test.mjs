@@ -15,7 +15,7 @@ class FakeBridge extends EventEmitter {
 }
 async function fixture(callback){
  const workspaces=await canonicalWorkspaces([tmpdir()]);let starts=0;
- const companion=createCompanion({port:0,origin:'https://tannermayfield.dev',supabaseUrl:'https://test.supabase.co',publishableKey:'public',ownerId:'owner',home:tmpdir(),workspaces,
+ const companion=createCompanion({port:0,origin:'https://tannermayfield.dev',supabaseUrl:'https://test.supabase.co',publishableKey:'public',ownerId:'owner',home:tmpdir()+'-sessiontv-credentials',workspaces,
   verifyUser:async token=>({id:token==='owner-jwt'?'owner':'visitor'}),bridgeFactory:()=>{starts++;return new FakeBridge()}});
  await companion.listen();const url='http://127.0.0.1:'+companion.server.address().port;
  const post=(route,body={},headers={})=>fetch(url+route,{method:'POST',headers:{Origin:'https://tannermayfield.dev','Content-Type':'application/json',Authorization:'Bearer owner-jwt',...headers},body:JSON.stringify(body)});
@@ -101,4 +101,18 @@ test('remembered device token still requires owner authentication and exact orig
   assert.equal((await request('visitor','https://tannermayfield.dev')).status,403);
   assert.equal((await request('owner','https://foreign.example')).status,403);
  } finally {await new Promise(resolve=>companion.server.close(resolve))}
+});
+
+test('starter modes confirm object permission metadata and name persistent threads before any inference',async()=>{
+ const bridge=Object.create(CodexBridge.prototype),calls=[];
+ bridge.account=async()=>({signedIn:true});
+ bridge.request=async(method,params)=>{
+  calls.push({method,params});
+  if(method==='permissionProfile/list')return {data:[{id:'sessiontv_plan',allowed:true}]};
+  return {thread:{id:'plan-chat'},cwd:tmpdir(),runtimeWorkspaceRoots:[tmpdir()],activePermissionProfile:{id:'sessiontv_plan'},approvalPolicy:'on-request',approvalsReviewer:'user',modelProvider:'openai'};
+ };
+ assert.equal(await bridge.prepare(tmpdir(),'plan'),'plan-chat');
+ assert.equal(calls.at(-1).method,'thread/name/set');
+ assert.equal(calls.find(call=>call.method==='thread/start').params.permissions,'sessiontv_plan');
+ assert.equal(calls.some(call=>call.method==='turn/start'),false);
 });

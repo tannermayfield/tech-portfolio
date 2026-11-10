@@ -3,7 +3,7 @@ const PROJ={data:{},sub:false};
 const pslug=n=>String(n||'project').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'project';
 function projData(n){return PROJ.data[pslug(n)]||{}}
 (function sub(){if(PROJ.sub)return;if(!db){setTimeout(sub,500);return}PROJ.sub=true;
-  try{db.collection('projects').onSnapshot(snap=>{const o={};snap.docs.forEach(d=>o[d.id]=d.data());PROJ.data=o;const t=T(current&&current.active);if(t&&typeOf(t)==='project')ppRender(t)},()=>{})}catch(e){}})();
+  try{db.collection('projects').onSnapshot(snap=>{const o={};snap.docs.forEach(d=>o[d.id]=d.data());PROJ.data=o;const t=T(current&&current.active);if(t&&typeOf(t)==='project')renderWork();if(TV.mode==='guide'&&current?.mood==='project')renderGuide();if(TV.mode==='settings'&&TV.dbView==='projects')renderSettings()},()=>{})}catch(e){}})();
 async function projSave(n,patch){const id=pslug(n),cur=PROJ.data[id]||{},next=Object.assign({},cur,patch,{name:n});PROJ.data[id]=next;
   const t=T(current&&current.active);if(t)ppRender(t);
   await guard(()=>db.doc('projects/'+id).set(next));}

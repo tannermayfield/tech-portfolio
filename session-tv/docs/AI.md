@@ -62,3 +62,11 @@ Open Settings → My Database → Projects, then choose Create linked project or
 Double-click Start Session TV.cmd in the standalone app directory. First run asks for the Supabase User UID and authorized project folders, saving them to %LOCALAPPDATA%/SessionTV-Companion/settings.json. Later launches reuse those settings. Run Start Session TV.cmd -Configure to replace the folder list or UID. Keep the companion window open and pair from the private website. This launcher starts manually and does not install a background or login service.
 
 Settings → My Database has distinct Classes, Assignments, Skills and Projects entry points. Each opens its own form. Create the class before adding assignments. Project creation includes a required authorized computer folder. The Projects section has no Add project task action.
+
+## Native project creation and Codex modes
+
+In My Database → Projects, Create project opens a name field and Choose a folder. The paired local companion opens a Windows folder picker and persists the selected folder immediately. Create prepares and names three persistent Codex conversations before saving the project. Retried provisioning reuses the project-and-folder-specific references. Existing projects can use Manage → Prepare starter chats to retain their earlier histories and complete setup. Project chats are shown only in the project's work screen using Plan, Apply and Work. Plan/Apply have read-only filesystem profiles and Work has bounded project writes. Each mode has separate conversation history and coaching instructions.
+
+The Windows companion explicitly uses MXC. This machine passed the native MXC startup probe and a real prepared/resumed Apply conversation returned the expected connection-test reply. Devices without supported MXC need a compatible, properly provisioned supported sandbox before chats can start. The companion does not switch to full-access execution.
+
+Project menu channels are based on project records, so projects without tasks are visible. Project rows show completed sprint counts and time. Exact per-project time is recorded for current/new sessions. Historical sessions without per-project allocations cannot be reconstructed precisely.

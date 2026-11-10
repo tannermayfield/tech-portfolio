@@ -1,135 +1,181 @@
-/* Project folder links and persistent private coding chats. */
+/* A project owns its computer folder and three independent Codex conversations. */
 (() => {
- const dialog = document.createElement('dialog');
- dialog.id = 'project-chats';
- dialog.className = 'confirm-dlg';
- dialog.setAttribute('aria-labelledby', 'project-chats-heading');
- dialog.innerHTML = `<div class="local-panel">
- <div class="row spread"><h2 id="project-chats-heading">Project chats & folder</h2><button class="btn" id="pc-close">Close</button></div>
- <label>Project<select id="pc-project"></select></label>
- <p class="small">Pair your computer in Settings → Session Login → AI Connections, then refresh folders here.</p>
- <button class="btn" id="pc-refresh">Refresh computer folders</button>
- <form id="pc-create"><label>Computer project folder<select id="pc-folder" required></select></label><button type="button" class="btn" id="pc-link">Save folder link for selected project</button></form>
- <p id="pc-linked" class="small"></p>
- <label>Chat<select id="pc-chat"></select></label>
- <form id="pc-new"><label>New chat name<input id="pc-title" required maxlength="100"></label><button class="btn">Create chat</button></form>
- <div id="pc-history" role="log" aria-live="polite"></div>
- <form id="pc-send"><label>Message<textarea id="pc-message" required maxlength="16000" rows="4"></textarea></label><button class="btn primary" id="pc-submit">Send to Codex</button><button class="btn" type="button" id="pc-stop">Stop</button></form>
- <p id="pc-status" role="status"></p></div>`;
- document.body.appendChild(dialog);
- let project = '', chatId = '', busy = false;
- let authorizedFolders = [];
- const data = () => recall('sb.projectCodingChats', {});
- const entry = () => data()[project] || {folder:'', chats:[]};
- function save(value) { const all = data(); all[project] = value; store('sb.projectCodingChats', all); }
- function message(text) { $('pc-status').textContent = text; }
- function render() {
-  const value = entry();
-  $('pc-linked').textContent = value.folder ? 'Linked folder — ' + value.folder : 'Choose and save a computer folder to begin.';
-  $('pc-chat').replaceChildren(...value.chats.map(chat => new Option(chat.title, chat.id)));
-  if (!value.chats.some(chat => chat.id === chatId)) chatId = value.chats[0]?.id || '';
-  $('pc-chat').value = chatId;
-  $('pc-history').replaceChildren();
-  for (const item of value.chats.find(chat => chat.id === chatId)?.messages || []) {
-   const block = document.createElement('p');
-   const label = document.createElement('strong'); label.textContent = item.role === 'user' ? 'You' : 'Codex';
-   const body = document.createElement('div'); body.textContent = item.text;
-   block.append(label, body); $('pc-history').appendChild(block);
+ const MODES = ['plan', 'apply', 'work'];
+ const labels = {plan:'Plan', apply:'Apply', work:'Work'};
+ let running = null;
+ let managedProject = '';
+ const stored = () => recall('sb.projectCodingChats', {});
+ function names() {
+  return [...new Set([...Object.values(PROJ.data).map(project => project.name), ...tasks.filter(task => typeOf(task) === 'project').map(task => task.course), ...Object.keys(stored())])].filter(Boolean).sort();
+ }
+ function entry(name) {
+  const project = projData(name);
+  const all = stored();
+  return Object.hasOwn(all,name) ? all[name] : {folder:project.computerFolder || '', chats:project.codingChats || []};
+ }
+ function save(name, value) {
+  store('sb.projectCodingChats', {...stored(), [name]:value});
+ }
+ function channel(id) {
+  const name = names().find(name => id === 'project:' + pslug(name));
+  return name ? {id, track:'project', course:name, title:name, status:'todo', projectChannel:true} : null;
+ }
+ function selected() {
+  const task = T(current?.active);
+  return task && typeOf(task) === 'project' ? {name:task.course || 'Project', mode:projMode(task), task} : null;
+ }
+ function modeChat(name, mode) { return entry(name).chats.find(chat => chat.mode === mode); }
+ function completeChats(chats) {
+  return MODES.every(mode => chats.some(chat => chat.mode === mode && typeof chat.threadId === 'string' && chat.threadId));
+ }
+ function preparedChats(result) {
+  if (!result?.folder || !Array.isArray(result.chats) || !completeChats(result.chats)) throw new Error('Codex did not prepare all three starter chats. The project was not saved.');
+  return result.chats.map(chat => ({id:crypto.randomUUID(), mode:chat.mode, title:labels[chat.mode], folder:result.folder, threadId:chat.threadId, messages:[]}));
+ }
+ async function provision(name, folder, existing = false) {
+  if (SessionWorkspace.mode !== 'private') throw new Error('Sign in to create projects.');
+  if (!name.trim() || !folder) throw new Error('Enter a project name and choose a computer folder.');
+  if (!existing && names().some(other => pslug(other) === pslug(name))) throw new Error('A project with that name already exists.');
+  const result = await SessionCompanion.prepareProject(folder,pslug(name));
+  const chats = preparedChats(result);
+  const previous = entry(name);
+  const oldChats = existing ? previous.chats.map(chat => ({...chat, archived:true})) : [];
+  const value = {folder:result.folder, chats:[...chats, ...oldChats], ready:true};
+  const document = {...projData(name), name, computerFolder:result.folder, codingChats:value.chats, codingReady:true};
+  await db.doc('projects/' + pslug(name)).set(document);
+  PROJ.data[pslug(name)] = document;
+  save(name, value);
+  if (TV.mode === 'guide') renderGuide();
+  if (TV.dbView === 'projects') renderSettings();
+  return value;
+ }
+ function totalTime(name, timeOn) {
+  let ms = 0;
+  for (const [id, value] of Object.entries(timeOn || {})) {
+   const task = T(id);
+   if (task && typeOf(task) === 'project' && task.course === name) ms += Number(value) || 0;
   }
-  $('pc-submit').disabled = busy || !value.folder || !chatId;
-  for (const id of ['pc-project','pc-chat','pc-link','pc-new','pc-create']) {
-   const el = $(id); if ('disabled' in el) el.disabled = busy;
-   el.querySelectorAll('input,select,button').forEach(control => control.disabled = busy);
-  }
+  return ms;
  }
- function projects(selected) {
-  const names = [...new Set([...Object.values(PROJ.data).map(p => p.name), ...tasks.filter(t => typeOf(t) === 'project').map(t => t.course), ...Object.keys(data())])].filter(Boolean).sort();
-  $('pc-project').replaceChildren(...names.map(name => new Option(name, name)));
-  project = names.includes(selected) ? selected : names[0] || '';
-  $('pc-project').value = project; render();
+ function stats(name) {
+  let milliseconds = sessions.reduce((sum, session) => sum + (Number(session.projectTime?.[name]) || 0), 0) + totalTime(name, current?.timeOn);
+  const active = T(current?.active);
+  if (active?.course === name && current.activeSince) milliseconds += Math.max(0, Math.min(Date.now() - current.activeSince, 150 * 60000));
+  return {sprints:(projData(name).past || []).length, minutes:Math.round(milliseconds / 60000)};
  }
- async function folders() {
-  const state = await SessionCompanion.status();
-  authorizedFolders = state.connected ? state.workspaces || [] : [];
-  $('pc-folder').replaceChildren(new Option('Choose a folder', ''), ...(state.workspaces || []).map(path => new Option(path, path)));
-  $('pc-folder').value = entry().folder;
-  message(state.connected ? 'Computer connected. Choose a folder and save the link.' : state.error);
+ const manage = document.createElement('dialog');
+ manage.id = 'project-manage'; manage.className = 'confirm-dlg'; manage.setAttribute('aria-labelledby','project-manage-title');
+ manage.innerHTML = `<div class="local-panel"><div class="row spread"><h2 id="project-manage-title">Manage project</h2><button class="btn" id="pm-close">Close</button></div><h3 id="pm-name"></h3><p id="pm-folder" class="project-folder-path"></p><div class="row"><button class="btn" id="pm-open">Open folder</button><button class="btn" id="pm-change">Choose another folder</button></div><h3>Codex chats</h3><ul id="pm-chats"></ul><button class="btn" id="pm-repair">Prepare starter chats</button><p role="status" id="pm-status"></p></div>`;
+ document.body.appendChild(manage);
+ function renderManage() {
+  const value = entry(managedProject);
+  $('pm-name').textContent = managedProject;
+  $('pm-folder').textContent = value.folder || 'No computer folder linked';
+  $('pm-open').disabled = !value.folder;
+  $('pm-chats').replaceChildren(...MODES.map(mode => {
+   const li = document.createElement('li'); li.textContent = labels[mode] + (modeChat(managedProject,mode)?.threadId ? ' · Ready' : ' · Setup needed'); return li;
+  }));
+  $('pm-repair').hidden = completeChats(value.chats);
  }
- function open(name) {
-  if (SessionWorkspace.mode !== 'private') { toast('Sign in to your private workspace to use project chats.'); return; }
-  projects(name); dialog.showModal(); folders().catch(error => message(error.message));
+ function openManage(name) {
+  if (SessionWorkspace.mode !== 'private') return toast('Sign in to manage projects.');
+  managedProject = name; $('pm-status').textContent = ''; renderManage(); manage.showModal();
  }
- $('pc-close').onclick = () => dialog.close();
- $('pc-refresh').onclick = () => folders().catch(error => message(error.message));
- $('pc-project').onchange = () => { project = $('pc-project').value; chatId = ''; render(); $('pc-folder').value = entry().folder; };
- $('pc-chat').onchange = () => { chatId = $('pc-chat').value; render(); };
- $('pc-link').onclick = event => {
-  event.preventDefault(); if (!project) return message('Create a project first.');
-  if (!authorizedFolders.includes($('pc-folder').value)) return message('Choose an authorized computer folder first.');
-  const value = entry(); value.folder = $('pc-folder').value; save(value); render();
-  message('Folder linked. Existing chats keep the folder where they started.');
+ async function updateManaged(folder) {
+  const controls = manage.querySelectorAll('button'); controls.forEach(button => button.disabled = true);
+  $('pm-status').textContent = 'Preparing Plan, Apply and Work chats…';
+  try { await provision(managedProject,folder,true); renderManage(); $('pm-status').textContent = 'Project ready. Previous chats are retained in your saved history.'; }
+  catch(error) { $('pm-status').textContent = error.message; }
+  finally { controls.forEach(button => button.disabled = false); renderManage(); }
+ }
+ $('pm-close').onclick = () => manage.close();
+ $('pm-open').onclick = () => SessionCompanion.openFolder(entry(managedProject).folder).catch(error => $('pm-status').textContent = error.message);
+ $('pm-change').onclick = async () => {
+  try { const result = await SessionCompanion.pickFolder(); if(result.folder && result.folder !== entry(managedProject).folder) await updateManaged(result.folder); }
+  catch(error) { $('pm-status').textContent = error.message; }
  };
- $('pc-new').onsubmit = event => {
-  event.preventDefault(); if (!project) return message('Create a project first.');
-  const title = $('pc-title').value.trim(); if (!title) return;
-  const value = entry(); chatId = crypto.randomUUID();
-  value.chats.push({id:chatId,title,folder:value.folder, messages:[]}); save(value); $('pc-title').value = ''; render();
+ $('pm-repair').onclick = async () => {
+  let folder = entry(managedProject).folder;
+  try { if(!folder) folder = (await SessionCompanion.pickFolder()).folder; if(folder)await updateManaged(folder); }
+  catch(error) { $('pm-status').textContent = error.message; }
  };
- $('pc-stop').onclick = () => SessionCompanion.cancel();
- $('pc-send').onsubmit = async event => {
-  event.preventDefault(); if (busy) return;
-  const value = entry(), chat = value.chats.find(c => c.id === chatId), prompt = $('pc-message').value.trim();
-  if (!chat || !value.folder || !prompt) return;
-  if (chat.threadId && chat.folder !== value.folder) return message('This chat uses its original folder. Restore that folder link or create a new chat.');
-  chat.folder = value.folder; chat.messages.push({role:'user',text:prompt});
-  const reply = {role:'assistant',text:''}; chat.messages.push(reply); save(value);
-  busy = true; render(); message('Codex is working…'); $('pc-message').value = '';
-  let completed = false;
-  try {
-   await SessionCompanion.start({workspace:chat.folder,prompt,threadId:chat.threadId,onEvent:event => {
-    if (event.method === 'sessiontv/thread') chat.threadId = event.params.threadId;
-    if (event.method === 'item/agentMessage/delta') reply.text += event.params.delta || '';
-    if (event.method === 'sessiontv/error' || event.method === 'sessiontv/approvalDenied') reply.text += '\n' + (event.params.error || event.params.reason);
-    if (event.method === 'turn/completed') { completed = true; message('Turn ' + (event.params.turn?.status || 'completed')); }
-    save(value); render();
-   }});
-   if (!completed) message('Connection ended. You can continue this chat after reconnecting.');
-  } catch (error) { message(error.name === 'AbortError' ? 'Stopped. You can continue this chat.' : error.message); }
-  finally { busy = false; save(value); render(); }
- };
- const databaseView = renderDbView;
+ const baseDatabase = renderDbView;
  renderDbView = function(view) {
-  databaseView(view); if (view !== 'projects') return;
-  const section = document.createElement('section'); section.className = 'db-grp';
-  const heading = document.createElement('h4'); heading.textContent = 'Project folders & chats'; section.appendChild(heading);
-  const create = document.createElement('button'); create.className = 'btn'; create.id = 'project-chats-open'; create.textContent = 'Create project'; create.onclick = () => SessionAddForms.open('project'); section.appendChild(create);
-  const names = [...new Set([...Object.values(PROJ.data).map(p => p.name), ...tasks.filter(t => typeOf(t) === 'project').map(t => t.course), ...Object.keys(data())])].filter(Boolean).sort();
-  for (const name of names) {
-   const row = document.createElement('div'); row.className = 'row spread';
-   const label = document.createElement('span'); label.textContent = name;
-   const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Folder & chats'; button.onclick = () => open(name);
-   row.append(label,button); section.appendChild(row);
+  baseDatabase(view); if(view !== 'projects')return;
+  const list = $('set-body').querySelector('.db-list');
+  list.innerHTML = `<div class="project-table"><div class="project-table-head"><span>Project</span><span>Computer folder</span><span>Sprints completed</span><span>Total time</span><span></span></div></div>`;
+  const table = list.firstElementChild;
+  for(const name of names()) {
+   const value = entry(name), totals = stats(name), row = document.createElement('div'); row.className = 'project-table-row';
+   const label = document.createElement('strong'); label.textContent = name;
+   const open = document.createElement('button'); open.className = 'btn ghost'; open.textContent = 'Open folder'; open.disabled = !value.folder;
+   open.onclick = () => SessionCompanion.openFolder(value.folder).catch(error=>toast(error.message));
+   const sprints = document.createElement('span'); sprints.textContent = String(totals.sprints); sprints.setAttribute('aria-label','Sprints completed');
+   const time = document.createElement('span'); time.textContent = fmtMin(totals.minutes); time.setAttribute('aria-label','Total project time');
+   const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Manage'; button.onclick = () => openManage(name);
+   row.append(label,open,sprints,time,button); table.appendChild(row);
   }
-  $('set-body').querySelector('.db-list').prepend(section);
+  if(!names().length) { const empty = document.createElement('p'); empty.className='db-empty'; empty.textContent='No projects yet.'; table.appendChild(empty); }
  };
- // A project task can use an existing project only after its folder is linked.
- $('add-form').addEventListener('submit', event => {
-  if ($('f-track').value !== 'project') return;
-  const name = $('f-course').value.trim();
-  if (!data()[name]?.folder) {
-   event.preventDefault(); event.stopImmediatePropagation();
-   toast('Create or link this project in Settings → My Database → Projects first.');
+ function renderProjectChat() {
+  const active = selected(); if(!active)return false;
+  const {name,mode,task} = active, value = entry(name), chat = modeChat(name,mode);
+  const log = $('coach-log');
+  $('coach-wrap').hidden = false; $('coach-quick').innerHTML = '';
+  $('coach-form').hidden = SessionWorkspace.mode !== 'private' || !chat?.threadId;
+  log.innerHTML = `<div class="project-chat-heading"><span>Codex · ${labels[mode]}</span><span>${running?.name === name && running.mode === mode ? 'Working…' : 'Saved conversation'}</span></div>`;
+  if(!chat?.threadId) {
+   const notice = document.createElement('div'); notice.className = 'msg ai'; notice.textContent = 'Prepare this project’s starter chats in Settings → My Database → Projects → Manage.'; log.appendChild(notice); return true;
   }
- }, true);
- const panel = ppRender;
- ppRender = function(task) {
-  panel(task); if ($('pp').hidden) return;
-  const button = document.createElement('button'); button.className = 'btn'; button.id = 'project-codex'; button.textContent = 'Project chats & folder'; button.onclick = () => open(task.course || 'Project'); $('pp-body').prepend(button);
+  if(!chat.messages.length) {
+   const intro = document.createElement('div'); intro.className='msg ai';
+   intro.textContent = mode === 'plan' ? 'Plan your next weekly Scrum sprint. What outcome do you want by the end of this week?' : mode === 'apply' ? 'Build this yourself with hints and feedback. What skill are you practicing, and what have you tried?' : 'Build with Codex and learn as you go. What would you like to implement?';
+   log.appendChild(intro);
+  }
+  for(const message of chat.messages) {
+   const bubble = document.createElement('div'); bubble.className = 'msg ' + (message.role === 'user' ? 'me' : 'ai');
+   const heading = document.createElement('div'); heading.className='ai-name'; heading.textContent=message.role==='user'?'You':'Codex';
+   const content = document.createElement('div'); content.innerHTML=fmtMsg(message.text || message.content || '',message.role!=='user'); bubble.append(heading,content); log.appendChild(bubble);
+  }
+  $('coach-send').disabled = !!running;
+  $('coach-input').placeholder = 'Message Codex · ' + labels[mode];
+  let stop = $('project-stop');
+  if(!stop) { stop=document.createElement('button');stop.id='project-stop';stop.type='button';stop.className='btn ghost';stop.textContent='Stop';$('coach-form').appendChild(stop);stop.onclick=()=>SessionCompanion.cancel(); }
+  stop.hidden = !running;
+  coachTurns['proj:'+name] = chat.messages.map(message=>({role:message.role,content:message.text||message.content||''}));
+  if(projMode(task)==='work') ppRender(task);
+  log.scrollTop=log.scrollHeight;
+  return true;
+ }
+ const baseLog = renderCoachLog;
+ renderCoachLog = function() { if(!renderProjectChat())baseLog(); };
+ const baseWork = renderWork;
+ renderWork = function() { baseWork(); if(selected())renderProjectChat();else if($('project-stop'))$('project-stop').hidden=true; };
+ const baseSend = sendCoach;
+ sendCoach = async function(text, show) {
+  const active = selected(); if(!active)return baseSend(text,show);
+  const prompt=String(text||'').trim(); if(!prompt || running)return;
+  if(SessionWorkspace.mode!=='private')return toast('Sign in to use project chats.');
+  const {name,mode,task}=active, value=entry(name), chat=value.chats.find(chat=>chat.mode===mode);
+  if(!chat?.threadId)return toast('Prepare the project’s starter chats in Manage first.');
+  chat.messages.push({role:'user',text:show||prompt});const reply={role:'assistant',text:''};chat.messages.push(reply);
+  running={name,mode};save(name,value);$('coach-input').value='';renderProjectChat();
+  try {
+   const learnedSkills=tasks.filter(item=>typeOf(item)==='skill').map(item=>item.title+' ('+skillLevel(item)+')').join(', ');
+   const context='Project: '+name+'\nPreviously learned skills and self-rated levels: '+(learnedSkills||'None recorded yet')+'\n'+projectCtx(task);
+   await SessionCompanion.start({workspace:value.folder,prompt:context+'\n\nUser message: '+prompt,threadId:chat.threadId,mode,onEvent:event=>{
+    if(event.method==='sessiontv/thread')chat.threadId=event.params.threadId;
+    if(event.method==='item/agentMessage/delta')reply.text+=event.params.delta||'';
+    if(event.method==='sessiontv/error'||event.method==='sessiontv/approvalDenied')reply.text+='\n'+(event.params.error||event.params.reason);
+    if(event.method==='turn/completed'&&event.params.turn?.status==='failed')reply.text+='\n'+(event.params.turn.error?.message||'The Codex turn failed. You can retry.');
+    save(name,value);if(selected()?.name===name&&selected()?.mode===mode)renderProjectChat();
+   }});
+  } catch(error) { reply.text+=(error.name==='AbortError'?'\nStopped.':'\n'+error.message); }
+  finally { running=null;save(name,value);if(selected()?.name===name)renderProjectChat(); }
  };
- globalThis.SessionProjectChats = {open, async create(name,folder) {
-  if (SessionWorkspace.mode !== 'private') throw new Error('Sign in first.');
-  if (Object.keys(data()).some(existing => pslug(existing) === pslug(name)) || PROJ.data[pslug(name)]) throw new Error('A project with that name already exists.');
-  await db.doc('projects/' + pslug(name)).set({name,computerFolder:folder});
-  const all = data(); all[name] = {folder,chats:[]}; store('sb.projectCodingChats',all);
- }};
+ globalThis.SessionProjectChats = {
+  names, entry, channel, open:openManage, create:(name,folder)=>provision(name.trim(),folder),
+  timeTotals:()=>Object.fromEntries(names().map(name=>[name,totalTime(name,current?.timeOn)]))
+ };
+ if(current)renderWork();
 })();

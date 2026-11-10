@@ -152,39 +152,51 @@ test('public preview keeps sign-in usable and blocks record editing in the DOM',
 
 test('appearance preferences persist without changing workspace data',async()=>{const {dom,w,errors}=await boot();try{assert.equal(w.document.getElementById('workspace-banner'),null);w.document.getElementById('btn-set').click();const titles=[...w.document.querySelectorAll('#set-body .set-card>h3')].map(x=>x.textContent);assert.deepEqual(titles.slice(0,3),['Appearance & Preferences','Private Session','Exit SessionTV']);assert.equal(w.document.getElementById('session-exit').href,'https://tannermayfield.dev/#projects');w.document.getElementById('preferences-open').click();assert.equal(w.document.getElementById('appearance-preferences').open,true);w.document.querySelector('[data-pref="scheme"][data-value="dark"]').click();w.document.querySelector('[data-pref="screenEffect"][data-value="off"]').click();w.document.querySelector('[data-pref="cut"][data-value="0"]').click();assert.equal(w.document.body.dataset.scheme,'dark');assert.equal(w.document.body.dataset.screenEffect,'off');assert.equal(w.eval('TV.cutLen'),0);const saved=w.SessionTVLocal.backup().values;const reload=await boot(saved);try{assert.equal(reload.w.document.body.dataset.scheme,'dark');assert.equal(reload.w.document.body.dataset.screenEffect,'off');assert.equal(reload.w.eval('TV.cutLen'),0);assert.equal(reload.w.eval('tasks.length'),0)}finally{reload.dom.window.close()}assert.deepEqual(errors,[])}finally{dom.window.close()}});
 
-test('project chat creation links an authorized folder and preserves named conversations',async()=>{
- const {dom,w}=await boot();
+test('linked projects prepare three chats, appear in the menu, and chat only in the work screen',async()=>{
+ const {dom,w,errors}=await boot();
  try {
   w.SessionWorkspace={...w.SessionWorkspace,mode:'private'};
-  w.SessionCompanion.status=async()=>({connected:true,workspaces:['C:\\Projects\\example']});
-  w.SessionCompanion.start=async({threadId,onEvent})=>{
-   assert.equal(threadId,undefined);
-   onEvent({method:'sessiontv/thread',params:{threadId:'persistent-thread'}});
-   onEvent({method:'item/agentMessage/delta',params:{delta:'Saved reply'}});
-   onEvent({method:'turn/completed',params:{turn:{status:'completed'}}});
-  };
+  w.SessionCompanion.pickFolder=async()=>({folder:'C:\\Projects\\example'});
+  w.SessionCompanion.prepareProject=async folder=>({folder,chats:['plan','apply','work'].map(mode=>({mode,threadId:'thread-'+mode}))});
   w.document.getElementById('btn-set').click();
-  assert.equal(w.document.getElementById('project-chats-open'),null);
   w.document.querySelector('[data-db=projects]').click();
-  w.document.getElementById('project-chats-open').click();
-  const submit=id=>w.document.getElementById(id).dispatchEvent(new w.Event('submit',{cancelable:true}));
+  assert.equal([...w.document.querySelectorAll('#set-body button')].filter(button=>button.textContent.includes('Create project')).length,1);
+  assert.equal(w.document.getElementById('project-chats-open'),null);
+  w.document.getElementById('db-add').click();
   const create=w.document.getElementById('create-project');
   create.querySelector('[name=name]').value='Example project';
   create.querySelector('form').dispatchEvent(new w.Event('submit',{cancelable:true}));
-  await until(()=>create.textContent.includes('choose an authorized'));
-  await until(()=>create.querySelector('[name=folder]').options.length===2);
-  create.querySelector('[name=folder]').value='C:\\Projects\\example';
+  await until(()=>create.textContent.includes('choose a computer folder'));
+  create.querySelector('[data-pick-folder]').click();
+  await until(()=>create.querySelector('[name=folder]').value);
   create.querySelector('form').dispatchEvent(new w.Event('submit',{cancelable:true}));
   await until(()=>!create.open);
+  assert.equal(w.eval('tasks.length'),0);
+  assert.equal(w.eval("gdProjects().includes('Example project')"),true);
+  assert.equal(w.SessionProjectChats.entry('Example project').chats.length,3);
+  assert.match(w.document.querySelector('.project-table-row').textContent,/Example project/);
   w.SessionProjectChats.open('Example project');
-  w.document.getElementById('pc-title').value='Planning';submit('pc-new');
-  w.document.getElementById('pc-message').value='Hello';submit('pc-send');
-  await until(()=>w.document.getElementById('pc-status').textContent==='Turn completed');
-  w.SessionProjectChats.open('Example project');
-  assert.match(w.document.getElementById('pc-history').textContent,/Saved reply/);
-  w.SessionCompanion.start=async({threadId})=>assert.equal(threadId,'persistent-thread');
-  w.document.getElementById('pc-message').value='Continue';submit('pc-send');
-  await until(()=>!w.document.getElementById('pc-submit').disabled);
+  assert.equal(w.document.querySelector('#project-manage textarea'),null);
+  w.document.getElementById('pm-close').click();
+  w.eval('staticBurst=async()=>{}');
+  w.eval("gdTune('project','Example project')");
+  await until(()=>w.document.getElementById('coach-form').hidden===false);
+  assert.equal(w.eval("T(current.active).projectChannel"),true);
+  w.SessionCompanion.start=async({mode,threadId,onEvent})=>{
+   assert.equal(mode,'apply');assert.equal(threadId,'thread-apply');
+   onEvent({method:'item/agentMessage/delta',params:{delta:'A small hint'}});
+   onEvent({method:'turn/completed',params:{turn:{status:'completed'}}});
+  };
+  await w.sendCoach('Give me a hint');
+  assert.match(w.document.getElementById('coach-log').textContent,/A small hint/);
+  w.eval("current.projModes={'Example project':'plan'};renderWork()");
+  assert.doesNotMatch(w.document.getElementById('coach-log').textContent,/A small hint/);
+  w.eval("current.projModes={'Example project':'apply'};renderWork()");
+  assert.match(w.document.getElementById('coach-log').textContent,/A small hint/);
+  w.SessionCompanion.prepareProject=async()=>{throw new Error('Sandbox setup needed')};
+  await assert.rejects(w.SessionProjectChats.create('Not ready','C:\\Projects\\example'),/Sandbox setup needed/);
+  assert.equal(w.SessionProjectChats.names().includes('Not ready'),false);
+  assert.deepEqual(errors,[]);
  } finally {dom.window.close()}
 });
 
