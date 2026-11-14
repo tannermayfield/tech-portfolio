@@ -5,7 +5,7 @@ function settingsHeader(title, add, onAdd){
   header.querySelector('h2').innerHTML='Settings'+(title?' <span class="settings-chevron" aria-hidden="true">&gt;</span> <span>'+esc(title)+'</span>':'');
   header.querySelector('#db-add')?.remove();
   const back=$('set-x');
-  back.innerHTML=title?'←':'×';
+  back.innerHTML=title?'← Back':'×';
   back.setAttribute('aria-label',title?'Back to settings':'Close settings');
   back.onclick=()=>{if(TV.dbView){TV.dbView=null;renderSettings()}else closeSheets()};
   if(add){const button=document.createElement('button');button.type='button';button.id='db-add';button.className='btn';button.textContent='+ '+add;button.onclick=onAdd;header.insertBefore(button,back)}
@@ -18,13 +18,14 @@ function renderSettings(){
   const exp=pj.filter(t=>t.status==='done').length;
   const stat=(n,l,v)=>`<button type="button" class="db-stat" data-db="${v}" title="Open ${l}"><b>${n}</b><span>${l}</span></button>`;
   $('set-body').innerHTML=`<div class="set-grid">
-    <div class="set-card"><h3>Appearance &amp; Preferences</h3><div class="row"><button class="btn" id="preferences-open">Open preferences</button></div></div>
-    <div class="set-card"><h3>Private Session</h3><div class="row"><button class="btn" id="local-open">${SessionWorkspace.mode==='private'?'Session preferences':'Login to Session'}</button></div></div>
+    <div class="set-card"><h3>Session Login</h3><div class="row"><button class="btn" id="local-open">${SessionWorkspace.mode==='private'?'Logout':'Login to Session'}</button></div></div>
+    <div class="set-card"><h3>Appearance</h3><div class="row"><button class="btn" id="preferences-open">Open appearance</button></div></div>
     <div class="set-card"><h3>Exit SessionTV</h3><div class="row"><a class="btn" id="session-exit" href="https://tannermayfield.dev/#projects">Return to portfolio</a></div></div>
-    <div class="set-card db-card"><h3>My Database</h3>
-      <div class="db-stats">${stat(courses.length,'Classes & assignments','classes')}${stat(sk.length,'Skills','skills')}${stat(projects.length,'Projects','projects')}</div>
-      <div class="db-btns"><button class="btn" data-db="learning">Learning Logs</button><button class="btn" data-db="experience">Experience Logs</button></div></div>
+    <div class="set-card session-preferences-card"><h3>Session Preferences</h3><div class="row"><button class="btn" id="session-preferences-open" ${SessionWorkspace.mode==='private'?'':'disabled'}>Open preferences</button></div></div>
     ${setTimeCard()}
+    <div class="set-card db-card"><h3>My Database</h3>
+      <div class="db-stats">${stat(courses.length,'Classes','classes')}${stat(sk.length,'Skills','skills')}${stat(projects.length,'Projects','projects')}<button type="button" class="db-stat resume-placeholder" disabled title="Coming later"><span>Resume &amp; Portfolio</span><small>Coming later</small></button></div>
+      <div class="db-btns"><button class="btn" data-db="learning">Learning Logs</button><button class="btn" data-db="experience">Experience Logs</button></div></div>
   </div>`;
   if($('tt-range'))$('tt-range').onclick=()=>{const i=TT_RANGES.findIndex(x=>x[0]===TV.ttRange);TV.ttRange=TT_RANGES[(i+1)%TT_RANGES.length][0];try{SessionWorkspace.storage.setItem('sb.ttRange',TV.ttRange)}catch(e){}renderSettings()};
   $('set-body').querySelectorAll('[data-db]').forEach(b=>b.onclick=()=>{if(b.dataset.db==='learning'){closeSheets();go('log');return}TV.dbView=b.dataset.db;renderSettings()});
@@ -48,7 +49,7 @@ function renderDbView(v){
   const row=(t,meta,done)=>`<li><button type="button" class="db-row${done?' done':''}" data-open="${esc(t.id)}"><span class="db-t">${esc(t.title)}</span><span class="db-m">${meta}</span></button></li>`;
   const group=(h,sub,items)=>`<section class="db-grp"><h4>${esc(h)}${sub?` <small>${esc(sub)}</small>`:''}</h4><ul>${items||'<li class="db-empty">Nothing here yet.</li>'}</ul></section>`;
   let title='',body='',add='';
-  if(v==='classes'||v==='assignments'){title='Classes & assignments';add='Add class';
+  if(v==='classes'||v==='assignments'){title='Classes';add='Add class';
     const cls=live.filter(t=>typeOf(t)==='class'),courses=[...new Set([...cls.map(t=>t.course||'Other'),...Object.keys(recall('sb.classes',{}))])].sort();
     body=courses.map(c=>{const l=cls.filter(t=>(t.course||'Other')===c).sort((a,b)=>(a.status==='done')-(b.status==='done')||String(a.due||'9').localeCompare(String(b.due||'9')));
       const open=l.filter(t=>t.status!=='done').length;
