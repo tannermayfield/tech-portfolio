@@ -24,12 +24,12 @@ test('email password login uses official Auth endpoint and stores no password',a
  assert.match(app.calls[0].url,/\/auth\/v1\/token\?grant_type=password$/);assert.equal(app.calls[0].headers.apikey,'sb_publishable_test');assert.equal(app.calls[0].headers.Authorization,undefined);assert.deepEqual(JSON.parse(app.calls[0].body),{email:'learner@example.com',password:'example-password'});assert.equal(app.cloud.user.id,'owner-id');assert.equal(app.context.localStorage.getItem('sessiontv.auth.v1').includes('example-password'),false);
 });
 
-test('username password login resolves only through the private server endpoint',async()=>{
- const app=boot({configured:true,handler:url=>url.endsWith('/user')?{id:'owner-id'}:session});await app.cloud.signInWithPassword('My.User','example-password');assert.match(app.calls[0].url,/\/functions\/v1\/username-login$/);assert.deepEqual(JSON.parse(app.calls[0].body),{username:'my.user',password:'example-password'});assert.equal(app.calls.some(c=>c.url.includes('lookup_login_email')),false);assert.equal(app.context.SessionWorkspace.id,'owner-id');
+test('username login is rejected without contacting account services',async()=>{
+ const app=boot({configured:true});await assert.rejects(app.cloud.signInWithPassword('My.User','example-password'),/valid email/);assert.equal(app.calls.length,0);assert.equal(app.cloud.user,null);
 });
 
 test('failed password verification never opens a private workspace or stores a session',async()=>{
- const app=boot({configured:true,handler:()=>({status:401,body:{error:'Incorrect username or password.'}})});await assert.rejects(app.cloud.signInWithPassword('student','wrong'),/Incorrect/);assert.equal(app.cloud.user,null);assert.equal(app.context.localStorage.getItem('sessiontv.auth.v1'),null);assert.equal(app.context.SessionWorkspace.id,undefined);
+ const app=boot({configured:true,handler:()=>({status:401,body:{error:'Incorrect email or password.'}})});await assert.rejects(app.cloud.signInWithPassword('student@example.com','wrong'),/Incorrect/);assert.equal(app.cloud.user,null);assert.equal(app.context.localStorage.getItem('sessiontv.auth.v1'),null);assert.equal(app.context.SessionWorkspace.id,undefined);
 });
 
 test('authenticated writes use owner-scoped RPC and failed writes do not commit local data',async()=>{
