@@ -55,12 +55,13 @@
    finally { button.disabled=false; }
   };
  }
- function open(kind) {
+ function open(kind, course) {
   if(SessionWorkspace.mode==='demo'){toast('Sign in to add records.');return;}
   closeDrawers(); const dialog=dialogs[kind];dialog.querySelector('[role=status]').textContent='';
   if(kind==='assignment') {
    const names=[...new Set([...Object.keys(recall('sb.classes',{})),...tasks.filter(task=>typeOf(task)==='class').map(task=>task.course).filter(Boolean)])].sort();
    dialog.querySelector('[name=course]').replaceChildren(new Option('Choose a class',''),...names.map(name=>new Option(name,name)));
+   if(course)dialog.querySelector('[name=course]').value=course;
    if(!names.length)dialog.querySelector('[role=status]').textContent='Add a class in My Database → Classes first.';
   }
   dialog.showModal();

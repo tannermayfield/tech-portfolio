@@ -27,6 +27,19 @@ try{
  assert.ok(Math.abs(proportions[0].buttonHeight-proportions[1].buttonHeight)<.001);
  assert.ok(Math.abs(proportions[0].buttonWidth-proportions[1].buttonWidth)<.001);
  await page.setViewportSize({width:1440,height:1000});
+ for(const width of [1280,390]){
+  await page.setViewportSize({width,height:width===390?844:628});
+  for(const view of ['classes','skills','projects']){
+   await page.locator('[data-db="'+view+'"]').click();
+   assert.equal(await page.locator('#tv-settings .sheet-head #db-add').count(),1);
+   assert.equal(await page.locator('#set-x').getAttribute('aria-label'),'Back to settings');
+   if(view==='classes')assert.ok(await page.locator('.class-section [data-add-assignment]').count()>0);
+   assert.equal(await page.locator('#set-x').evaluate(el=>el.previousElementSibling.id),'db-add');
+   await page.screenshot({path:'test-results/settings-'+view+'-'+width+'.png'});
+   await page.locator('#set-x').click();assert.equal(await page.locator('#preferences-open').isVisible(),true);
+  }
+ }
+ await page.setViewportSize({width:1440,height:1000});
  const visitor=await browser.newContext();const second=await visitor.newPage();await second.goto(origin+'/session-tv/');await second.waitForFunction(()=>typeof loaded!=='undefined'&&loaded.tasks);assert.deepEqual(await second.evaluate(()=>tasks.map(t=>({id:t.id,title:t.title,status:t.status}))),published);await visitor.close();
  await page.evaluate(()=>tune(tasks[0].id,{cut:false}));await page.waitForTimeout(400);await mkdir('public/images',{recursive:true});if(process.env.UPDATE_SESSION_TV_SCREENSHOT)await page.screenshot({path:'public/images/session-tv.png',fullPage:false});
  await page.setViewportSize({width:390,height:844});if(await page.locator('#btn-set').getAttribute('aria-pressed')!=='true')await page.locator('#btn-set').click();await page.locator('#local-open').click();assert.equal(await page.locator('#local-setup').isVisible(),true);await page.locator('#local-close').click();assert.equal(await page.locator('#local-open').isVisible(),true);await page.locator('#preferences-open').click();assert.equal(await page.locator('#appearance-preferences').evaluate(el=>el.scrollHeight>el.clientHeight+1),false);const mobilePreferences=await page.locator('#appearance-preferences').boundingBox();assert.ok(mobilePreferences.x>=0&&mobilePreferences.x+mobilePreferences.width<=391);await mkdir('test-results',{recursive:true});await page.locator('#appearance-preferences').screenshot({path:'test-results/session-tv-mobile-preferences.png'});await page.locator('#preferences-close').click();

@@ -160,8 +160,10 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
   w.SessionCompanion.prepareProject=async folder=>({folder,chats:['plan','apply','work'].map(mode=>({mode,threadId:'thread-'+mode}))});
   w.document.getElementById('btn-set').click();
   w.document.querySelector('[data-db=projects]').click();
-  assert.equal([...w.document.querySelectorAll('#set-body button')].filter(button=>button.textContent.includes('Create project')).length,1);
+  assert.equal([...w.document.querySelectorAll('#tv-settings button')].filter(button=>button.textContent.includes('Create project')).length,1);
   assert.equal(w.document.getElementById('project-chats-open'),null);
+  assert.equal(w.document.getElementById('db-add').parentElement.className,'sheet-head');
+  assert.equal(w.document.getElementById('set-x').getAttribute('aria-label'),'Back to settings');
   w.document.getElementById('db-add').click();
   const create=w.document.getElementById('create-project');
   create.querySelector('[name=name]').value='Example project';
