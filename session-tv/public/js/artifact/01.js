@@ -1,6 +1,7 @@
 (function(){
   const crt=()=>document.getElementById('crt');
-  function place(){const c=crt();if(!c)return;const r=c.getBoundingClientRect(),st=document.documentElement.style;
+  function place(){const c=crt();if(!c)return;const physical=c.getBoundingClientRect(),st=document.documentElement.style,scale=innerWidth>860?parseFloat(st.getPropertyValue('--tv-scale'))||1:1;
+    const r={left:physical.left/scale,top:physical.top/scale,width:physical.width/scale,height:physical.height/scale};
     st.setProperty('--crt-x',r.left+'px');st.setProperty('--crt-y',r.top+'px');st.setProperty('--crt-w',r.width+'px');st.setProperty('--crt-h',r.height+'px')}
   function sync(){const c=crt();if(c)c.classList.toggle('dlg-dim',!!document.querySelector('dialog.confirm-dlg[open]'))}
   const orig=HTMLDialogElement.prototype.showModal;
