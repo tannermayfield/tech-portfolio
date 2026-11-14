@@ -63,6 +63,18 @@ try{
  await privatePage.evaluate(async()=>{await tune(tasks.find(task=>typeOf(task)==='project').id,{cut:false});closeSheets();go('work');document.getElementById('coach-form').hidden=false;});
  assert.equal(await privatePage.locator('#coach-form .speech-controls').count(),1);
  await privatePage.setViewportSize({width:1280,height:628});await privatePage.screenshot({path:'test-results/session-tv-speech-controls.png'});
+ await privatePage.route('https://embed.music.apple.com/**',route=>route.fulfill({contentType:'text/html',body:'<button>Play</button><p>Apple player test fixture</p>'}));
+ await privatePage.evaluate(()=>SessionMusic.openRadio());
+ const radioFrame=privatePage.locator('#tv-radio iframe');assert.equal(await radioFrame.count(),1);assert.match(await radioFrame.getAttribute('src'),/pl.u-RRbVLGNTebXKMbo/);
+ await radioFrame.evaluate(el=>el.dataset.radioTest='persistent');await privatePage.locator('[data-radio-close]').click();assert.equal(await radioFrame.getAttribute('data-radio-test'),'persistent');
+ await privatePage.evaluate(()=>{TV.mode='guide';TV.guideCat='class';renderGuide()});assert.match(await radioFrame.getAttribute('src'),/pl.u-vxy6JJxI82jM32P/);
+ await privatePage.evaluate(()=>SessionMusic.openRadio());
+ for(const width of [1280,390]){
+  await privatePage.setViewportSize({width,height:width===390?844:628});
+  const box=await privatePage.locator('#tv-radio').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width+1);
+  await privatePage.locator('[data-radio-stop]').click();assert.equal(await privatePage.locator('#tv-radio iframe').count(),0);
+  await privatePage.locator('[data-radio-close]').click();await privatePage.evaluate(()=>SessionMusic.openRadio());
+ }
  await privateContext.close();
  assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);console.log('Static Pages preview: immutable records, navigation/refresh, visitor isolation, hidden edit controls, usable sign-in, AI gate, mobile and assets passed.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}
