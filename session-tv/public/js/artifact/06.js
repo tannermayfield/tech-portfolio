@@ -5,6 +5,7 @@ function settingsHeader(title, add, onAdd){
   header.querySelector('h2').innerHTML='Settings'+(title?' <span class="settings-chevron" aria-hidden="true">&gt;</span> <span>'+esc(title)+'</span>':'');
   header.querySelector('#db-add')?.remove();
   const back=$('set-x');
+  back.classList.toggle('btn',!!title);
   back.innerHTML=title?'← Back':'×';
   back.setAttribute('aria-label',title?'Back to settings':'Close settings');
   back.onclick=()=>{if(TV.dbView){TV.dbView=null;renderSettings()}else closeSheets()};
@@ -25,7 +26,7 @@ function renderSettings(){
     ${setTimeCard()}
     <div class="set-card db-card"><h3>My Database</h3>
       <div class="db-stats">${stat(courses.length,'Classes','classes')}${stat(sk.length,'Skills','skills')}${stat(projects.length,'Projects','projects')}<button type="button" class="db-stat resume-placeholder" disabled title="Coming later"><span>Resume &amp; Portfolio</span><small>Coming later</small></button></div>
-      <div class="db-btns"><button class="btn" data-db="learning">Learning Logs</button><button class="btn" data-db="experience">Experience Logs</button></div></div>
+      </div>
   </div>`;
   if($('tt-range'))$('tt-range').onclick=()=>{const i=TT_RANGES.findIndex(x=>x[0]===TV.ttRange);TV.ttRange=TT_RANGES[(i+1)%TT_RANGES.length][0];try{SessionWorkspace.storage.setItem('sb.ttRange',TV.ttRange)}catch(e){}renderSettings()};
   $('set-body').querySelectorAll('[data-db]').forEach(b=>b.onclick=()=>{if(b.dataset.db==='learning'){closeSheets();go('log');return}TV.dbView=b.dataset.db;renderSettings()});
