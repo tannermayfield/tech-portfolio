@@ -10,6 +10,7 @@ function boot({mode='private',preferences={playlists:{class:playlist('class'),sk
  w.recall=(key,fallback)=>values[key]??fallback;w.store=(key,value)=>{values[key]=value};w.renderWork=()=>{};w.renderGuide=()=>{};w.renderSong=()=>{};w.openPlaylist=()=>{};w.playlistUrl=()=>'';w.toast=()=>{};
  const player={isAuthorized:false,isPlaying:false,nowPlayingItem:null,
   addEventListener(name,fn){events[name]=fn},
+  removeEventListener(name,fn){if(events[name]===fn)delete events[name]},
   async authorize(){calls.push('authorize');this.isAuthorized=true},
   async unauthorize(){calls.push('unauthorize');this.isAuthorized=false},
   async pause(){calls.push('pause');this.isPlaying=false},
@@ -64,5 +65,74 @@ test('failed authorization can be retried with the configured token',async()=>{
   app.player.authorize=async()=>{throw new Error('Authorization declined')};await assert.rejects(app.music.connect(token),/declined/);
   app.player.authorize=async()=>{app.player.isAuthorized=true};await app.music.connect(token);assert.equal(app.player.isAuthorized,true);
   await app.music.disconnect();assert.equal(app.w.localStorage.getItem('sessiontv.musickit.owner'),null);assert.equal(app.player.isAuthorized,false);
+ }finally{app.dom.window.close()}
+});
+
+
+test('MusicKit initialization waits for musickitloaded after the script load event',async()=>{
+ const app=boot();try{
+  const SDK=app.w.MusicKit;delete app.w.MusicKit;
+  const connection=app.music.connect(token);
+  const script=app.w.document.querySelector('script');assert.equal(script.src,'https://js-cdn.music.apple.com/musickit/v3/musickit.js');
+  script.onload();await Promise.resolve();assert.equal(app.calls.length,0);
+  app.w.MusicKit=SDK;app.w.document.dispatchEvent(new app.w.Event('musickitloaded'));
+  await connection;assert.equal(app.player.isAuthorized,true);assert.equal(script.onload,null);
+ }finally{app.dom.window.close()}
+});
+
+test('failed SDK loading cleans up and permits a fresh connection attempt',async()=>{
+ const app=boot();try{
+  const SDK=app.w.MusicKit;delete app.w.MusicKit;
+  const failed=app.music.connect(token);app.w.document.querySelector('script').onerror();
+  await assert.rejects(failed,/could not load/);assert.equal(app.w.document.querySelectorAll('script').length,0);
+  const retry=app.music.connect(token);app.w.MusicKit=SDK;app.w.document.dispatchEvent(new app.w.Event('musickitloaded'));
+  await retry;assert.equal(app.player.isAuthorized,true);
+ }finally{app.dom.window.close()}
+});
+
+test('cancelled authorization is not reported as connected',async()=>{
+ const app=boot();try{
+  app.player.authorize=async()=>undefined;
+  await assert.rejects(app.music.connect(token),/sign-in was cancelled/);
+  assert.equal(app.w.localStorage.getItem('sessiontv.musickit.owner'),null);
+  assert.equal(app.w.document.querySelector('[data-sn=play]').disabled,true);
+ }finally{app.dom.window.close()}
+});
+
+test('library playlist pagination uses authorized API requests and queues library IDs',async()=>{
+ const app=boot({preferences:{playlists:{class:{libraryId:'p.saved',name:'Saved playlist'}}}});try{
+  await app.music.connect(token);
+  let page=0;app.player.api.music=async path=>{
+   app.calls.push(path);page++;
+   return {data:{data:[{id:'p.'+page,attributes:{name:'Playlist '+page}}],next:page===1?'/v1/me/library/playlists?offset=100':undefined}};
+  };
+  app.music.mountSettings(app.w.document.getElementById('settings'));await app.music.loadLibrary();
+  assert.equal(app.w.document.querySelectorAll('[data-library=class] option').length,4);
+  assert.equal(app.calls.filter(value=>value==='authorize').length,2);
+  await app.music.control('play');assert.ok(app.calls.some(value=>value.playlist==='p.saved'));
+  assert.equal(app.music.validateURL('https://music.apple.com/library/playlists/p.saved'),'https://music.apple.com/library/playlists/p.saved');
+ }finally{app.dom.window.close()}
+});
+
+test('MusicKit playback and DRM errors surface in settings and disconnect removes listeners',async()=>{
+ const app=boot();try{
+  await app.music.connect(token);app.music.mountSettings(app.w.document.getElementById('settings'));
+  app.events.mediaPlaybackError({message:'Subscription unavailable'});
+  assert.match(app.w.document.querySelector('[data-music-status]').textContent,/Subscription unavailable/);
+  app.events.drmUnsupported();assert.match(app.w.document.querySelector('[data-music-status]').textContent,/protected-content/);
+  await app.music.disconnect();assert.equal(Object.keys(app.events).length,0);
+ }finally{app.dom.window.close()}
+});
+
+
+test('sign-out during SDK configuration cannot open Apple authorization or retain a token',async()=>{
+ const app=boot();try{
+  let release,entered=false;const blocked=new Promise(resolve=>release=resolve);
+  app.w.MusicKit.configure=async()=>{entered=true;await blocked};
+  const connection=app.music.connect(token);
+  for(let i=0;i<20&&!entered;i++)await new Promise(resolve=>setTimeout(resolve,0));
+  app.music.cleanup();release();await assert.rejects(connection,/cancelled/);
+  assert.equal(app.calls.includes('authorize'),false);
+  assert.equal(app.w.localStorage.getItem('sessiontv.musickit.owner'),null);
  }finally{app.dom.window.close()}
 });

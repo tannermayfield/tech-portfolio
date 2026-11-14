@@ -1,7 +1,7 @@
 /* Apple Music playback uses MusicKit without an embedded player. */
 (() => {
  const sections={class:'Classes',skill:'Skills',project:'Projects'};
- let music=null,loading=null,connecting=null,configuredToken='',queue=Promise.resolve(),generation=0;
+ let music=null,loading=null,connecting=null,configuredToken='',queue=Promise.resolve(),generation=0,connectionRevision=0;
  let queuedKey='',section='',statusText='',library=[],panel=null,wantsPlayback=false;
  const privateMode=()=>globalThis.SessionWorkspace?.mode==='private';
  const preferences=()=>recall('sb.music',{});
@@ -13,7 +13,7 @@
  function validateURL(value){
   if(!value)return '';
   let url;try{url=new URL(value)}catch{throw new Error('Paste an Apple Music playlist share link.');}
-  if(url.protocol!=='https:'||url.hostname!=='music.apple.com'||!url.pathname.includes('/playlist/')||url.username||url.password)throw new Error('Use a playlist link from music.apple.com.');
+  if(url.protocol!=='https:'||url.hostname!=='music.apple.com'||!(/^\/(?:[a-z]{2}\/)?playlist\//i.test(url.pathname)||/^\/library\/playlists?\//.test(url.pathname))||url.username||url.password)throw new Error('Use a playlist link from music.apple.com.');
   url.search='';url.hash='';return url.href;
  }
  function message(text){statusText=text;updatePanel();renderPlayer();}
@@ -24,47 +24,72 @@
   if(loading)return loading;
   loading=new Promise((resolve,reject)=>{
    const script=document.createElement('script');script.src='https://js-cdn.music.apple.com/musickit/v3/musickit.js';script.async=true;
-   const timeout=setTimeout(()=>{script.remove();loading=null;reject(new Error('Apple Music took too long to load. Try connecting again.'));},20000);
-   script.onload=()=>{clearTimeout(timeout);if(globalThis.MusicKit)resolve(MusicKit);else{loading=null;script.remove();reject(new Error('Apple Music could not initialize.'));}};
-   script.onerror=()=>{clearTimeout(timeout);loading=null;script.remove();reject(new Error('Apple Music could not load. Check your connection and try again.'));};document.head.appendChild(script);
+   function cleanup(){clearTimeout(timeout);document.removeEventListener('musickitloaded',ready);script.onload=null;script.onerror=null;}
+   function fail(text){cleanup();script.remove();loading=null;reject(new Error(text));}
+   function ready(){if(!globalThis.MusicKit)return;cleanup();resolve(MusicKit);}
+   const timeout=setTimeout(()=>fail('Apple Music took too long to initialize. Try connecting again.'),20000);
+   document.addEventListener('musickitloaded',ready);
+   script.onload=ready;
+   script.onerror=()=>fail('Apple Music could not load. Check your connection and try again.');
+   document.head.appendChild(script);
   });return loading;
  }
- function attachEvents(){
-  for(const event of ['playbackStateDidChange','nowPlayingItemDidChange','authorizationStatusDidChange'])music.addEventListener(event,()=>{
-   if(!authorized()){wantsPlayback=false;queuedKey='';}
-   updatePanel();renderPlayer();
-  });
+ function playbackChanged(){
+  if(!authorized()){wantsPlayback=false;queuedKey='';}
+  updatePanel();renderPlayer();
  }
+ function playbackError(error){
+  wantsPlayback=false;generation++;
+  message(error?.message||'Apple Music playback failed. Check your subscription and press Play to try again.');
+ }
+ function drmUnsupported(){
+  wantsPlayback=false;generation++;music?.pause();
+  message('Full Apple Music playback is unavailable in this browser. Check protected-content permissions.');
+ }
+ const musicEvents={playbackStateDidChange:playbackChanged,nowPlayingItemDidChange:playbackChanged,authorizationStatusDidChange:playbackChanged,mediaPlaybackError:playbackError,drmUnsupported};
+ function attachEvents(){for(const [name,handler]of Object.entries(musicEvents))music.addEventListener(name,handler);}
+ function detachEvents(){for(const [name,handler]of Object.entries(musicEvents))music?.removeEventListener(name,handler);}
  async function connect(token){
   requirePrivate();if(connecting)return connecting;
+  const revision=connectionRevision;
   connecting=(async()=>{
    const value=String(token||savedToken()).trim();
    if(!value||value.includes('PRIVATE KEY')||value.split('.').length!==3)throw new Error('Add a MusicKit developer token to connect Apple Music.');
    message('Connecting Apple Music…');
    const SDK=await loadSDK();requirePrivate();
-   if(!music){await SDK.configure({developerToken:value,app:{name:'SessionTV',build:'1.0'},declarativeMarkup:false});music=SDK.getInstance();configuredToken=value;attachEvents();}
+   if(revision!==connectionRevision)throw new Error('Apple Music connection cancelled.');
+   if(!music){
+    await SDK.configure({developerToken:value,app:{name:'SessionTV',build:'1.0'},declarativeMarkup:false});requirePrivate();
+    if(revision!==connectionRevision)throw new Error('Apple Music connection cancelled.');
+    music=SDK.getInstance();configuredToken=value;attachEvents();
+   }
    else if(value!==configuredToken)throw new Error('Disconnect Apple Music before replacing its developer token.');
    await music.authorize();requirePrivate();
+   if(revision!==connectionRevision)throw new Error('Apple Music connection cancelled.');
+   if(!authorized())throw new Error('Apple Music sign-in was cancelled. Click Connect Apple Music to try again.');
    try{localStorage.setItem(tokenKey(),value)}catch{}
    message('Apple Music connected');return music;
   })();
   try{return await connecting}catch(error){message(error.message||'Apple Music could not connect.');throw error}finally{connecting=null;updatePanel()}
  }
  async function disconnect(){
-  generation++;wantsPlayback=false;queuedKey='';
+  generation++;connectionRevision++;wantsPlayback=false;queuedKey='';
   if(music){await music.pause();await music.unauthorize();}
   try{localStorage.removeItem(tokenKey())}catch{}
-  music=null;configuredToken='';library=[];message('Apple Music disconnected');updateLibrary();
+  detachEvents();music=null;configuredToken='';library=[];message('Apple Music disconnected');updateLibrary();
  }
  async function loadLibrary(){
   requirePrivate();if(!authorized())throw new Error('Connect Apple Music to select library playlists.');
-  const items=[];let next='/v1/me/library/playlists?limit=100';
+  await music.authorize();requirePrivate();if(!authorized())throw new Error('Authorize Apple Music to load your playlists.');
+  const items=[],visited=new Set();let next='/v1/me/library/playlists?limit=100';
   while(next){
+   if(visited.has(next))throw new Error('Apple Music returned a repeated playlist page. Try loading playlists again.');
+   visited.add(next);
    const result=await music.api.music(next),body=result.data;
    items.push(...(body?.data||[]));
    next=body?.next||'';
    if(next&&!next.startsWith('/v1/me/library/playlists'))throw new Error('Apple Music returned an unexpected playlist page.');
-   if(items.length>=5000)break;
+
   }
   library=items.map(item=>({id:item.id,name:item.attributes?.name||'Untitled playlist',url:item.attributes?.url||''}));updateLibrary();message(library.length+' library playlists loaded');
  }
@@ -78,12 +103,13 @@
    if(key!==queuedKey){
     await music.pause();if(revision!==generation)return;
     await music.setQueue(value.libraryId?{playlist:value.libraryId}:{url:validateURL(value.url)});
+    if(revision!==generation)return;
     queuedKey=key;
    }
    if(revision!==generation)return;
    if(play){await music.play();if(revision!==generation||!privateMode())await music.pause();}
    statusText='';updatePanel();renderPlayer();
-  }).catch(error=>{wantsPlayback=false;message(error.message||'Playback could not start. Press Play to try again.');});
+  }).catch(error=>{if(revision!==generation)return;wantsPlayback=false;message(error.message||'Playback could not start. Press Play to try again.');});
   return queue;
  }
  async function control(action){
@@ -95,6 +121,7 @@
    await queue;
    if(action==='next')await music.skipToNextItem();
    if(action==='prev')await music.skipToPreviousItem();
+   wantsPlayback=playing();renderPlayer();
   }
  }
  function syncSection(){
@@ -172,7 +199,7 @@
   const button=event.target.closest('[data-sn]');if(!button)return;event.stopImmediatePropagation();event.preventDefault();
   control(button.dataset.sn).catch(error=>{message(error.message);if(typeof toast==='function')toast(error.message)});
  },true);
- function cleanup(){generation++;wantsPlayback=false;queuedKey='';if(music)Promise.resolve(music.pause()).catch(()=>{});renderPlayer();}
+ function cleanup(){generation++;connectionRevision++;wantsPlayback=false;queuedKey='';if(music)Promise.resolve(music.pause()).catch(()=>{});renderPlayer();}
  addEventListener('pagehide',cleanup);
  addEventListener('sessiontv:auth',()=>{if(!privateMode())cleanup();});
  globalThis.SessionMusic={mountSettings,connect,disconnect,loadLibrary,control,cleanup,syncSection,validateURL};
