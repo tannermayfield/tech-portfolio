@@ -7,7 +7,13 @@
  }
  $('tv-home-start').onclick = () => {
   document.body.classList.remove('tv-home-active'); home.hidden = true;
-  openGuide(); $('btn-menu').focus({preventScroll:true});
+  openGuide();
+  TV.guideCat = 'class';
+  renderGuide();
+  renderPanel();
+  const guide = $('tv-guide');
+  guide.tabIndex = -1;
+  guide.focus({preventScroll:true});
  };
  showHome();
 })();
