@@ -1,5 +1,6 @@
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, writeFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const root = new URL('../', import.meta.url);
 const source = new URL('session-tv/public/', root);
@@ -29,5 +30,15 @@ if (config.supabasePublishableKey) {
   }
 }
 await writeFile(new URL('js/config.js', output), `window.SessionTVConfig = ${JSON.stringify(config)};\n`);
+// A content version keeps cached styles and ordered scripts on the same release.
+const hash = createHash('sha256');
+const files = (await readdir(output, { recursive: true })).filter(name => /\.(js|css)$/.test(name)).sort();
+for (const name of files) {
+  hash.update(name);
+  hash.update(await readFile(new URL(name.replaceAll('\\', '/'), output)));
+}
+const version = hash.digest('hex').slice(0, 16);
+const html = await readFile(new URL('index.html', output), 'utf8');
+await writeFile(new URL('index.html', output), html.replace(/((?:src|href)="[^"?:]+\.(?:js|css))"/g, '$1?v=' + version + '"'));
 await writeFile(new URL('out/.nojekyll', root), '');
 console.log('Packaged Session TV at out/session-tv/; portfolio custom domain preserved.');
