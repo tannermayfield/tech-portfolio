@@ -7,6 +7,13 @@
  }
  $('tv-home-start').onclick = () => {
   document.body.classList.remove('tv-home-active'); home.hidden = true;
+  accumulate();
+  current.cur[current.mood] = current.active;
+  current.mood = 'class';
+  current.active = current.cur.class || firstOpenIn('class');
+  current.activeSince = Date.now();
+  saveState();
+  renderWork();
   openGuide();
   TV.guideCat = 'class';
   renderGuide();

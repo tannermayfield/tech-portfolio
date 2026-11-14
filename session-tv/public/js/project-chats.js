@@ -162,13 +162,16 @@
   if(!chat?.threadId)return toast('Prepare the project’s starter chats in Manage first.');
   chat.messages.push({role:'user',text:show||prompt});const reply={role:'assistant',text:''};chat.messages.push(reply);
   running={name,mode,value};save(name,value);$('coach-input').value='';renderProjectChat();
-  let lastRender=0;
+  let lastRender=0, lastMessageItem=null;
   try {
    const learnedSkills=tasks.filter(item=>typeOf(item)==='skill').map(item=>item.title+' ('+skillLevel(item)+')').join(', ');
    const context='Project: '+name+'\nPreviously learned skills and self-rated levels: '+(learnedSkills||'None recorded yet')+'\n'+projectCtx(task);
    await SessionCompanion.start({workspace:value.folder,prompt:context+'\n\nUser message: '+prompt,threadId:chat.threadId,mode,onEvent:event=>{
     if(event.method==='sessiontv/thread')chat.threadId=event.params.threadId;
-    if(event.method==='item/agentMessage/delta')reply.text+=event.params.delta||'';
+    if(event.method==='item/agentMessage/delta'){
+     if(lastMessageItem&&event.params.itemId&&lastMessageItem!==event.params.itemId)reply.text+='\n\n';
+     lastMessageItem=event.params.itemId||lastMessageItem;reply.text+=event.params.delta||'';
+    }
     if(event.method==='sessiontv/error'||event.method==='sessiontv/approvalDenied')reply.text+='\n'+(event.params.error||event.params.reason);
     if(event.method==='turn/completed'&&event.params.turn?.status==='failed')reply.text+='\n'+(event.params.turn.error?.message||'The Codex turn failed. You can retry.');
     if(event.method==='sessiontv/thread')save(name,value);

@@ -219,3 +219,21 @@ test('class, assignment, and skill creation use separate forms and save their re
  } finally {dom.window.close()}
 });
 
+
+test('Start selects Classwork from a saved project session and AI Markdown is formatted safely',async()=>{
+ const {dom,w}=await boot();
+ try {
+  w.eval("current.mood='project';document.body.classList.add('tv-home-active');document.getElementById('tv-home').hidden=false");
+  w.document.getElementById('tv-home-start').click();
+  assert.equal(w.eval('current.mood'),'class');
+  assert.match(w.document.getElementById('tv-guide').textContent,/Classwork/);
+  w.__markdown='## Sprint\n\n**Goal**\n\n| Task | Hours |\n|---|---:|\n| Setup | 2 |\n\n```sql\nselect 1;\n```\n<script>alert(1)</script><img src=x onerror=alert(1)>[bad](javascript:alert(1))';
+  const html=w.eval('fmtMsg(window.__markdown,true)');
+  const node=w.document.createElement('div');node.innerHTML=html;
+  assert.equal(node.querySelector('h2').textContent,'Sprint');
+  assert.equal(node.querySelector('strong').textContent,'Goal');
+  assert.equal(node.querySelectorAll('tbody tr').length,1);
+  assert.match(node.querySelector('pre').textContent,/select 1/);
+  assert.equal(node.querySelector('script,img,[onerror],[href^="javascript:"]'),null);
+ } finally {dom.window.close()}
+});

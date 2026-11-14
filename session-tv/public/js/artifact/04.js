@@ -659,8 +659,17 @@ function renderCoachLog(){
 }
 // plain text with fenced code blocks; AI coach's code blocks get a "Put in editor" button when the editor is open
 function fmtMsg(text,ai){
-  return String(text).split(/```[\w+-]*\n?([\s\S]*?)```/g).map((part,i)=>i%2?`${ai&&WS.ed?'<button type="button" class="use-code" data-usecode>Put in editor ↗</button>':''}<pre class="code">${esc(part.replace(/\n$/,''))}</pre>`:esc(part)).join('');
+  if(!ai)return esc(String(text));
+  const markdown=String(text).replace(/([.!?])(?=#{1,6}\s)/g,'$1\n\n');
+  let html=DOMPurify.sanitize(marked.parse(markdown,{gfm:true,breaks:true}),{
+    ALLOWED_TAGS:['p','br','strong','em','del','h1','h2','h3','h4','h5','h6','ul','ol','li','blockquote','pre','code','table','thead','tbody','tr','th','td','a','hr'],
+    ALLOWED_ATTR:['href','title','class','align','start']
+  });
+  html=html.replace(/<table>/g,'<div class="markdown-table"><table>').replace(/<\/table>/g,'</table></div>');
+  html=html.replace(/<pre>/g,(ai&&WS.ed?'<button type="button" class="use-code" data-usecode>Put in editor ↗</button>':'')+'<pre class="code">');
+  return '<div class="markdown-body">'+html+'</div>';
 }
+
 async function sendCoach(text,show){
   text=(text||'').trim();const t=T(current?.active);if(!text||!sample||!t)return;
   coachCtl?.abort();const ctl=coachCtl=new AbortController();
