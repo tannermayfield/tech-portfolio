@@ -20,6 +20,8 @@
    if(!pairToken)return {connected:false,available:false,signedIn:false,workspaces:[],error:'Start the local companion and enter its pairing code.'};
    try{return await (await request('/status')).json()}catch(error){return {connected:false,available:false,signedIn:false,workspaces:[],error:error.message+' Allow browser local-network access when prompted; check that the companion is running.'}}
   },
+  async voices(options){return (await request('/voice/voices',options)).json()},
+  async speak(options,signal){return (await request('/voice/speak',options,signal||AbortSignal.timeout(180000))).blob()},
   async pickFolder(){return (await request('/folders/pick',{},AbortSignal.timeout(180000))).json()},
   async openFolder(folder){return (await request('/folders/open',{folder})).json()},
   async prepareProject(folder,projectId){return (await request('/projects/prepare',{folder,projectId},AbortSignal.timeout(180000))).json()},

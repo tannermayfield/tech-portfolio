@@ -122,6 +122,7 @@
   const {name,mode,task} = active, value = entry(name), chat = modeChat(name,mode);
   $('coach-wrap').setAttribute('aria-label','Codex project chat');
   $('coach-input').setAttribute('aria-label','Message to Codex');
+  $('coach-input').placeholder='Message Codex · '+labels[mode];
   const log = $('coach-log');
   $('coach-wrap').hidden = false; $('coach-quick').innerHTML = '';
   $('coach-form').hidden = SessionWorkspace.mode !== 'private' || !chat?.threadId;

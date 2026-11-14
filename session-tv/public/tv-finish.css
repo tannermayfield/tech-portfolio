@@ -1,0 +1,143 @@
+/* Material finish only. The cabinet geometry and screen layout come from styles.css. */
+body.tv {
+  --wood-a: #9e603b;
+  --wood-b: #714127;
+  --wood-c: #402819;
+  --wood-d: #281c14;
+  --face-a: #e3ddca;
+  --face-b: #b8b09a;
+  --face-edge: #93866e;
+  --ink-face: #3f3428;
+  --ink-face-2: #625848;
+  --bake-a: #49382c;
+  --bake-b: #211a15;
+}
+body.tv[data-scheme="dark"] {
+  --wood-a: #805033;
+  --wood-b: #5b3825;
+  --wood-c: #332319;
+  --wood-d: #201913;
+  --face-a: #c1baa6;
+  --face-b: #948c77;
+  --face-edge: #766d59;
+}
+
+/* Broad reflected light and a fine open grain give the walnut a satin finish. */
+body.tv .tv-body {
+  background:
+    linear-gradient(180deg, #fff0d42e, transparent 6%, #0000 83%, #140a086b),
+    linear-gradient(90deg, #140d0a75, transparent 3%, transparent 97%, #140d0a75),
+    repeating-linear-gradient(2deg, #fff0 0 2px, #ead0a007 3px, #0000 4px 9px, #1d100a12 10px, transparent 11px 19px),
+    repeating-linear-gradient(179deg, transparent 0 31px, #190b080e 33px, #f1bd7d0b 35px, transparent 39px 81px),
+    radial-gradient(ellipse at 36% 0%, #d49b6129, transparent 62%),
+    linear-gradient(165deg, var(--wood-a), var(--wood-b) 58%, var(--wood-c));
+  box-shadow:
+    inset 0 1px 1px #fce3ba9c,
+    inset 0 0 0 1px #d3a27138,
+    inset 0 0 0 3px #2a170d42,
+    inset 0 7px 7px -6px #ffedc1b3,
+    inset 0 -8px 12px -5px #170d0bc9,
+    0 18px 36px -20px #000c;
+}
+body.tv .tv-bezel,
+body.tv .tv-panel {
+  background:
+    linear-gradient(115deg, #ffffff24, transparent 38%, #51422e0a 75%, #ffffff0c),
+    repeating-linear-gradient(0deg, #ffffff0b 0 1px, #4b3d2407 1px 2px, transparent 2px 4px),
+    linear-gradient(160deg, var(--face-a), var(--face-b)) !important;
+}
+body.tv .tv-bezel {
+  box-shadow:
+    inset 0 2px 2px #fffaf09c,
+    inset 0 -2px 3px #35261663,
+    0 0 0 2px #2d2017,
+    0 0 0 3px #c4996870,
+    0 5px 12px 1px #190e0b66;
+}
+body.tv .tv-panel {
+  box-shadow:
+    inset 0 2px 2px #fffaf09c,
+    inset 0 -2px 3px #35261663,
+    inset 1px 0 0 #3528196b,
+    inset 3px 0 0 #fff5d947,
+    1px 0 0 2px #2d2017,
+    2px 0 0 3px #c4996859;
+}
+
+/* A rounded, stepped tube surround, with the strongest highlight on its top lip. */
+body.tv .crt {
+  box-shadow:
+    0 0 0 1px #c1bca9,
+    0 0 0 4px #3e403d,
+    0 0 0 10px #191b19,
+    0 0 0 11px #9d9e92,
+    0 1px 0 12px #f5f1db8c,
+    0 5px 12px 12px #332b1b4d;
+}
+body.tv .crt-fx::before {
+  background: linear-gradient(120deg, #fff7e60a 2%, #fff8e605 21%, transparent 44%);
+}
+body.tv .crt-fx::after {
+  opacity: .48;
+}
+
+/* The speaker is woven acoustic cloth in a recessed opening. */
+body.tv .speaker {
+  border-radius: 9px;
+  background:
+    linear-gradient(90deg, #1c171366, transparent 10%, transparent 90%, #1c171366),
+    repeating-linear-gradient(0deg, #17181600 0 2px, #c4b58b24 2px 3px, #1c1c16b3 3px 5px),
+    repeating-linear-gradient(90deg, #786e52 0 1px, #494735 1px 3px, #96876a 3px 4px, #343729 4px 6px);
+  box-shadow:
+    inset 0 2px 5px #17140fc9,
+    inset 0 0 0 1px #302a1e8c,
+    0 1px 0 #fff8df85;
+  opacity: 1;
+}
+
+/* Rounded bakelite faces sit above restrained, closely spaced grip ridges. */
+body.tv .knob {
+  background:
+    radial-gradient(circle at 38% 24%, #e1c6a440, transparent 56%),
+    radial-gradient(circle, transparent 57%, #100b0a70 65%, transparent 72%),
+    repeating-conic-gradient(from 1deg, #261f19 0deg 3deg, #5b4939 3deg 5deg, #382c22 5deg 7deg);
+  box-shadow:
+    0 7px 11px -3px #26180cc9,
+    0 1px 2px #0e0a09b3,
+    inset 0 1px 2px #eed4ad70,
+    inset 0 -3px 5px #0c0807a6;
+}
+body.tv .knob::before {
+  background:
+    radial-gradient(ellipse at 36% 24%, #b48b633b, transparent 58%),
+    linear-gradient(155deg, #66513d, var(--bake-a) 60%, var(--bake-b));
+  box-shadow:
+    inset 0 1px 2px #e7cba466,
+    inset 0 -2px 4px #100b09b3,
+    0 1px 3px #0e0a09a6;
+}
+body.tv .knob::after {
+  background: linear-gradient(90deg, #b9aa88, #ece1c6 50%, #c1b08e);
+}
+body.tv .rbtn i,
+body.tv .sn-ctl button {
+  background:
+    radial-gradient(ellipse at 35% 22%, #bca07c47, transparent 54%),
+    linear-gradient(145deg, #70583f, var(--bake-a) 58%, var(--bake-b));
+  box-shadow: inset 0 1px 2px #ead6b859, inset 0 -2px 3px #100b0bb3, 0 3px 5px #20170d80;
+}
+body.tv .timer {
+  background: linear-gradient(155deg, #111410, #050705 65%);
+  box-shadow: inset 0 3px 6px #000, 0 0 0 2px #81765e, 0 1px 0 3px #f6edd7a6;
+}
+body.tv .song-note {
+  background:
+    repeating-linear-gradient(0deg, #ffffff0d 0 1px, transparent 1px 3px),
+    linear-gradient(160deg, #d3bc82, #b39b63 58%, #907949);
+  box-shadow: inset 0 1px 0 #fff2c99c, inset 0 -1px 1px #53401e80, 0 2px 4px #32210f59;
+}
+@media (max-width: 860px) {
+  body.tv .tv-panel {
+    box-shadow: inset 0 1px 0 #fff8df8c, inset 0 -2px 3px #35261663, 0 0 0 2px #2d2017;
+  }
+}

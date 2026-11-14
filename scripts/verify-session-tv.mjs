@@ -43,5 +43,26 @@ try{
  const visitor=await browser.newContext();const second=await visitor.newPage();await second.goto(origin+'/session-tv/');await second.waitForFunction(()=>typeof loaded!=='undefined'&&loaded.tasks);assert.deepEqual(await second.evaluate(()=>tasks.map(t=>({id:t.id,title:t.title,status:t.status}))),published);await visitor.close();
  await page.evaluate(()=>tune(tasks[0].id,{cut:false}));await page.waitForTimeout(400);await mkdir('public/images',{recursive:true});if(process.env.UPDATE_SESSION_TV_SCREENSHOT)await page.screenshot({path:'public/images/session-tv.png',fullPage:false});
  await page.setViewportSize({width:390,height:844});if(await page.locator('#btn-set').getAttribute('aria-pressed')!=='true')await page.locator('#btn-set').click();await page.locator('#local-open').click();assert.equal(await page.locator('#local-setup').isVisible(),true);await page.locator('#local-close').click();assert.equal(await page.locator('#local-open').isVisible(),true);await page.locator('#preferences-open').click();assert.equal(await page.locator('#appearance-preferences').evaluate(el=>el.scrollHeight>el.clientHeight+1),false);const mobilePreferences=await page.locator('#appearance-preferences').boundingBox();assert.ok(mobilePreferences.x>=0&&mobilePreferences.x+mobilePreferences.width<=391);await mkdir('test-results',{recursive:true});await page.locator('#appearance-preferences').screenshot({path:'test-results/session-tv-mobile-preferences.png'});await page.locator('#preferences-close').click();
+ // Exercise private settings with a test-only workspace, without real account data.
+ const privateContext=await browser.newContext({viewport:{width:1280,height:628},reducedMotion:'reduce'});
+ const privatePage=await privateContext.newPage();privatePage.on('pageerror',error=>errors.push(error.message));
+ await privatePage.route(/\/js\/preview\.js(?:\?|$)/,route=>route.fulfill({contentType:'text/javascript',body:'/* Private settings test context. */'}));
+ await privatePage.goto(origin+'/session-tv/');await privatePage.waitForFunction(()=>!!globalThis.SessionSpeech&&!!globalThis.SessionMusic&&current&&loaded.tasks&&loaded.state);
+ await privatePage.evaluate(()=>{SessionWorkspace.setPrivate('test-owner');renderSettings()});await startTV(privatePage);
+ await privatePage.locator('#btn-set').click();await privatePage.locator('#session-preferences-open').click();
+ for(const width of [1280,390]){
+  await privatePage.setViewportSize({width,height:width===390?844:628});
+  for(const tab of ['sections','voices','music','ai']){
+   await privatePage.locator('#pref-tab-'+tab).click();
+   const panel=privatePage.locator('#session-'+(tab==='ai'?'ai':tab));assert.equal(await panel.isVisible(),true);
+   const box=await privatePage.locator('#local-setup').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width+1);
+   await privatePage.screenshot({path:'test-results/session-preferences-'+tab+'-'+width+'.png'});
+  }
+ }
+ await privatePage.locator('#local-close').click();await privatePage.locator('#set-x').click();
+ await privatePage.evaluate(async()=>{await tune(tasks.find(task=>typeOf(task)==='project').id,{cut:false});closeSheets();go('work');document.getElementById('coach-form').hidden=false;});
+ assert.equal(await privatePage.locator('#coach-form .speech-controls').count(),1);
+ await privatePage.setViewportSize({width:1280,height:628});await privatePage.screenshot({path:'test-results/session-tv-speech-controls.png'});
+ await privateContext.close();
  assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);console.log('Static Pages preview: immutable records, navigation/refresh, visitor isolation, hidden edit controls, usable sign-in, AI gate, mobile and assets passed.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}

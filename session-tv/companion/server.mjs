@@ -5,6 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {CodexBridge} from './codex.mjs';
 import {folderStore} from './folders.mjs';
+import {voiceService} from './voice.mjs';
 
 const failure=(status,message)=>Object.assign(new Error(message),{status});
 const secret=()=>randomBytes(24).toString('base64url');
@@ -14,7 +15,7 @@ export async function canonicalWorkspaces(values){
  const roots=[];for(const value of values){const root=await realpath(value);if(!(await stat(root)).isDirectory()||path.parse(root).root===root)throw new Error('Select a project directory, not a filesystem root.');roots.push(root)}
  if(!roots.length)throw new Error('Select at least one project directory with SESSIONTV_WORKSPACES (JSON array).');return [...new Set(roots)];
 }
-export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now,deviceToken,configPath,pickFolder,openFolder}){
+export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now,deviceToken,configPath,pickFolder,openFolder,voice=voiceService()}){
  if(!/^https:\/\//.test(supabaseUrl||'')||!publishableKey||!ownerId||!home||!workspaces?.length)throw new Error('Supabase URL, public key, owner UUID, dedicated CODEX_HOME and selected workspaces are required.');
  if(new URL(origin).origin!==origin)throw new Error('SESSIONTV_ORIGIN must be an exact origin.');
  const folders=folderStore({configPath,initialWorkspaces:workspaces,home,pickFolder,openFolder});
@@ -47,6 +48,15 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     paired=true;const token=deviceToken||secret();pairs.set(token,{userId:user.id,expires:now()+1800000});json(res,200,{token,remember:!!deviceToken,expiresIn:deviceToken?null:1800});return;
    }
    await authorize(req);
+   if(route==='/voice/voices'||route==='/voice/speak'){
+    const body=await readJSON(req),controller=new AbortController();
+    const abort=()=>controller.abort();res.on('close',abort);
+    const timer=setTimeout(abort,190000);
+    try {
+     if(route==='/voice/voices'){json(res,200,await voice.voices(body,controller.signal));return}
+     const audio=await voice.speak(body,controller.signal);res.writeHead(200,{'Content-Type':audio.type});res.end(audio.body);return;
+    } finally {clearTimeout(timer);res.removeListener('close',abort)}
+   }
    if(route==='/disconnect'){pairs.delete(req.headers['x-sessiontv-pair']);active?.stop();json(res,200,{disconnected:true});return}
    if(route==='/folders/pick'||route==='/folders/open'||route==='/projects/prepare'){
     if(active||operation)throw failure(409,'A computer request is already running. Wait for it to finish.');

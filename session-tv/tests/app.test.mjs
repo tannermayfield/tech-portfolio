@@ -14,7 +14,7 @@ async function boot(saved={},url='http://127.0.0.1:4173'){
  const dom=new JSDOM(html,{
   url,runScripts:'dangerously',virtualConsole:vc,pretendToBeVisual:true,
   beforeParse(w){
-   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','project-chats','add-forms','home','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
+   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','project-chats','add-forms','home','session-preferences','speech','music','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
    for(const [k,v]of Object.entries(saved))w.localStorage.setItem(k,v);
    w.fetch=async()=>({ok:true,json:async()=>({aiConfigured:false})});
    w.matchMedia=q=>({matches:q.includes('reduced-motion'),media:q,addEventListener(){},removeEventListener(){}});
@@ -238,4 +238,31 @@ test('Start selects Classwork from a saved project session and AI Markdown is fo
   assert.match(node.querySelector('pre').textContent,/select 1/);
   assert.equal(node.querySelector('script,img,[onerror],[href^="javascript:"]'),null);
  } finally {dom.window.close()}
+});
+
+
+test('section preferences keep identity, Voicebox voices and Apple Music in separate private tabs',async()=>{
+ const {dom,w,errors}=await boot();
+ try {
+  w.SessionWorkspace={...w.SessionWorkspace,mode:'private'};
+  w.document.getElementById('btn-set').click();
+  w.document.getElementById('session-preferences-open').click();
+  assert.equal(w.document.getElementById('local-heading').textContent,'Session Preferences');
+  assert.equal(w.document.querySelectorAll('.section-identity').length,3);
+  const name=w.document.querySelector('[aria-label="Classes character name"]');name.value='My tutor';name.dispatchEvent(new w.Event('change'));
+  assert.equal(w.recall('sb.sectionCharacters',{}).class,'My tutor');
+  const theme=w.document.querySelector('[aria-label="Classes background theme"]');theme.value=theme.options[1].value;theme.dispatchEvent(new w.Event('change'));
+  assert.equal(w.pickTheme('class').id,theme.value);
+  w.document.getElementById('pref-tab-voices').click();
+  assert.equal(w.document.getElementById('session-sections').hidden,true);
+  assert.equal(w.document.getElementById('session-voices').hidden,false);
+  assert.equal(w.document.querySelectorAll('.voice-section').length,3);
+  w.document.getElementById('pref-tab-music').click();
+  assert.equal(w.document.querySelectorAll('.music-section').length,3);
+  assert.equal(w.document.querySelectorAll('iframe').length,0);
+  assert.equal(w.document.getElementById('workspace-profile'),null);
+  assert.equal(w.document.querySelectorAll('#coach-form [data-speech]').length,2);
+  assert.equal(w.document.querySelectorAll('#wc-form [data-speech]').length,2);
+  assert.deepEqual(errors,[]);
+ }finally{dom.window.close()}
 });
