@@ -165,6 +165,24 @@
    signingOut=true;database?.unsubscribe?.();if(database)clearInterval(database.timer);saveSession(null);try{oauthStorage().removeItem(OAUTH);}catch{}globalThis.SessionWorkspace?.clearPrivate?.();location.reload();return {deleted:true};
   },
   async signOut(){await ready;signingOut=true;database?.unsubscribe?.();if(database)clearInterval(database.timer);try{await database?.flush();if(session)await request('/auth/v1/logout',{method:'POST'});}finally{saveSession(null);globalThis.SessionWorkspace?.clearPrivate?.();location.reload();}},
+  async manageClass({oldCourse,newCourse=null,deleteClass=false,classValue=null}={}){
+   await ready;
+   if(signingOut||!session?.user?.id)throw new Error('Sign in to edit your private classes.');
+   if(typeof oldCourse!=='string'||!oldCourse.trim()||oldCourse.length>500)throw new Error('Choose an existing class.');
+   if(newCourse!==null&&(typeof newCourse!=='string'||!newCourse.trim()||newCourse.length>500))throw new Error('Enter a valid class name.');
+   if(typeof deleteClass!=='boolean')throw new Error('Choose whether to edit or delete the class.');
+   if(classValue!==null&&(typeof classValue!=='object'||Array.isArray(classValue)))throw new Error('Enter valid class details.');
+   const owner=session.user.id,db=database;
+   await db?.flush();
+   const update=async()=>{
+    if(signingOut||session?.user?.id!==owner)throw new Error('Sign in again before changing this class.');
+    const result=await rpc('sessiontv_manage_class',{old_course:oldCourse.trim(),new_course:newCourse===null?null:newCourse.trim(),delete_class:deleteClass,class_value:classValue});
+    if(db)await db.load();return result;
+   };
+   // Keep the one atomic class mutation in order with normal document writes.
+   if(!db)return update();
+   const pending=db.queue.then(update);db.queue=pending.catch(()=>{});return pending;
+  },
   async exportBackup(){const db=await open();await db.flush();const snap=await rpc('sessiontv_snapshot');return {format:'session-tv-backup',version:1,createdAt:new Date().toISOString(),values:{[SessionStore.KEY]:JSON.stringify(snap.database),...snap.preferences}};},
   async importBackup(backup){validateBackup(backup);const db=await open();await db.flush();const result=await rpc('sessiontv_import',{backup_values:backup.values});await db.load();return result;}
  };
