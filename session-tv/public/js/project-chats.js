@@ -23,10 +23,9 @@
  }
  function renderModelControls(heading,folder,mode) {
   const catalog=modelCatalog(folder), controls=document.createElement('div');controls.className='project-model-controls';
-  const text=document.createElement('span');
-  const model=catalog.models.find(value=>(value.model||value.id)===catalog.selectedModel);
-  text.textContent=catalog.loading?'Loading Codex model…':catalog.error||model?.displayName||catalog.selectedModel;
-  controls.appendChild(text);
+  heading.querySelector('.project-model-controls')?.remove();
+  const speech=heading.querySelector('.speech-controls');if(speech)heading.insertBefore(controls,speech);else $('coach-input').insertAdjacentElement('afterend',controls);
+  if(catalog.loading||catalog.error){const state=document.createElement('span');state.textContent=catalog.error||'Connecting Codex…';state.setAttribute('role','status');controls.append(state)}
   if (catalog.error) {
    const retry=document.createElement('button');retry.type='button';retry.className='btn ghost';retry.textContent='Retry';retry.disabled=!!running;
    retry.onclick=()=>{modelCatalogs.delete(folder);renderProjectChat()};controls.appendChild(retry);
@@ -38,10 +37,7 @@
    }
    select.value=workEffort;select.disabled=!!running||catalog.loading||!!catalog.error;
    select.onchange=()=>{workEffort=select.value;renderProjectChat()};controls.appendChild(select);
-  } else {
-   const effort=document.createElement('span');effort.textContent='Light';controls.appendChild(effort);
   }
-  heading.appendChild(controls);
   const requested=mode==='work'?workEffort:'low';
   if (!catalog.loading && !catalog.error && !catalog.efforts.includes(requested)) {
    const warning=document.createElement('span');warning.className='project-model-warning';warning.textContent=effortLabels[requested]+' is unavailable for this Codex model.';controls.appendChild(warning);
@@ -173,8 +169,8 @@
   const log = $('coach-log');
   $('coach-wrap').hidden = false; $('coach-quick').innerHTML = '';
   $('coach-form').hidden = SessionWorkspace.mode !== 'private' || !chat?.threadId;
-  log.innerHTML = `<div class="project-chat-heading"><span>Codex · ${labels[mode]}</span><span>${running?.name === name && running.mode === mode ? 'Working…' : 'Saved conversation'}</span></div>`;
-  const modelReady=privateChat&&chat?.threadId ? renderModelControls(log.querySelector('.project-chat-heading'),value.folder,mode) : false;
+  log.replaceChildren();
+  const modelReady=privateChat&&chat?.threadId ? renderModelControls($('coach-form'),value.folder,mode) : false;
   $('coach-send').disabled=!!running||!modelReady;
   if(!chat?.threadId) {
    const notice = document.createElement('div'); notice.className = 'msg ai'; notice.textContent = 'Prepare this project’s starter chats in Settings → My Database → Projects → Manage.'; log.appendChild(notice); return true;
@@ -202,7 +198,7 @@
  const baseLog = renderCoachLog;
  renderCoachLog = function() { if(!renderProjectChat())baseLog(); };
  const baseWork = renderWork;
- renderWork = function() { baseWork(); if(selected())renderProjectChat();else {chatContext='';if($('project-stop'))$('project-stop').hidden=true;} };
+ renderWork = function() { baseWork(); if(selected())renderProjectChat();else {chatContext='';document.querySelector('#coach-form .project-model-controls')?.remove();if($('project-stop'))$('project-stop').hidden=true;} };
  const baseOpenGuide=openGuide;openGuide=function(){chatContext='';return baseOpenGuide.apply(this,arguments)};
  const baseOpenSettings=openSettings;openSettings=function(){chatContext='';return baseOpenSettings.apply(this,arguments)};
  const baseSend = sendCoach;

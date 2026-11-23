@@ -107,11 +107,11 @@ try{
  });
  await privatePage.waitForFunction(()=>document.getElementById('project-reasoning')&&!document.getElementById('project-reasoning').disabled);
  assert.equal(await privatePage.locator('#project-reasoning').inputValue(),'medium');
- await privatePage.locator('#project-reasoning').selectOption('xhigh');assert.equal(await privatePage.locator('#project-reasoning').inputValue(),'xhigh');
+ assert.equal(await privatePage.locator('#coach-form .project-model-controls + .speech-controls').count(),1);assert.equal(await privatePage.locator('.project-chat-heading').count(),0);assert.equal(await privatePage.locator('#coach-log [data-chatgpt-open]').count(),0);await privatePage.locator('#project-reasoning').selectOption('xhigh');assert.equal(await privatePage.locator('#project-reasoning').inputValue(),'xhigh');
  await privatePage.evaluate(()=>{openSettings();closeSheets();renderWork()});assert.equal(await privatePage.locator('#project-reasoning').inputValue(),'medium');
  for(const mode of ['plan','apply']){
   await privatePage.evaluate(mode=>{const task=tasks.find(task=>typeOf(task)==='project');current.projModes[task.course]=mode;renderWork()},mode);
-  assert.equal(await privatePage.locator('#project-reasoning').count(),0);assert.match(await privatePage.locator('.project-model-controls').textContent(),/Light/);
+  assert.equal(await privatePage.locator('#project-reasoning').count(),0);assert.equal(await privatePage.locator('.project-chat-heading').count(),0);assert.equal(await privatePage.locator('[data-speech=speaker]').count(),0);
  }
  await privatePage.evaluate(()=>{document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());openSettings();TV.dbView='classes';renderSettings()});await privatePage.locator('.class-settings-row > .btn').first().click();assert.equal(await privatePage.locator('#class-edit').isVisible(),true);for(const width of [1280,390]){await privatePage.setViewportSize({width,height:width===390?844:628});await privatePage.waitForFunction(()=>{const r=document.getElementById('class-edit').getBoundingClientRect();return r.x>=0&&r.right<=innerWidth+1});const box=await privatePage.locator('#class-edit').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width+1);await privatePage.locator('#class-edit').screenshot({path:'test-results/class-edit-'+width+'.png'})}await privatePage.locator('#class-edit [data-close]').click();
  await privateContext.close();

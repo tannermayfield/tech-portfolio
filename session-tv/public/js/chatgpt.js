@@ -73,9 +73,9 @@
  function clear(){epoch++;running?.abort();running=null;status=null;models=[];dialog?.close();dialog?.remove();dialog=null;settings?.replaceChildren();settings=null}
  globalThis.SessionChatGPT={open,mountSettings(container){if(!container||!privateUser())return;settings=container;renderSettings();refresh()}};
  function entrypoints(){
-  for(const heading of document.querySelectorAll('#wc-head,.project-chat-heading')){
+  for(const heading of document.querySelectorAll('#wc-head')){
    const existing=heading.querySelector('[data-chatgpt-open]');
-   if(!privateUser()){existing?.remove();continue}
+   if(!privateUser()||(typeof T==='function'&&typeof current!=='undefined'&&current?.active&&typeof typeOf==='function'&&T(current.active)&&typeOf(T(current.active))==='project')){existing?.remove();continue}
    if(existing)continue;
    const entry=button('ChatGPT',open);entry.dataset.chatgptOpen='';entry.classList.add('ghost');heading.append(entry);
   }

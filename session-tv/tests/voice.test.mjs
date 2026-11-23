@@ -56,9 +56,9 @@ test('chat dictation preserves drafts, never submits and stops before speaking',
   const form=w.document.getElementById('coach-form'),input=w.document.getElementById('coach-input');let submits=0;form.addEventListener('submit',()=>submits++);input.value='Draft.';
   form.querySelector('[data-speech=mic]').click();const instance=Recognition.last;
   instance.onresult({results:[[{transcript:'spoken words'}]]});assert.equal(input.value,'Draft. spoken words');assert.equal(submits,0);
-  form.querySelector('[data-speech=speaker]').click();await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(form.querySelector('[data-speech=speaker]'),null);const testButton=w.document.createElement('button');await w.SessionSpeech.speak('A complete reply.',testButton);await new Promise(resolve=>setTimeout(resolve,0));
   assert.equal(instance.aborted,true);assert.equal(requests[0].text,'A complete reply.');assert.equal(requests[0].voiceId,'english');assert.equal(Audio.last.playing,true);
-  w.SessionSpeech.stop();assert.equal(Audio.last.playing,false);assert.equal(form.querySelector('[data-speech=speaker]').getAttribute('aria-pressed'),'false');
+  w.SessionSpeech.stop();assert.equal(Audio.last.playing,false);assert.equal(testButton.getAttribute('aria-pressed'),'false');
  }finally{dom.window.close()}
 });
 test('demo speech controls cannot record or request voices',async()=>{

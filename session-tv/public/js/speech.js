@@ -54,13 +54,13 @@
   for(const [formId,inputId,logId]of [['coach-form','coach-input','coach-log'],['wc-form','wc-input','wc-log'],['chatgpt-form','chatgpt-input','chatgpt-log']]){
    const form=document.getElementById(formId),input=document.getElementById(inputId);if(!form||!input||form.querySelector('.speech-controls'))continue;
    const group=document.createElement('div');group.className='speech-controls';
-   for(const kind of ['mic','speaker']){
+   for(const kind of ['mic']){
     const button=document.createElement('button');button.type='button';button.className='speech-button';button.dataset.speech=kind;button.innerHTML=svg[kind];
     button.setAttribute('aria-label',kind==='mic'?'Dictate message':'Read latest AI response');button.setAttribute('title',kind==='mic'?'Dictate message · click again to stop':'Read latest AI response · click again to stop');button.setAttribute('aria-pressed','false');
     button.onclick=()=>{if(kind==='mic')dictate(input,button);else{if(form.querySelector('[type=submit]')?.disabled)return message('Wait for the AI to finish its response.');speak(lastReply(document.getElementById(logId)),button)}};
     group.appendChild(button);
    }
-   input.insertAdjacentElement('afterend',group);
+   (form.querySelector('.project-model-controls')||input).insertAdjacentElement('afterend',group);
    form.addEventListener('submit',()=>stop());
   }
  }

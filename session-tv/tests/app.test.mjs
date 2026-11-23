@@ -198,7 +198,7 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
   assert.doesNotMatch(w.document.getElementById('coach-log').textContent,/A small hint/);
   w.eval("current.projModes={'Example project':'apply'};renderWork()");
   assert.match(w.document.getElementById('coach-log').textContent,/A small hint/);
-  assert.match(w.document.querySelector('.project-model-controls').textContent,/Light/);
+  assert.equal(w.document.querySelector('.project-chat-heading'),null);assert.equal(w.document.querySelector('#project-reasoning'),null);
   w.eval("current.projModes={'Example project':'work'};renderWork()");
   assert.equal(w.document.getElementById('project-reasoning').value,'medium');
   w.document.getElementById('project-reasoning').value='high';w.document.getElementById('project-reasoning').dispatchEvent(new w.Event('change'));
@@ -276,8 +276,8 @@ test('section preferences keep identity, Voicebox voices and Apple Music in sepa
   assert.equal(w.document.querySelectorAll('.music-section').length,3);
   assert.equal(w.document.querySelectorAll('iframe').length,0);
   assert.equal(w.document.getElementById('workspace-profile'),null);
-  assert.equal(w.document.querySelectorAll('#coach-form [data-speech]').length,2);
-  assert.equal(w.document.querySelectorAll('#wc-form [data-speech]').length,2);
+  assert.equal(w.document.querySelectorAll('#coach-form [data-speech]').length,1);
+  assert.equal(w.document.querySelectorAll('#wc-form [data-speech]').length,1);
   assert.deepEqual(errors,[]);
  }finally{dom.window.close()}
 });
