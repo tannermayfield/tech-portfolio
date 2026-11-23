@@ -201,7 +201,7 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
   assert.equal(w.document.querySelector('.project-chat-heading'),null);assert.equal(w.document.querySelector('#project-reasoning'),null);
   w.eval("current.projModes={'Example project':'work'};renderWork()");
   assert.match(w.document.getElementById('project-effort-button').textContent,/Medium/);
-  await until(()=>!w.document.getElementById('project-effort-button').disabled);w.document.getElementById('project-effort-button').click();w.document.getElementById('project-reasoning').value='2';w.document.getElementById('project-reasoning').dispatchEvent(new w.Event('change'));
+  await until(()=>!w.document.getElementById('project-effort-button').disabled);w.document.getElementById('project-effort-button').click();const openPopup=w.document.getElementById('project-effort-popup');w.renderWork();w.renderWork();assert.equal(w.document.getElementById('project-effort-popup'),openPopup);w.document.getElementById('project-reasoning').value='2';w.document.getElementById('project-reasoning').dispatchEvent(new w.Event('change'));
   w.renderWork();assert.match(w.document.getElementById('project-effort-button').textContent,/High/);
   expectedMode='work';expectedEffort='high';await w.sendCoach('Build with this effort');
   assert.match(w.document.getElementById('project-effort-button').textContent,/High/);

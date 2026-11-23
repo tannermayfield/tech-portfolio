@@ -7,11 +7,12 @@
  const effortLabels = {low:'Light',medium:'Medium',high:'High',xhigh:'Extra high'};
  const modelCatalogs = new Map();
  let chatContext = '', workEffort = 'medium';
- let effortPopup=null;
+ let effortPopup=null,effortContext='';
  function closeEffort(restore=false){if(!effortPopup)return;try{effortPopup.hidePopover?.()}catch{}effortPopup.remove();effortPopup=null;const trigger=document.getElementById('project-effort-button');trigger?.setAttribute('aria-expanded','false');if(trigger){trigger.firstElementChild.textContent=trigger.dataset.model;trigger.lastElementChild.hidden=false;trigger.lastElementChild.textContent=effortLabels[workEffort]}if(restore)document.getElementById('project-effort-button')?.focus()}
- addEventListener('resize',()=>closeEffort());addEventListener('pagehide',()=>closeEffort());addEventListener('sessiontv:auth',()=>closeEffort());
+ addEventListener('resize',()=>{if(effortPopup)positionEffort()});addEventListener('pagehide',()=>closeEffort());addEventListener('sessiontv:auth',()=>closeEffort());
  document.addEventListener('keydown',event=>{if(event.key==='Escape')closeEffort(true)});
  document.addEventListener('pointerdown',event=>{if(effortPopup&&!effortPopup.contains(event.target)&&!event.target.closest('#project-effort-button'))closeEffort()});
+ function positionEffort(){const trigger=document.getElementById('project-effort-button');if(!trigger||!effortPopup)return;const anchor=trigger.getBoundingClientRect(),box=effortPopup.getBoundingClientRect();effortPopup.style.left=Math.max(8,Math.min(innerWidth-box.width-8,anchor.right-box.width))+'px';effortPopup.style.top=Math.max(8,anchor.top-box.height-12)+'px'}
  function modelCatalog(folder,mode) {
   const key=folder+'|'+mode;
   let catalog = modelCatalogs.get(key);
@@ -30,6 +31,7 @@
  }
  function renderModelControls(heading,folder,mode) {
   const catalog=modelCatalog(folder,mode), controls=document.createElement('div');controls.className='project-model-controls';
+  if(effortPopup&&heading.querySelector('#project-effort-button')){heading.querySelector('#project-effort-button').disabled=!!running;effortPopup.querySelector('input').disabled=!!running;positionEffort();const requested=mode==='work'?workEffort:'low';return !catalog.loading&&!catalog.error&&catalog.efforts.includes(requested)}
   heading.querySelector('.project-model-controls')?.remove();
   const speech=heading.querySelector('.speech-controls');if(speech)heading.insertBefore(controls,speech);else $('coach-input').insertAdjacentElement('afterend',controls);
   if(catalog.loading||catalog.error){const state=document.createElement('span');state.textContent=catalog.error||'Connecting Codex…';state.setAttribute('role','status');controls.append(state)}
@@ -44,14 +46,14 @@
    trigger.onclick=()=>{
     if(effortPopup){closeEffort();return}
     const choices=Object.keys(effortLabels).filter(value=>catalog.efforts.includes(value));if(!choices.length)return;
-    const popup=effortPopup=document.createElement('div');popup.id='project-effort-popup';popup.className='project-effort-popup';popup.setAttribute('popover','auto');popup.setAttribute('role','dialog');popup.setAttribute('aria-label','Select Codex effort');
+    effortContext=chatContext;const popup=effortPopup=document.createElement('div');popup.id='project-effort-popup';popup.className='project-effort-popup';popup.setAttribute('popover','manual');popup.setAttribute('role','dialog');popup.setAttribute('aria-label','Select Codex effort');
     const header=document.createElement('div');header.className='effort-popup-head';const selected=document.createElement('strong');selected.textContent=effortLabels[workEffort];const reset=document.createElement('button');reset.type='button';reset.className='effort-reset';reset.textContent='↺';reset.title='Reset to Medium';reset.setAttribute('aria-label','Reset effort to Medium');reset.disabled=!choices.includes('medium');header.append(selected,reset);
     const model=document.createElement('p');model.className='effort-model';model.textContent=modelName;
     const track=document.createElement('div');track.className='effort-track';const range=document.createElement('input');range.type='range';range.id='project-reasoning';range.min='0';range.max=String(choices.length-1);range.step='1';range.value=String(Math.max(0,choices.indexOf(workEffort)));range.setAttribute('aria-label','Reasoning effort');range.setAttribute('aria-valuetext',effortLabels[workEffort]);track.append(range);
     const ticks=document.createElement('div');ticks.className='effort-ticks';for(const value of choices){const tick=document.createElement('button');tick.type='button';tick.textContent=effortLabels[value];tick.setAttribute('aria-pressed',String(value===workEffort));tick.onclick=()=>choose(value);ticks.append(tick)}
     function choose(value){workEffort=value;selected.textContent=effortLabels[value];effort.textContent=effortLabels[value];trigger.setAttribute('aria-label','Select Codex effort: '+effortLabels[value]);range.value=String(choices.indexOf(value));range.setAttribute('aria-valuetext',effortLabels[value]);ticks.querySelectorAll('button').forEach((tick,index)=>tick.setAttribute('aria-pressed',String(choices[index]===value)))}
     range.oninput=()=>choose(choices[Number(range.value)]);range.onchange=()=>choose(choices[Number(range.value)]);reset.onclick=()=>choose('medium');popup.append(header,model,track,ticks);document.body.append(popup);popup.showPopover?.();trigger.setAttribute('aria-expanded','true');name.textContent='Select effort';effort.hidden=true;
-    const anchor=trigger.getBoundingClientRect(),box=popup.getBoundingClientRect();popup.style.left=Math.max(8,Math.min(innerWidth-box.width-8,anchor.right-box.width))+'px';popup.style.top=Math.max(8,anchor.top-box.height-12)+'px';range.focus();popup.addEventListener('toggle',event=>{if(effortPopup===popup&&event.newState==='closed')closeEffort()});
+    positionEffort();range.focus();popup.addEventListener('toggle',event=>{if(effortPopup===popup&&event.newState==='closed')closeEffort()});
    };
 
   }
@@ -175,9 +177,10 @@
   if(!names().length) { const empty = document.createElement('p'); empty.className='db-empty'; empty.textContent='No projects yet.'; table.appendChild(empty); }
  };
  function renderProjectChat() {
-  closeEffort();const active = selected(); if(!active)return false;
+  const active = selected(); if(!active){closeEffort();return false;}
   const {name,mode,task} = active, value = entry(name), chat = modeChat(name,mode);
   const context=TV.mode==='task'?name+'|'+mode+'|'+value.folder:'';
+  if(effortPopup&&context!==effortContext)closeEffort();
   if (context!==chatContext) {chatContext=context;workEffort='medium'}
   const privateChat=SessionWorkspace.mode==='private';
   $('coach-wrap').setAttribute('aria-label','Codex project chat');
@@ -216,8 +219,8 @@
  renderCoachLog = function() { if(!renderProjectChat())baseLog(); };
  const baseWork = renderWork;
  renderWork = function() { baseWork(); if(selected())renderProjectChat();else {chatContext='';document.querySelector('#coach-form .project-model-controls')?.remove();if($('project-stop'))$('project-stop').hidden=true;} };
- const baseOpenGuide=openGuide;openGuide=function(){chatContext='';return baseOpenGuide.apply(this,arguments)};
- const baseOpenSettings=openSettings;openSettings=function(){chatContext='';return baseOpenSettings.apply(this,arguments)};
+ const baseOpenGuide=openGuide;openGuide=function(){closeEffort();chatContext='';return baseOpenGuide.apply(this,arguments)};
+ const baseOpenSettings=openSettings;openSettings=function(){closeEffort();chatContext='';return baseOpenSettings.apply(this,arguments)};
  const baseSend = sendCoach;
  sendCoach = async function(text, show) {
   const active = selected(); if(!active)return baseSend(text,show);
