@@ -50,7 +50,7 @@
      if(!record.due)delete record.due;
      await db.collection('tasks').add(record);
     }
-    form.reset(); if(kind==='project')dialog.querySelector('[name=folder-display]').textContent='No folder selected'; dialog.close(); if(TV.dbView)renderSettings(); 
+    form.reset(); if(kind==='project')dialog.querySelector('[name=folder-display]').textContent='No folder selected'; dialog.close(); if(TV.dbView)renderSettings();if(TV.mode==='guide')renderGuide(); 
    } catch(error) { dialog.querySelector('[role=status]').textContent=error.message; }
    finally { button.disabled=false; }
   };
