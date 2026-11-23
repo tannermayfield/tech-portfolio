@@ -2063,11 +2063,11 @@ function gdProjects(){return subsOf('project').filter(p=>p!=='All')}
 
 function gdInfoHTML(k){
   const sel=TV.gSel[k];
-  if(k==='class'){const t=T(sel);if(!t)return `<div class="gd-sel"><div class="gd-t">Nothing listed</div></div><div class="gd-desc">Add an assignment and it shows up here on its due date.</div><div class="gd-det-row"><button type="button" class="btn ghost gd-det gd-past" data-act="past">Past Assignments</button><button type="button" class="btn gd-det" data-act="add-assignment" ${SessionWorkspace.mode==='demo'?'disabled':''}>Add Assignment</button></div>`;
+  if(k==='class'){const t=T(sel);if(!t)return `<div class="gd-sel"><div class="gd-t">Nothing listed</div></div><div class="gd-desc">Add an assignment and it shows up here on its due date.</div><div class="gd-det-row"><button type="button" class="btn gd-det" data-act="homework">Homework Overview</button></div>`;
     const d=dueFor(t),done=t.status==='done';
     return `<div class="gd-sel"><div class="gd-t">${esc(t.title)}</div></div>
       <div class="gd-desc">${esc(d.text)}${done?' · submitted':''}${t.goal?` — by the end, explain ${esc(t.goal)}.`:''}</div>
-      <div class="gd-det-row"><button type="button" class="btn ghost gd-det gd-past" data-act="past">Past Assignments</button><button type="button" class="btn gd-det" data-act="add-assignment" ${SessionWorkspace.mode==='demo'?'disabled':''}>Add Assignment</button></div>
+      <div class="gd-det-row"><button type="button" class="btn gd-det" data-act="homework">Homework Overview</button></div>
       <div class="gd-acts">${done?'':`<button type="button" class="btn primary" data-act="tune">Tune in ▸</button>`}<button type="button" class="btn" data-act="sub">${done?'Mark not submitted':'Mark submitted'}</button></div>`}
   if(k==='skill'){const t=T(sel);if(!t)return `<div class="gd-sel"><div class="gd-t">No skills here</div></div><div class="gd-desc">Pick another category, or add a skill from Settings.</div>`;
     const n=skillLevel(t);
@@ -2087,7 +2087,7 @@ function gdBindInfo(k){
   box.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{const a=b.dataset.act,sel=TV.gSel[k];
     if(a==='tune')gdTune(k,sel);
     else if(a==='sub')toggleSubmitted(sel).then(()=>renderGuide());
-    else if(a==='add-assignment')SessionAddForms.open('assignment');
+    else if(a==='homework')SessionHomework.open();
     else if(a==='info')openTask(sel);
     else if(a==='past')openPast()});
 }

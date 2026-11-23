@@ -14,7 +14,7 @@ async function boot(saved={},url='http://127.0.0.1:4173'){
  const dom=new JSDOM(html,{
   url,runScripts:'dangerously',virtualConsole:vc,pretendToBeVisual:true,
   beforeParse(w){
-   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','account','project-chats','add-forms','home','session-preferences','speech','music','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
+   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','account','project-chats','add-forms','homework','home','session-preferences','speech','music','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
    for(const [k,v]of Object.entries(saved))w.localStorage.setItem(k,v);
    w.fetch=async()=>({ok:true,json:async()=>({aiConfigured:false})});
    w.matchMedia=q=>({matches:q.includes('reduced-motion'),media:q,addEventListener(){},removeEventListener(){}});
@@ -305,5 +305,13 @@ test('class-scoped assignments inherit class and persist combined deadline and n
  form.dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>!w.document.getElementById('create-assignment').open);
  const record=w.eval("tasks.find(task=>task.title==='Linked assignment')");assert.equal(record.course,'CS 500');assert.equal(record.due,'2026-12-03');assert.equal(record.dueTime,'14:30');assert.deepEqual(Array.from(record.skills),['New assignment skill']);
  w.SessionAddForms.open('assignment');assert.equal(form.querySelector('[name=course]').closest('label').hidden,false);
+ }finally{dom.window.close()}
+});
+
+test('homework overview separates upcoming, missing and submitted and keeps menu action singular',async()=>{
+ const {dom,w}=await boot();try{
+ assert.equal(w.SessionHomework.classify({status:'done',due:'2020-01-01'}),'submitted');assert.equal(w.SessionHomework.classify({due:'2020-01-01'}),'missing');assert.equal(w.SessionHomework.classify({due:'2099-01-01'}),'due');assert.equal(w.SessionHomework.classify({}),'due');
+ w.SessionHomework.open();assert.equal(w.document.querySelectorAll('.homework-stat').length,3);w.document.querySelector('.homework-stat.submitted').click();assert.equal(w.document.querySelector('.homework-stat.submitted').getAttribute('aria-pressed'),'true');
+ const html=w.eval("gdInfoHTML('class')");assert.match(html,/Homework Overview/);assert.ok(!html.includes('Past Assignments'));assert.ok(!html.includes('Add Assignment'));
  }finally{dom.window.close()}
 });

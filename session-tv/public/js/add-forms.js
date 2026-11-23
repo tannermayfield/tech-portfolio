@@ -7,8 +7,8 @@
  const field = (label, input) => `<label>${label}${input}</label>`;
  const text = (name, required = true) => `<input name="${name}" ${required?'required':''} maxlength="200">`;
  const definitions = {
-  class: ['Add class', field('Class code or name',text('name')) + field('Description',text('description',false))],
-  assignment: ['Add assignment', field('Class','<select name="course" required></select>') + field('Assignment title',text('title')) + field('Due date & time','<input name="dueAt" type="datetime-local">') + '<div class="assignment-skill-field"><label for="assignment-skill-picker">Skills that apply</label><div class="assignment-skill-actions"><select id="assignment-skill-picker" aria-describedby="assignment-skill-summary"></select><button class="btn" type="button" data-new-assignment-skill>+ Add new skill</button></div><p id="assignment-skill-summary" class="small" aria-live="polite">No skills selected</p></div>'],
+  class: ['Add class', field('Class code or name',text('name')) + field('Description',text('description',false)) + field('Course website (optional)','<input name="url" type="url" placeholder="https://…">')],
+  assignment: ['Add assignment', field('Class','<select name="course" required></select>') + field('Assignment title',text('title')) + field('Due date & time','<input name="dueAt" type="datetime-local">') + field('Points (optional)','<input name="points" type="number" min="0" step="any">') + '<div class="assignment-skill-field"><label for="assignment-skill-picker">Skills that apply</label><div class="assignment-skill-actions"><select id="assignment-skill-picker" aria-describedby="assignment-skill-summary"></select><button class="btn" type="button" data-new-assignment-skill>+ Add new skill</button></div><p id="assignment-skill-summary" class="small" aria-live="polite">No skills selected</p></div>'],
   skill: ['Add skill', field('Skill name',text('title')) + field('Skill area',text('course')) + field('Level','<select name="level"><option value="1">New</option><option value="2">Learned</option><option value="3">Experienced</option><option value="4">Mastered</option></select>') + field('Learning goal',text('goal',false))],
   project: ['Create project', field('Project name',text('name')) + field('Computer folder','<div class="project-folder-picker"><output name="folder-display">No folder selected</output><input name="folder" type="hidden"><button type="button" class="btn" data-pick-folder>Choose a folder</button></div>')]
 
@@ -40,7 +40,7 @@
     if(kind === 'class') {
      if(!values.name)throw new Error('Enter a class name.');
      const classes=recall('sb.classes',{}); if(Object.hasOwn(classes,values.name))throw new Error('That class already exists.');
-     classes[values.name]={description:values.description}; store('sb.classes',classes);
+     classes[values.name]={description:values.description,url:values.url}; store('sb.classes',classes);
     } else if(kind === 'project') {
      if(!values.name || !values.folder)throw new Error('Enter a project name and choose a computer folder.');
      dialog.querySelector('[role=status]').textContent='Preparing Plan, Apply and Work chats…';

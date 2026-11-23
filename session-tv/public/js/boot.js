@@ -5,7 +5,7 @@ const sessionTVAssetVersion = document.currentScript ? new URL(document.currentS
  try {
   await window.SessionCloud?.ready;
   if(window.SessionCloud?.user)await SessionCloud.open();
-  const scripts=Array.from({length:17},(_,i)=>'artifact/'+String(i+1).padStart(2,'0')+'.js').concat('local.js','account.js','project-chats.js','add-forms.js','home.js','session-preferences.js','chatgpt.js','connections.js','speech.js','music.js','preview.js');
+  const scripts=Array.from({length:17},(_,i)=>'artifact/'+String(i+1).padStart(2,'0')+'.js').concat('local.js','account.js','project-chats.js','add-forms.js','homework.js','home.js','session-preferences.js','chatgpt.js','connections.js','speech.js','music.js','preview.js');
   for(const name of scripts)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='js/'+name+sessionTVAssetVersion;s.onload=resolve;s.onerror=()=>reject(Error('Could not load '+name));document.body.appendChild(s)});
  } catch(error) {
   const box=document.createElement('div');box.className='workspace-error';box.textContent='Workspace could not load: '+error.message+' Reload to retry. Your saved data has not been replaced.';document.body.appendChild(box);
