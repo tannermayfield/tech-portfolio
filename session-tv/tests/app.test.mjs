@@ -292,3 +292,18 @@ test('section preferences keep identity, Voicebox voices and Apple Music in sepa
  w.dispatchEvent(new w.Event('sessiontv:auth'));assert.equal(w.document.getElementById('account-settings').open,false);
  }finally{dom.window.close()}
  });
+
+test('class-scoped assignments inherit class and persist combined deadline and newly added skill',async()=>{
+ const {dom,w}=await boot();try{
+ w.SessionAddForms.open('assignment','CS 500');const form=w.document.querySelector('#create-assignment form');
+ // Register the class so it is available to the existing course selector.
+ w.eval("store('sb.classes',{'CS 500':{}})");w.document.getElementById('create-assignment').close();w.SessionAddForms.open('assignment','CS 500');
+ assert.equal(form.querySelector('[name=course]').closest('label').hidden,true);
+ form.querySelector('[name=title]').value='Linked assignment';form.querySelector('[name=dueAt]').value='2026-12-03T14:30';
+ w.document.querySelector('[data-new-assignment-skill]').click();const skill=w.document.querySelector('#create-skill form');skill.querySelector('[name=title]').value='New assignment skill';skill.querySelector('[name=course]').value='Data';skill.dispatchEvent(new w.Event('submit',{cancelable:true}));
+ await until(()=>!w.document.getElementById('create-skill').open);assert.equal(w.document.getElementById('create-assignment').open,true);assert.match(w.document.getElementById('assignment-skill-summary').textContent,/New assignment skill/);
+ form.dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>!w.document.getElementById('create-assignment').open);
+ const record=w.eval("tasks.find(task=>task.title==='Linked assignment')");assert.equal(record.course,'CS 500');assert.equal(record.due,'2026-12-03');assert.equal(record.dueTime,'14:30');assert.deepEqual(Array.from(record.skills),['New assignment skill']);
+ w.SessionAddForms.open('assignment');assert.equal(form.querySelector('[name=course]').closest('label').hidden,false);
+ }finally{dom.window.close()}
+});
