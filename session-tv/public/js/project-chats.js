@@ -4,6 +4,50 @@
  const labels = {plan:'Plan', apply:'Apply', work:'Work'};
  let running = null;
  let managedProject = '';
+ const effortLabels = {low:'Light',medium:'Medium',high:'High',xhigh:'Extra high'};
+ const modelCatalogs = new Map();
+ let chatContext = '', workEffort = 'medium';
+ function modelCatalog(folder) {
+  let catalog = modelCatalogs.get(folder);
+  if (catalog) return catalog;
+  catalog = {loading:true,models:[],efforts:[],error:''};
+  modelCatalogs.set(folder,catalog);
+  Promise.resolve().then(()=>SessionCompanion.models(folder)).then(result=>{
+   if (!result.selectedModel || !Array.isArray(result.efforts)) throw new Error('Codex returned an incomplete model catalog.');
+   Object.assign(catalog,result,{loading:false});
+  }).catch(error=>{catalog.loading=false;catalog.error=error.message}).finally(()=>{
+   const active=selected();
+   if (SessionWorkspace.mode==='private' && active && entry(active.name).folder===folder) renderProjectChat();
+  });
+  return catalog;
+ }
+ function renderModelControls(heading,folder,mode) {
+  const catalog=modelCatalog(folder), controls=document.createElement('div');controls.className='project-model-controls';
+  const text=document.createElement('span');
+  const model=catalog.models.find(value=>(value.model||value.id)===catalog.selectedModel);
+  text.textContent=catalog.loading?'Loading Codex model…':catalog.error||model?.displayName||catalog.selectedModel;
+  controls.appendChild(text);
+  if (catalog.error) {
+   const retry=document.createElement('button');retry.type='button';retry.className='btn ghost';retry.textContent='Retry';retry.disabled=!!running;
+   retry.onclick=()=>{modelCatalogs.delete(folder);renderProjectChat()};controls.appendChild(retry);
+  }
+  if (mode==='work') {
+   const select=document.createElement('select');select.id='project-reasoning';select.setAttribute('aria-label','Codex reasoning effort');
+   for (const [value,label]of Object.entries(effortLabels)) {
+    const option=new Option(label,value);option.disabled=!catalog.efforts.includes(value);select.add(option);
+   }
+   select.value=workEffort;select.disabled=!!running||catalog.loading||!!catalog.error;
+   select.onchange=()=>{workEffort=select.value;renderProjectChat()};controls.appendChild(select);
+  } else {
+   const effort=document.createElement('span');effort.textContent='Light';controls.appendChild(effort);
+  }
+  heading.appendChild(controls);
+  const requested=mode==='work'?workEffort:'low';
+  if (!catalog.loading && !catalog.error && !catalog.efforts.includes(requested)) {
+   const warning=document.createElement('span');warning.className='project-model-warning';warning.textContent=effortLabels[requested]+' is unavailable for this Codex model.';controls.appendChild(warning);
+  }
+  return !catalog.loading&&!catalog.error&&catalog.efforts.includes(requested);
+ }
  const stored = () => recall('sb.projectCodingChats', {});
  function names() {
   return [...new Set([...Object.values(PROJ.data).map(project => project.name), ...tasks.filter(task => typeOf(task) === 'project').map(task => task.course), ...Object.keys(stored())])].filter(Boolean).sort();
@@ -120,6 +164,9 @@
  function renderProjectChat() {
   const active = selected(); if(!active)return false;
   const {name,mode,task} = active, value = entry(name), chat = modeChat(name,mode);
+  const context=TV.mode==='task'?name+'|'+mode+'|'+value.folder:'';
+  if (context!==chatContext) {chatContext=context;workEffort='medium'}
+  const privateChat=SessionWorkspace.mode==='private';
   $('coach-wrap').setAttribute('aria-label','Codex project chat');
   $('coach-input').setAttribute('aria-label','Message to Codex');
   $('coach-input').placeholder='Message Codex · '+labels[mode];
@@ -127,6 +174,8 @@
   $('coach-wrap').hidden = false; $('coach-quick').innerHTML = '';
   $('coach-form').hidden = SessionWorkspace.mode !== 'private' || !chat?.threadId;
   log.innerHTML = `<div class="project-chat-heading"><span>Codex · ${labels[mode]}</span><span>${running?.name === name && running.mode === mode ? 'Working…' : 'Saved conversation'}</span></div>`;
+  const modelReady=privateChat&&chat?.threadId ? renderModelControls(log.querySelector('.project-chat-heading'),value.folder,mode) : false;
+  $('coach-send').disabled=!!running||!modelReady;
   if(!chat?.threadId) {
    const notice = document.createElement('div'); notice.className = 'msg ai'; notice.textContent = 'Prepare this project’s starter chats in Settings → My Database → Projects → Manage.'; log.appendChild(notice); return true;
   }
@@ -140,7 +189,7 @@
    const heading = document.createElement('div'); heading.className='ai-name'; heading.textContent=message.role==='user'?'You':'Codex';
    const content = document.createElement('div'); content.innerHTML=fmtMsg(message.text || message.content || '',message.role!=='user'); bubble.append(heading,content); log.appendChild(bubble);
   }
-  $('coach-send').disabled = !!running;
+  $('coach-send').disabled = !!running || !modelReady;
   $('coach-input').placeholder = 'Message Codex · ' + labels[mode];
   let stop = $('project-stop');
   if(!stop) { stop=document.createElement('button');stop.id='project-stop';stop.type='button';stop.className='btn ghost';stop.textContent='Stop';$('coach-form').appendChild(stop);stop.onclick=()=>SessionCompanion.cancel(); }
@@ -153,7 +202,9 @@
  const baseLog = renderCoachLog;
  renderCoachLog = function() { if(!renderProjectChat())baseLog(); };
  const baseWork = renderWork;
- renderWork = function() { baseWork(); if(selected())renderProjectChat();else if($('project-stop'))$('project-stop').hidden=true; };
+ renderWork = function() { baseWork(); if(selected())renderProjectChat();else {chatContext='';if($('project-stop'))$('project-stop').hidden=true;} };
+ const baseOpenGuide=openGuide;openGuide=function(){chatContext='';return baseOpenGuide.apply(this,arguments)};
+ const baseOpenSettings=openSettings;openSettings=function(){chatContext='';return baseOpenSettings.apply(this,arguments)};
  const baseSend = sendCoach;
  sendCoach = async function(text, show) {
   const active = selected(); if(!active)return baseSend(text,show);
@@ -161,13 +212,15 @@
   if(SessionWorkspace.mode!=='private')return toast('Sign in to use project chats.');
   const {name,mode,task}=active, value=entry(name), chat=value.chats.find(chat=>chat.mode===mode);
   if(!chat?.threadId)return toast('Prepare the project’s starter chats in Manage first.');
+  const catalog=modelCatalog(value.folder),effort=mode==='work'?workEffort:'low';
+  if (catalog.loading||catalog.error||!catalog.efforts.includes(effort)) return toast(catalog.error||'Wait for a supported Codex model and effort before sending.');
   chat.messages.push({role:'user',text:show||prompt});const reply={role:'assistant',text:''};chat.messages.push(reply);
   running={name,mode,value};save(name,value);$('coach-input').value='';renderProjectChat();
   let lastRender=0, lastMessageItem=null;
   try {
    const learnedSkills=tasks.filter(item=>typeOf(item)==='skill').map(item=>item.title+' ('+skillLevel(item)+')').join(', ');
    const context='Project: '+name+'\nPreviously learned skills and self-rated levels: '+(learnedSkills||'None recorded yet')+'\n'+projectCtx(task);
-   await SessionCompanion.start({workspace:value.folder,prompt:context+'\n\nUser message: '+prompt,threadId:chat.threadId,mode,onEvent:event=>{
+   await SessionCompanion.start({workspace:value.folder,prompt:context+'\n\nUser message: '+prompt,threadId:chat.threadId,mode,effort,onEvent:event=>{
     if(event.method==='sessiontv/thread')chat.threadId=event.params.threadId;
     if(event.method==='item/agentMessage/delta'){
      if(lastMessageItem&&event.params.itemId&&lastMessageItem!==event.params.itemId)reply.text+='\n\n';

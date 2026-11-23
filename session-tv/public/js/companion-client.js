@@ -20,15 +20,25 @@
    if(!pairToken)return {connected:false,available:false,signedIn:false,workspaces:[],error:'Start the local companion and enter its pairing code.'};
    try{return await (await request('/status')).json()}catch(error){return {connected:false,available:false,signedIn:false,workspaces:[],error:error.message+' Allow browser local-network access when prompted; check that the companion is running.'}}
   },
+  async chatGPTStatus(){return (await request('/chatgpt/status')).json()},
+  async connectChatGPT(){return (await request('/chatgpt/connect')).json()},
+  async disconnectChatGPT(){return (await request('/chatgpt/disconnect')).json()},
+  async chatGPTModels(){return (await request('/chatgpt/models')).json()},
+  async chatGPTStart({model,effort,messages,onEvent=()=>{},signal}){
+   const response=await request('/chatgpt/run',{model,effort,messages},signal||AbortSignal.timeout(180000));
+   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
+   try{while(true){const {done,value}=await reader.read();buffer+=decoder.decode(value,{stream:!done});let index;while((index=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,index);buffer=buffer.slice(index+1);if(line.trim())onEvent(JSON.parse(line))}if(done)break}if(buffer.trim())onEvent(JSON.parse(buffer))}finally{reader.releaseLock()}
+  },
+  async models(workspace){return (await request('/models',{workspace})).json()},
   async voices(options){return (await request('/voice/voices',options)).json()},
   async speak(options,signal){return (await request('/voice/speak',options,signal||AbortSignal.timeout(180000))).blob()},
   async pickFolder(){return (await request('/folders/pick',{},AbortSignal.timeout(180000))).json()},
   async openFolder(folder){return (await request('/folders/open',{folder})).json()},
   async prepareProject(folder,projectId){return (await request('/projects/prepare',{folder,projectId},AbortSignal.timeout(180000))).json()},
-  async start({workspace,prompt,threadId,mode='work',onEvent=()=>{}}){
+  async start({workspace,prompt,threadId,mode='work',effort,onEvent=()=>{}}){
    restore();if(!pairToken)throw new Error('Pair the local companion first.');if(controller)throw new Error('A coding request is already running. Stop it before starting another.');controller=new AbortController();
    let reader;
-   try{const response=await request('/run',{workspace,prompt,threadId,mode},controller.signal);reader=response.body.getReader();const decoder=new TextDecoder();let text='';while(true){const {done,value}=await reader.read();text+=decoder.decode(value,{stream:!done});let index;while((index=text.indexOf('\n'))>=0){const line=text.slice(0,index);text=text.slice(index+1);if(line)onEvent(JSON.parse(line))}if(done)break}if(text.trim())onEvent(JSON.parse(text))}
+   try{const response=await request('/run',{workspace,prompt,threadId,mode,effort},controller.signal);reader=response.body.getReader();const decoder=new TextDecoder();let text='';while(true){const {done,value}=await reader.read();text+=decoder.decode(value,{stream:!done});let index;while((index=text.indexOf('\n'))>=0){const line=text.slice(0,index);text=text.slice(index+1);if(line)onEvent(JSON.parse(line))}if(done)break}if(text.trim())onEvent(JSON.parse(text))}
    finally{reader?.releaseLock();controller=null}
   },
   cancel(){controller?.abort();controller=null},

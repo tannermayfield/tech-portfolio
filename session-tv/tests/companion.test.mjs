@@ -10,6 +10,7 @@ import {CodexBridge} from '../companion/codex.mjs';
 class FakeBridge extends EventEmitter {
  async initialize(){}
  async account(){return {signedIn:true,authType:'chatgpt'}}
+ async models(){return {models:[{id:'latest',displayName:'Latest',isDefault:true,efforts:['low','medium','high','xhigh']}],selectedModel:'latest',efforts:['low','medium','high','xhigh']}}
  async start(cwd,prompt){this.cwd=cwd;this.prompt=prompt;setTimeout(()=>{this.emit('event',{method:'item/agentMessage/delta',params:{delta:'Hello'}});this.emit('event',{method:'turn/completed',params:{turn:{status:'completed'}}})},1)}
  stop(){}
 }
@@ -82,6 +83,7 @@ test('saved conversations resume only in their original restricted folder',async
   calls.push({method,params});
   if(method==='permissionProfile/list')return {data:[{id:'sessiontv',allowed:true}]};
   if(method==='thread/read')return {thread:{cwd:tmpdir()}};
+  if(method==='model/list')return {data:[{id:'latest',model:'latest',isDefault:true,supportedReasoningEfforts:['low','medium','high','xhigh'].map(reasoningEffort=>({reasoningEffort}))}]};
   return {thread:{id:'saved-chat'},cwd:tmpdir(),runtimeWorkspaceRoots:[tmpdir()],activePermissionProfile:'sessiontv',approvalPolicy:'on-request',approvalsReviewer:'user',modelProvider:'openai'};
  };
  assert.equal(await bridge.start(tmpdir(),'continue','saved-chat'),'saved-chat');
@@ -116,3 +118,30 @@ test('starter modes confirm object permission metadata and name persistent threa
  assert.equal(calls.find(call=>call.method==='thread/start').params.permissions,'sessiontv_plan');
  assert.equal(calls.some(call=>call.method==='turn/start'),false);
 });
+
+
+test('model catalog follows server recommendation across paginated account-scoped results',async()=>{
+ const bridge=Object.create(CodexBridge.prototype),calls=[];bridge.account=async()=>({signedIn:true});
+ bridge.request=async(method,params)=>{calls.push({method,params});return params.cursor?{data:[{id:'recommended',model:'recommended-model',displayName:'Recommended',isDefault:true,supportedReasoningEfforts:[{reasoningEffort:'low'},{reasoningEffort:'medium'},{reasoningEffort:'ultra'}]}]}:{data:[{id:'z-looks-newer',supportedReasoningEfforts:[]}],nextCursor:'second'}};
+ const catalog=await bridge.models();assert.equal(catalog.selectedModel,'recommended-model');assert.deepEqual(catalog.efforts,['low','medium']);assert.equal(calls.length,2);assert.equal(calls[1].params.cursor,'second');
+ bridge.account=async()=>({signedIn:false});await assert.rejects(bridge.models(),/Sign in with ChatGPT/);assert.equal(calls.length,2);
+});
+
+test('Plan and Apply force Light while Work defaults Medium and only supported effort reaches a turn',async()=>{
+ const bridge=Object.create(CodexBridge.prototype),calls=[],events=[];bridge.prepare=async()=> 'thread';bridge.emit=(method,event)=>events.push(event);
+ bridge.models=async()=>({models:[{id:'newest',displayName:'Newest'}],selectedModel:'newest',efforts:['low','medium','high','xhigh']});bridge.request=async(method,params)=>{calls.push({method,params});return {}};
+ for(const mode of ['plan','apply']){await bridge.start(tmpdir(),'message',undefined,mode,'xhigh');assert.equal(calls.at(-1).params.effort,'low');assert.equal(calls.at(-1).params.model,'newest')}
+ await bridge.start(tmpdir(),'message');assert.equal(calls.at(-1).params.effort,'medium');
+ for(const effort of ['low','medium','high','xhigh']){await bridge.start(tmpdir(),'message',undefined,'work',effort);assert.equal(calls.at(-1).params.effort,effort)}
+ const count=calls.length;await assert.rejects(bridge.start(tmpdir(),'message',undefined,'work','unsupported'),/does not support/);assert.equal(calls.length,count);
+ bridge.models=async()=>({models:[{id:'newest'}],selectedModel:'newest',efforts:['medium']});await assert.rejects(bridge.start(tmpdir(),'message',undefined,'plan'),/does not support low/);assert.equal(calls.length,count);
+ assert.ok(events.some(event=>event.method==='sessiontv/model'&&event.params.effort==='medium'));
+});
+
+test('models endpoint requires pairing and authorizes a requested folder before listing',()=>fixture(async({companion,post,workspaces,starts})=>{
+ assert.equal((await post('/models')).status,401);assert.equal(starts(),0);
+ const token=(await (await post('/pair',{code:companion.pairingCode})).json()).token,headers={'X-SessionTV-Pair':token};
+ assert.equal((await post('/models',{workspace:process.cwd()},headers)).status,403);
+ const response=await post('/models',{workspace:workspaces[0]},headers);assert.equal(response.status,200);const result=await response.json();assert.equal(result.selectedModel,'latest');assert.deepEqual(result.efforts,['low','medium','high','xhigh']);
+ assert.equal((await post('/run',{workspace:workspaces[0],prompt:'hello',effort:'invalid'},headers)).status,400);
+}));

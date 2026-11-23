@@ -75,6 +75,38 @@ try{
   await privatePage.locator('[data-radio-stop]').click();assert.equal(await privatePage.locator('#tv-radio iframe').count(),0);
   await privatePage.locator('[data-radio-close]').click();await privatePage.evaluate(()=>SessionMusic.openRadio());
  }
+ // Exercise subscription chat with mocked local transport; no paid inference or account access.
+ await privatePage.evaluate(()=>{
+  SessionCompanion.chatGPTStatus=async()=>({connected:true,account:{client_id:'test-client',email:'owner@example.test'},planUsageEnabled:true});
+  SessionCompanion.chatGPTModels=async()=>({models:[{slug:'account-model',display_name:'Account model'}]});
+  SessionCompanion.chatGPTStart=async({onEvent})=>{onEvent({type:'response.output_text.delta',delta:'**Formatted** reply'});onEvent({type:'response.completed'})};
+ });
+ await privatePage.evaluate(()=>SessionChatGPT.open());
+ await privatePage.locator('#chatgpt-input').fill('Hello');await privatePage.locator('#chatgpt-send').click();
+ await privatePage.waitForFunction(()=>document.getElementById('chatgpt-log').textContent.includes('Formatted'));
+ assert.equal(await privatePage.locator('#chatgpt-log strong').textContent(),'Formatted');
+ assert.equal(await privatePage.locator('#chatgpt-form .speech-controls').count(),1);
+ for(const width of [1280,390]){
+  await privatePage.setViewportSize({width,height:width===390?844:628});
+  const box=await privatePage.locator('#chatgpt-chat').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width+1);
+  await privatePage.locator('#chatgpt-chat').screenshot({path:'test-results/session-tv-chatgpt-'+width+'.png'});
+ }
+ await privatePage.locator('#chatgpt-chat [data-close]').click();
+ // Work resets to Medium on reentry, while Plan and Apply keep Light.
+ await privatePage.evaluate(async()=>{
+  const task=tasks.find(task=>typeOf(task)==='project'),name=task.course;
+  store('sb.projectCodingChats',{[name]:{folder:'test-folder',chats:['plan','apply','work'].map(mode=>({mode,threadId:mode,messages:[]}))}});
+  SessionCompanion.models=async()=>({models:[{id:'latest-codex',displayName:'Latest Codex'}],selectedModel:'latest-codex',efforts:['low','medium','high','xhigh']});
+  current.projModes={...(current.projModes||{}),[name]:'work'};await tune(task.id,{cut:false});closeSheets();go('work');renderWork();
+ });
+ await privatePage.waitForFunction(()=>document.getElementById('project-reasoning')&&!document.getElementById('project-reasoning').disabled);
+ assert.equal(await privatePage.locator('#project-reasoning').inputValue(),'medium');
+ await privatePage.locator('#project-reasoning').selectOption('xhigh');assert.equal(await privatePage.locator('#project-reasoning').inputValue(),'xhigh');
+ await privatePage.evaluate(()=>{openSettings();closeSheets();renderWork()});assert.equal(await privatePage.locator('#project-reasoning').inputValue(),'medium');
+ for(const mode of ['plan','apply']){
+  await privatePage.evaluate(mode=>{const task=tasks.find(task=>typeOf(task)==='project');current.projModes[task.course]=mode;renderWork()},mode);
+  assert.equal(await privatePage.locator('#project-reasoning').count(),0);assert.match(await privatePage.locator('.project-model-controls').textContent(),/Light/);
+ }
  await privateContext.close();
  assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);console.log('Static Pages preview: immutable records, navigation/refresh, visitor isolation, hidden edit controls, usable sign-in, AI gate, mobile and assets passed.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}

@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {CodexBridge} from './codex.mjs';
 import {folderStore} from './folders.mjs';
 import {voiceService} from './voice.mjs';
+import {chatGPTService} from './chatgpt.mjs';
 
 const failure=(status,message)=>Object.assign(new Error(message),{status});
 const secret=()=>randomBytes(24).toString('base64url');
@@ -15,11 +16,13 @@ export async function canonicalWorkspaces(values){
  const roots=[];for(const value of values){const root=await realpath(value);if(!(await stat(root)).isDirectory()||path.parse(root).root===root)throw new Error('Select a project directory, not a filesystem root.');roots.push(root)}
  if(!roots.length)throw new Error('Select at least one project directory with SESSIONTV_WORKSPACES (JSON array).');return [...new Set(roots)];
 }
-export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now,deviceToken,configPath,pickFolder,openFolder,voice=voiceService()}){
+export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now,deviceToken,configPath,pickFolder,openFolder,voice=voiceService(),chatgpt}){
  if(!/^https:\/\//.test(supabaseUrl||'')||!publishableKey||!ownerId||!home||!workspaces?.length)throw new Error('Supabase URL, public key, owner UUID, dedicated CODEX_HOME and selected workspaces are required.');
  if(new URL(origin).origin!==origin)throw new Error('SESSIONTV_ORIGIN must be an exact origin.');
+ const generalChat=chatgpt||chatGPTService({home});
+ const chatRequest=async request=>{try{return await request}catch(error){if([401,403].includes(error.status))throw failure(424,error.message);throw error}};
  const folders=folderStore({configPath,initialWorkspaces:workspaces,home,pickFolder,openFolder});
- const code=secret(),expires=now()+600000,pairs=new Map();let attempts=0,paired=false,active=null,activeConfirmed=false,operation=false;
+ const code=secret(),expires=now()+600000,pairs=new Map();let attempts=0,paired=false,active=null,activeConfirmed=false,operation=false,generalRun=null;
  const verify=verifyUser||(async token=>{
   const response=await fetch(new URL('/auth/v1/user',supabaseUrl),{headers:{apikey:publishableKey,Authorization:'Bearer '+token},signal:AbortSignal.timeout(10000)});
   if(!response.ok)throw failure(401,'Your Supabase session is invalid. Sign in again.');return response.json();
@@ -48,6 +51,27 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     paired=true;const token=deviceToken||secret();pairs.set(token,{userId:user.id,expires:now()+1800000});json(res,200,{token,remember:!!deviceToken,expiresIn:deviceToken?null:1800});return;
    }
    await authorize(req);
+   if(route.startsWith('/chatgpt/')){
+    const body=await readJSON(req);
+    if(route==='/chatgpt/status'){json(res,200,await chatRequest(generalChat.status()));return}
+    if(route==='/chatgpt/connect'){json(res,200,await chatRequest(generalChat.begin()));return}
+    if(route==='/chatgpt/disconnect'){generalRun?.abort();const result=await chatRequest(generalChat.disconnect());json(res,200,result||{disconnected:true});return}
+    if(route==='/chatgpt/models'){const catalog=await chatRequest(generalChat.models());json(res,200,Array.isArray(catalog)?{models:catalog.map(model=>({slug:model.id,display_name:model.displayName}))}:catalog);return}
+    if(route!=='/chatgpt/run')throw failure(404,'Unknown ChatGPT endpoint.');
+    if(generalRun)throw failure(409,'A ChatGPT request is already running.');
+    if(typeof body.model!=='string'||!body.model||body.model.length>200)throw failure(400,'Choose an available ChatGPT model.');
+    if(body.effort!==undefined&&!['low','medium','high','xhigh'].includes(body.effort))throw failure(400,'Choose a supported reasoning effort.');
+    if(!Array.isArray(body.messages)||!body.messages.length||body.messages.length>100||body.messages.some(message=>!message||!['user','assistant'].includes(message.role)||typeof message.content!=='string'||message.content.length>16000))throw failure(400,'Invalid ChatGPT conversation.');
+    const controller=generalRun=new AbortController();const abort=()=>controller.abort();
+    res.on('close',abort);const timer=setTimeout(abort,1800000);
+    try{
+     // Keep OAuth credentials in the companion; only safe stream events reach the browser.
+     res.writeHead(200,{'Content-Type':'application/x-ndjson','X-Accel-Buffering':'no'});res.flushHeaders();
+     await generalChat.run({model:body.model,effort:body.effort,messages:body.messages,signal:controller.signal,onEvent:event=>{if(!res.destroyed)res.write(JSON.stringify(event)+'\n')}});
+    }catch(error){if(!res.destroyed)res.write(JSON.stringify({type:'error',message:error.message||'ChatGPT request failed.'})+'\n')}
+    finally{clearTimeout(timer);res.removeListener('close',abort);if(generalRun===controller)generalRun=null;res.end()}
+    return;
+   }
    if(route==='/voice/voices'||route==='/voice/speak'){
     const body=await readJSON(req),controller=new AbortController();
     const abort=()=>controller.abort();res.on('close',abort);
@@ -57,7 +81,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
      const audio=await voice.speak(body,controller.signal);res.writeHead(200,{'Content-Type':audio.type});res.end(audio.body);return;
     } finally {clearTimeout(timer);res.removeListener('close',abort)}
    }
-   if(route==='/disconnect'){pairs.delete(req.headers['x-sessiontv-pair']);active?.stop();json(res,200,{disconnected:true});return}
+   if(route==='/disconnect'){pairs.delete(req.headers['x-sessiontv-pair']);active?.stop();generalRun?.abort();json(res,200,{disconnected:true});return}
    if(route==='/folders/pick'||route==='/folders/open'||route==='/projects/prepare'){
     if(active||operation)throw failure(409,'A computer request is already running. Wait for it to finish.');
     operation=true;let bridge;
@@ -73,10 +97,21 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     } catch(error) {throw error.status?error:failure(503,error.message||'Project preparation failed. Try again.')}
     finally {bridge?.stop();operation=false}
    }
+   if(route==='/models'){
+    if(active||operation)throw failure(409,'A computer request is already running. Try loading models when it finishes.');
+    operation=true;let bridge;
+    try{
+     const body=await readJSON(req),cwd=body.workspace?await folders.authorized(body.workspace):folders.workspaces[0];
+     bridge=bridgeFactory({executable,home,cwd});
+     await bridge.initialize();json(res,200,await bridge.models());
+    }catch(error){throw error.status?error:failure(503,error.message||'Codex models are unavailable.')}
+    finally{bridge?.stop();operation=false}
+    return;
+   }
    if(route==='/status'){
     if(active||operation){json(res,200,{connected:true,available:activeConfirmed,signedIn:activeConfirmed,busy:true,workspaces:folders.workspaces});return}
     const bridge=bridgeFactory({executable,home,cwd:folders.workspaces[0]});
-    try{await bridge.initialize();const account=await bridge.account();json(res,200,{connected:true,available:true,...account,workspaces:folders.workspaces,chatgpt:{connected:false,reason:'General chat authorization has not been configured.'}})}
+    try{await bridge.initialize();const account=await bridge.account();json(res,200,{connected:true,available:true,...account,workspaces:folders.workspaces,chatgpt:await generalChat.status().catch(()=>({connected:false,error:'Check your ChatGPT connection in Session Preferences.'}))})}
     catch(error){json(res,200,{connected:true,available:false,signedIn:false,error:error.message,workspaces:folders.workspaces})}finally{bridge.stop()};return;
    }
    if(route!=='/run')throw failure(404,'Unknown endpoint.');
@@ -85,6 +120,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    if(typeof body.workspace!=='string')throw failure(400,'Select an authorized workspace.');
    const cwd=await folders.authorized(body.workspace);
    if(body.mode!==undefined&&!['plan','apply','work'].includes(body.mode))throw failure(400,'Choose Plan, Apply, or Work.');
+   if(body.effort!==undefined&&!['low','medium','high','xhigh'].includes(body.effort))throw failure(400,'Choose Light, Medium, High, or Extra high effort.');
    const bridge=active=bridgeFactory({executable,home,cwd});activeConfirmed=false;let timeout;
    const stop=()=>{clearTimeout(timeout);bridge.stop();if(active===bridge){active=null;activeConfirmed=false}};
    res.on('close',stop);
@@ -97,11 +133,11 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     bridge.on('stopped',error=>{if(!res.destroyed&&!res.writableEnded){write({method:'sessiontv/stopped',params:{error:error.message}});res.end()}});
     timeout=setTimeout(()=>{write({method:'sessiontv/error',params:{error:'Request reached the 30-minute limit.'}});stop();res.end()},1800000);
     if(body.threadId!==undefined&&(typeof body.threadId!=='string'||body.threadId.length>200))throw failure(400,'Invalid chat reference.');
-    await bridge.start(cwd,body.prompt,body.threadId,body.mode);if(active===bridge)activeConfirmed=true;
+    await bridge.start(cwd,body.prompt,body.threadId,body.mode,body.effort);if(active===bridge)activeConfirmed=true;
    }catch(error){if(res.headersSent){write({method:'sessiontv/error',params:{error:error.message}});res.end()}else throw error;stop()}
   }catch(error){if(!res.headersSent)json(res,error.status||500,{error:error.status?error.message:'Companion request failed. Check local setup.'});else res.end()}
  });
- server.on('close',()=>active?.stop());
+ server.on('close',()=>{active?.stop();generalRun?.abort();generalChat.close?.()});
  return {server,pairingCode:code,listen:()=>new Promise(resolve=>server.listen(port,'127.0.0.1',resolve))};
 }
 async function main(){

@@ -2,9 +2,9 @@
 
 ## Status and scope
 
-Supabase sign-in is the application account. It does not sign into ChatGPT or authorize model usage. General homework AI remains unavailable until an eligible, authorized provider is configured. There is no paid API fallback, subscription token extraction, or access to existing ChatGPT conversations. Demo visitors cannot pair or use an agent.
+Supabase sign-in is the application account. It does not sign into ChatGPT or authorize model usage. General ChatGPT chat is optional and requires its own plan-use consent. There is no paid API fallback, subscription token extraction, or access to existing ChatGPT conversations. Demo visitors cannot pair or use an agent.
 
-The companion implements the official Codex app-server stdio protocol, account checks, selected workspaces, coding requests and streaming progress. Its browser client exposes `SessionCompanion.pair(code)`, `status()`, `start({workspace,prompt,onEvent})`, `cancel()` and `disconnect()`. Tokens for pairing live only in page memory; reloading requires restarting and pairing the companion again.
+The companion implements the official Codex app-server stdio protocol, account checks, selected workspaces, coding requests and streaming progress. Its browser client exposes `SessionCompanion.pair(code)`, `status()`, `start({workspace,prompt,onEvent})`, `cancel()` and `disconnect()`. The installed background companion uses a separate persistent pairing secret so reloading does not require manual setup.
 
 ## Install and start on your own computer
 
@@ -43,15 +43,27 @@ The authenticated site and any scripts it loads are trusted by the pairing sessi
 
 Pairing is user-initiated. Modern browsers can ask permission for loopback/local-network access; allow it for your portfolio only if you intend to connect your computer. The client declares `targetAddressSpace: 'loopback'`. If blocked, open browser site settings and review Loopback network access. Browser/enterprise policy can still block hosted-to-loopback connections; do not disable browser security or expose the service publicly. Data features work without the companion. See [Chrome's Local Network Access guidance](https://developer.chrome.com/docs/modern-web-guidance/guides/security/local-network-access).
 
-## ChatGPT plan-backed general chat and future identity linking
+## ChatGPT with your existing subscription
 
-Official documentation distinguishes identity login from authorization to use a ChatGPT plan. Its open-source/local flow is available to eligible clients; remotely hosted apps require admission. The portfolio frontend plus local companion is a hybrid, so this implementation does not assume eligibility or claim an approved OpenAI client. Request confirmation/admission for this exact deployment before enabling general chat. The frontend has no nonfunctional OpenAI login button. Review the [quickstart](https://developers.openai.com/siwc/quickstart), [official integration cookbook](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt) and [Sign in with ChatGPT terms](https://openai.com/policies/sign-in-with-chatgpt-terms/).
+The companion supports OpenAI’s official locally hosted app sign-in flow. ChatGPT authorization and inference execute in your local companion, separate from Codex and Supabase sign-in. There is no developer API key, paid API fallback or access to conversations or memory from ChatGPT.com.
 
-When authorized, add an AI-provider adapter in the local companion that handles documented OAuth/PKCE, ID-token verification, explicit plan-use scope checks, OS-secure credential storage, token refresh, model discovery and streaming. Preserve the Supabase UUID: linking an OpenAI identity requires an authenticated account-link flow with proof of both identities and a uniqueness constraint. Do not trust browser-supplied identity claims or create duplicate accounts by email. Store application conversation history in the private Supabase conversation tables; OpenAI login does not import ChatGPT memory or conversation history.
+1. Sign in to your private SessionTV workspace.
+2. Open Settings → Session Preferences → AI Connection.
+3. Under ChatGPT, click **Continue with ChatGPT** and approve SessionTV in the OpenAI browser window.
+4. In [ChatGPT Settings → Usage](https://chatgpt.com/settings/usage), leave the option to use credits after your plan limit **off** for SessionTV. Requests consume your existing shared plan allowance; this does not add a separate allowance.
+5. Return to SessionTV, check the connection, then open ChatGPT chat. Select a model available to your signed-in account.
 
-Codex integration uses its own officially managed ChatGPT login, independent of future general-chat authorization. It sends no explicit API billing configuration. Subscription limits and credits can apply; manage them in your ChatGPT account. Claude remains a future provider adapter and is not connected through subscription-token sharing.
+OAuth uses a persistent host ID, a loopback callback with PKCE, state and nonce validation, verified ID-token signatures, and atomic local token storage outside project folders. Credentials are never sent to the static website or Supabase. Disconnect stops active requests, attempts remote revocation and clears local tokens while retaining the registration for future sign-in. Any unconfirmed remote revocation is reported.
 
-References: [Codex app-server](https://learn.chatgpt.com/docs/app-server), [permission profiles](https://learn.chatgpt.com/docs/permissions). These are evolving beta interfaces. Account access, provider authorization and real coding runs require owner setup and were not verified against a live owner account. A live protocol probe successfully initialized an empty dedicated profile, reported signed out, and listed the required permission profile. A metadata-only thread-start probe was refused by this execution environment's unelevated Windows sandbox because it cannot enforce split filesystem read restrictions. No coding turn or inference was started. Complete official Windows sandbox setup (or use a supported properly isolated runtime) before attempting coding; do not switch to unrestricted access to work around this error.
+Chat history belongs to SessionTV and is saved with your private workspace. Model requests send the required history to OpenAI with `store:false` and `stream:true`; a request is successful only after `response.completed`. Usage-limit failures are displayed without switching to a paid provider. Existing speech controls work with this chat, too.
+
+References: [local-app overview](https://developers.openai.com/siwc/token-sharing-open-source), [registration](https://developers.openai.com/siwc/token-sharing-open-source/sign-in), [models and inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference), [preview limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations).
+
+## Codex model and effort defaults
+
+The companion reads the available Codex catalog via `model/list`, follows pagination and uses its recommended default model (or the first model in server order if no default is advertised). This follows Codex’s recommendation rather than guessing model versions from names. It refreshes on each run.
+
+Plan and Apply always send `low` (Light). Work sends `medium` by default and allows `low`, `medium`, `high`, or `xhigh` when the selected model advertises support. The browser resets Work to Medium when entering the chat; ordinary streaming re-renders preserve the choice. Unsupported combinations fail clearly rather than silently changing effort. Model and effort are explicitly set on `turn/start`, including resumed threads.
 
 ## Project chats and folder links
 

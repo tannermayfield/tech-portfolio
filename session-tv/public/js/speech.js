@@ -51,13 +51,13 @@
  }
  const svg={mic:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 10v1a6 6 0 0 0 12 0v-1M12 17v4M9 21h6"/></svg>',speaker:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14"/></svg>'};
  function controls(){
-  for(const [formId,inputId,logId]of [['coach-form','coach-input','coach-log'],['wc-form','wc-input','wc-log']]){
+  for(const [formId,inputId,logId]of [['coach-form','coach-input','coach-log'],['wc-form','wc-input','wc-log'],['chatgpt-form','chatgpt-input','chatgpt-log']]){
    const form=document.getElementById(formId),input=document.getElementById(inputId);if(!form||!input||form.querySelector('.speech-controls'))continue;
    const group=document.createElement('div');group.className='speech-controls';
    for(const kind of ['mic','speaker']){
     const button=document.createElement('button');button.type='button';button.className='speech-button';button.dataset.speech=kind;button.innerHTML=svg[kind];
     button.setAttribute('aria-label',kind==='mic'?'Dictate message':'Read latest AI response');button.setAttribute('title',kind==='mic'?'Dictate message · click again to stop':'Read latest AI response · click again to stop');button.setAttribute('aria-pressed','false');
-    button.onclick=()=>{if(kind==='mic')dictate(input,button);else{if(form.querySelector('[type=submit]')?.disabled)return message('Wait for Codex to finish its response.');speak(lastReply(document.getElementById(logId)),button)}};
+    button.onclick=()=>{if(kind==='mic')dictate(input,button);else{if(form.querySelector('[type=submit]')?.disabled)return message('Wait for the AI to finish its response.');speak(lastReply(document.getElementById(logId)),button)}};
     group.appendChild(button);
    }
    input.insertAdjacentElement('afterend',group);

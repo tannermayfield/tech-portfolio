@@ -73,3 +73,5 @@ body.tv-home-active #view-log{visibility:hidden;pointer-events:none}#tv-home .gd
 #tv-settings .db-card .db-stats{min-height:0;grid-template-rows:repeat(2,minmax(0,1fr))}#tv-settings .db-card .db-btns{flex:none;flex-wrap:nowrap;gap:4px}#tv-settings .db-card .db-btns .btn{font-size:9px;padding:6px 4px;letter-spacing:0;flex:1;white-space:nowrap}#tv-settings .db-card .db-stat{padding:4px}
 
 #tv-settings #session-exit,#tv-settings .resume-placeholder{background:#fff!important;color:#171717!important;text-shadow:none!important;opacity:1}#tv-settings .resume-placeholder span,#tv-settings .resume-placeholder small{color:#171717}#tv-settings .sheet-head #set-x.btn{height:auto}
+
+.project-chat-heading{flex-wrap:wrap;align-items:center}.project-model-controls{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}.project-model-controls select{width:auto;max-width:180px;padding:5px 8px;background:var(--modal);color:var(--ink);border:1px solid var(--line);border-radius:6px;font:inherit}.project-model-warning{flex-basis:100%;color:var(--muted)}

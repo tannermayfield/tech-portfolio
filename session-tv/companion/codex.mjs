@@ -47,6 +47,27 @@ export class CodexBridge extends EventEmitter {
  }
  async initialize(){await this.request('initialize',{clientInfo:{name:'session_tv_companion',title:'Session TV local companion',version:'1.0.0'},capabilities:{experimentalApi:true}});this.send({method:'initialized',params:{}})}
  async account(){const result=await this.request('account/read',{refreshToken:false});return {signedIn:result.account?.type==='chatgpt',authType:result.account?.type||null}}
+ async models(){
+  const account=await this.account();
+  if(!account.signedIn)throw new Error('Sign in with ChatGPT to load your Codex models.');
+  const models=[],cursors=new Set();let cursor;
+  do {
+   const page=await this.request('model/list',{includeHidden:false,limit:100,modelProvider:'openai',...(cursor?{cursor}:{})});
+   if(!Array.isArray(page.data))throw new Error('Codex returned an invalid model catalog. Update Codex and try again.');
+   for(const value of page.data){
+    const id=value.model||value.id;
+    if(typeof id!=='string'||value.hidden)continue;
+    const efforts=(value.supportedReasoningEfforts||[]).map(option=>typeof option==='string'?option:option.reasoningEffort).filter(effort=>['low','medium','high','xhigh'].includes(effort));
+    models.push({id,displayName:value.displayName||id,isDefault:!!value.isDefault,efforts});
+   }
+   cursor=page.nextCursor;
+   if(cursor&&cursors.has(cursor))throw new Error('Codex returned a repeated catalog page. Try again.');
+   if(cursor)cursors.add(cursor);
+  }while(cursor);
+  const selected=models.find(model=>model.isDefault)||models[0];
+  if(!selected)throw new Error('Your signed-in Codex account has no available models.');
+  return {models,selectedModel:selected.id,efforts:selected.efforts};
+ }
  async prepare(cwd,mode='work',threadId){
   if(!Object.hasOwn(MODE_INSTRUCTIONS,mode))throw new Error('Choose Plan, Apply, or Work.');
   const permissions=mode==='work'?'sessiontv':'sessiontv_'+mode;
@@ -75,11 +96,16 @@ export class CodexBridge extends EventEmitter {
   if(!threadId)await this.request('thread/name/set',{threadId:started.thread.id,name:'Session TV · '+mode[0].toUpperCase()+mode.slice(1)});
   return started.thread.id;
  }
- async start(cwd,prompt,threadId,mode='work'){
+ async start(cwd,prompt,threadId,mode='work',requestedEffort){
   const id=await this.prepare(cwd,mode,threadId);
+  const catalog=await this.models();
+  const effort=mode==='work'?(requestedEffort||'medium'):'low';
+  if(!['low','medium','high','xhigh'].includes(effort)||!catalog.efforts.includes(effort))throw new Error('The latest available Codex model does not support '+effort+' effort. Choose a supported effort.');
+  const model=catalog.selectedModel;
+  this.emit('event',{method:'sessiontv/model',params:{model,effort,displayName:catalog.models.find(value=>value.id===model).displayName}});
   const permissions=mode==='work'?'sessiontv':'sessiontv_'+mode;
   this.emit('event',{method:'sessiontv/thread',params:{threadId:id}});
-  await this.request('turn/start',{threadId:id,input:[{type:'text',text:prompt}],permissions,approvalPolicy:'on-request'});
+  await this.request('turn/start',{threadId:id,input:[{type:'text',text:prompt}],model,effort,permissions,approvalPolicy:'on-request'});
   return id;
  }
  stop(error=new Error('Codex disconnected.')) {

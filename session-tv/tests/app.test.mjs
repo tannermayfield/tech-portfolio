@@ -156,6 +156,7 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
  const {dom,w,errors}=await boot();
  try {
   w.SessionWorkspace={...w.SessionWorkspace,mode:'private'};
+  w.SessionCompanion.models=async()=>({models:[{id:'latest-codex',model:'latest-codex',displayName:'Latest available Codex'}],selectedModel:'latest-codex',efforts:['low','medium','high','xhigh']});
   w.SessionCompanion.pickFolder=async()=>({folder:'C:\\Projects\\example'});
   w.SessionCompanion.prepareProject=async folder=>({folder,chats:['plan','apply','work'].map(mode=>({mode,threadId:'thread-'+mode}))});
   w.document.getElementById('btn-set').click();
@@ -184,8 +185,10 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
   w.eval("gdTune('project','Example project')");
   await until(()=>w.document.getElementById('coach-form').hidden===false);
   assert.equal(w.eval("T(current.active).projectChannel"),true);
-  w.SessionCompanion.start=async({mode,threadId,onEvent})=>{
-   assert.equal(mode,'apply');assert.equal(threadId,'thread-apply');
+  await until(()=>!w.document.getElementById('coach-send').disabled);
+  let expectedMode='apply',expectedEffort='low';
+  w.SessionCompanion.start=async({mode,threadId,effort,onEvent})=>{
+   assert.equal(mode,expectedMode);assert.equal(threadId,'thread-'+expectedMode);assert.equal(effort,expectedEffort);
    onEvent({method:'item/agentMessage/delta',params:{delta:'A small hint'}});
    onEvent({method:'turn/completed',params:{turn:{status:'completed'}}});
   };
@@ -195,6 +198,18 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
   assert.doesNotMatch(w.document.getElementById('coach-log').textContent,/A small hint/);
   w.eval("current.projModes={'Example project':'apply'};renderWork()");
   assert.match(w.document.getElementById('coach-log').textContent,/A small hint/);
+  assert.match(w.document.querySelector('.project-model-controls').textContent,/Light/);
+  w.eval("current.projModes={'Example project':'work'};renderWork()");
+  assert.equal(w.document.getElementById('project-reasoning').value,'medium');
+  w.document.getElementById('project-reasoning').value='high';w.document.getElementById('project-reasoning').dispatchEvent(new w.Event('change'));
+  w.renderWork();assert.equal(w.document.getElementById('project-reasoning').value,'high');
+  expectedMode='work';expectedEffort='high';await w.sendCoach('Build with this effort');
+  assert.equal(w.document.getElementById('project-reasoning').value,'high');
+  w.openSettings();w.closeSheets();w.renderWork();assert.equal(w.document.getElementById('project-reasoning').value,'medium');
+  expectedEffort='medium';await w.sendCoach('Continue with the default');
+  w.eval("current.projModes={'Example project':'plan'};renderWork()");
+  assert.equal(w.document.getElementById('project-reasoning'),null);
+  expectedMode='plan';expectedEffort='low';await w.sendCoach('Plan the sprint');
   w.SessionCompanion.prepareProject=async()=>{throw new Error('Sandbox setup needed')};
   await assert.rejects(w.SessionProjectChats.create('Not ready','C:\\Projects\\example'),/Sandbox setup needed/);
   assert.equal(w.SessionProjectChats.names().includes('Not ready'),false);

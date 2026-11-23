@@ -52,6 +52,7 @@
   renderSections();
   globalThis.SessionSpeech?.mountSettings(document.getElementById('session-voices'));
   globalThis.SessionMusic?.mountSettings(document.getElementById('session-music'));
+  globalThis.SessionChatGPT?.mountSettings(document.getElementById('chatgpt-connection'));
   selectTab(selectedTab);
  }};
  selectTab(selectedTab);
