@@ -2,17 +2,17 @@
 (() => {
  'use strict';
  const config=globalThis.SessionTVConfig||{}, url=(config.supabaseUrl||'').replace(/\/$/,''), key=config.supabasePublishableKey||'';
- const configured=!!(url&&key), AUTH='sessiontv.auth.v1';
+ const configured=!!(url&&key), AUTH='sessiontv.auth.v1', OAUTH='sessiontv.google.pkce.v1', REDIRECT='https://tannermayfield.dev/session-tv/';
  let session=null, refreshTask=null, database=null, opening=null, refreshing=null, signingOut=false;
  const error=message=>dispatchEvent(new CustomEvent('sessiontv:error',{detail:message}));
  const rawStorage=()=>{try{return globalThis.SessionWorkspace?.originalStorage||globalThis.localStorage;}catch{return null;}};
- async function request(route,{method='GET',body,auth=true}={}){
+ async function request(route,{method='GET',body,auth=true,bearer}={}){
   if(!configured)throw new Error('Configure Supabase public credentials to use My Workspace.');
-  if(auth){await refresh();if(!session?.access_token)throw new Error('Sign in to your private workspace first.');}
-  const response=await fetch(url+route,{method,headers:{apikey:key,'Content-Type':'application/json',...(auth?{Authorization:'Bearer '+session.access_token}:{})},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
+  if(auth&&!bearer){await refresh();if(!session?.access_token)throw new Error('Sign in to your private workspace first.');}
+  const response=await fetch(url+route,{method,headers:{apikey:key,'Content-Type':'application/json',...((auth||bearer)?{Authorization:'Bearer '+(bearer||session.access_token)}:{})},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
   const text=await response.text();let data;try{data=text?JSON.parse(text):null}catch{throw new Error('Supabase returned an invalid response.');}
   if(!response.ok){
-   throw new Error(data?.msg||data?.message||data?.error_description||data?.error||'Cloud request failed ('+response.status+').');
+   throw Object.assign(new Error(data?.msg||data?.message||data?.error_description||data?.error||'Cloud request failed ('+response.status+').'),{status:response.status,code:data?.error_code||data?.code});
   }
   return data;
  }
@@ -30,18 +30,52 @@
   if(!refreshing)refreshing=request('/auth/v1/token?grant_type=refresh_token',{method:'POST',auth:false,body:{refresh_token:session.refresh_token}}).then(saveSession).finally(()=>refreshing=null);
   await refreshing;
  }
- async function activate(value){
+ async function activate(value,expectedId){
   const previous=session;
   session={...value,expires_at:Number(value.expires_at)||Math.floor(Date.now()/1000)+Number(value.expires_in||3600)};
   try{
-   const user=await request('/auth/v1/user');if(!user?.id)throw new Error('Account verification failed.');
+   const user=await request('/auth/v1/user');if(!user?.id||(expectedId&&user.id!==expectedId))throw new Error('Account verification failed.');
    saveSession({...session,user});globalThis.SessionWorkspace?.setPrivate?.(user.id);return user;
   }catch(e){session=previous;throw e;}
+ }
+ function oauthStorage(){try{if(!globalThis.sessionStorage)throw new Error();return globalThis.sessionStorage;}catch{throw new Error('Enable browser session storage to continue with Google.');}}
+ const base64=bytes=>btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+ async function google(link=false){
+  await ready;if(!configured)throw new Error('Configure Supabase public credentials first.');
+  if(globalThis.location?.origin!==new URL(REDIRECT).origin)throw new Error('Open SessionTV at '+REDIRECT+' to continue with Google.');
+  if(link&&!session?.user)throw new Error('Sign in before linking Google.');
+  const settings=await request('/auth/v1/settings',{auth:false});
+  if(settings?.external?.google===false)throw new Error('Google sign-in is not enabled yet. Enable Google in Supabase Authentication before continuing.');
+  const verifier=base64(crypto.getRandomValues(new Uint8Array(32))),challenge=base64(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier))));
+  const pending={verifier,created:Date.now(),userId:link?session.user.id:null};oauthStorage().setItem(OAUTH,JSON.stringify(pending));
+  const query=new URLSearchParams({provider:'google',redirect_to:REDIRECT,code_challenge:challenge,code_challenge_method:'s256'});
+  try{
+   let target=url+'/auth/v1/authorize?'+query;
+   if(link){query.set('skip_http_redirect','true');const result=await request('/auth/v1/user/identities/authorize?'+query);target=result?.url;}
+   const destination=new URL(target);if(destination.protocol!=='https:'||(link&&!['accounts.google.com',new URL(url).hostname].includes(destination.hostname))||(!link&&destination.origin!==new URL(url).origin))throw new Error('Google returned an invalid sign-in destination.');
+   location.assign(destination.href);return {redirecting:true};
+  }catch(e){oauthStorage().removeItem(OAUTH);throw e;}
+ }
+ async function callback(){
+  if(!globalThis.location?.href)return false;
+  const current=new URL(location.href);const code=current.searchParams.get('code'),failed=current.searchParams.has('error');
+  if(!code&&!failed)return false;
+  let pending;try{pending=JSON.parse(oauthStorage().getItem(OAUTH)||'null');}finally{
+   oauthStorage().removeItem(OAUTH);for(const name of ['code','error','error_code','error_description','sb_flow_id'])current.searchParams.delete(name);
+   globalThis.history?.replaceState?.(null,'',current.pathname+current.search+current.hash);
+  }
+  if(current.origin!==new URL(REDIRECT).origin||current.pathname!==new URL(REDIRECT).pathname||!pending||Date.now()-pending.created>10*60000||pending.created>Date.now()||typeof pending.verifier!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(pending.verifier))throw new Error('Google sign-in expired or was opened in another browser. Please try again.');
+  if(failed)throw new Error('Google sign-in was canceled or could not be completed.');
+  const value=await request('/auth/v1/token?grant_type=pkce',{method:'POST',auth:false,body:{auth_code:code,code_verifier:pending.verifier}});
+  if(pending.userId&&session?.user?.id!==pending.userId)throw new Error('Sign in to the original account before linking Google.');
+  await activate(value,pending.userId);return true;
  }
  const ready=(async()=>{
   if(!configured)return;
   try{
-   const saved=rawStorage()?.getItem(AUTH);if(saved){session=JSON.parse(saved);await refresh();await activate(session);}
+   const saved=rawStorage()?.getItem(AUTH);if(saved)session=JSON.parse(saved);
+   try{if(await callback())return;}catch(e){error(e.message);}
+   if(session){await refresh();await activate(session);}
   }catch(e){saveSession(null);error('Sign in again: '+e.message);}
  })();
  const rpc=(name,args={})=>request('/rest/v1/rpc/'+name,{method:'POST',body:args});
@@ -94,6 +128,41 @@
    const value=await request('/auth/v1/token?grant_type=password',{method:'POST',auth:false,body:{email:identifier,password}});
    // Persist only session tokens; never store the submitted password.
    await activate(value);location.reload();
+  },
+  signInWithGoogle(){return google(false);},
+  linkGoogle(){return google(true);},
+  async accountInfo(){await ready;const user=await request('/auth/v1/user');if(!user?.id||user.id!==session?.user?.id)throw new Error('Account verification failed. Sign in again.');saveSession({...session,user});return user;},
+  async changePassword(currentPassword,newPassword){
+   await ready;
+   if(typeof newPassword!=='string'||newPassword.length<8||newPassword.length>1024)throw new Error('Use a new password with at least 8 characters.');
+   if(currentPassword===newPassword)throw new Error('Choose a different new password.');
+   const user=await this.accountInfo();if(!user.email)throw new Error('This account does not have an email/password login.');
+   const passwordAccount=user.identities?.some(identity=>identity.provider==='email')!==false;
+   if(!currentPassword&&!passwordAccount){
+    const recent=Date.parse(user.last_sign_in_at||'');
+    if(!Number.isFinite(recent)||Date.now()-recent>10*60000)throw new Error('Sign out and continue with Google again before setting a password.');
+    try{const updated=await request('/auth/v1/user',{method:'PUT',body:{password:newPassword}});if(updated?.id!==user.id)throw new Error('Account verification failed.');saveSession({...session,user:updated});return {changed:true};}
+    catch(e){if(/nonce|reauthenticat/i.test(e.message))throw new Error('Sign out, continue with Google again, then retry setting a password.');throw e;}
+   }
+   if(typeof currentPassword!=='string'||!currentPassword||currentPassword.length>1024)throw new Error('Enter your current password.');
+   const verified=await request('/auth/v1/token?grant_type=password',{method:'POST',auth:false,body:{email:user.email,password:currentPassword}});
+   if(typeof verified.access_token!=='string'||!verified.access_token)throw new Error('Password verification failed.');
+   let changed;
+   try{
+    const checked=await request('/auth/v1/user',{bearer:verified.access_token});
+    if(checked?.id!==user.id)throw new Error('Password verification did not match your signed-in account.');
+    // Update on the active session: Supabase retains this session when revoking other sessions.
+    changed=await request('/auth/v1/user',{method:'PUT',body:{password:newPassword,current_password:currentPassword}});
+    if(changed?.id!==user.id)throw new Error('Account verification failed. Sign in again.');
+    saveSession({...session,user:changed});return {changed:true};
+   }catch(e){if(e.code==='reauthentication_needed'||e.code==='reauthentication_not_valid'||/nonce|reauthenticat/i.test(e.message))throw new Error('Your account requires email verification for password changes. Sign out, sign in again, then retry from Account settings.');throw e;}
+   finally{if(verified.access_token)await request('/auth/v1/logout?scope=local',{method:'POST',bearer:verified.access_token}).catch(()=>{});}
+  },
+  async deleteAccount(confirmationEmail){
+   await ready;const user=await this.accountInfo();
+   if(typeof confirmationEmail!=='string'||confirmationEmail.trim().toLowerCase()!==user.email?.trim().toLowerCase())throw new Error('Type your account email to confirm permanent deletion.');
+   await database?.flush();await request('/functions/v1/account-delete',{method:'POST',body:{confirmationEmail:confirmationEmail.trim()}});
+   signingOut=true;database?.unsubscribe?.();if(database)clearInterval(database.timer);saveSession(null);try{oauthStorage().removeItem(OAUTH);}catch{}globalThis.SessionWorkspace?.clearPrivate?.();location.reload();return {deleted:true};
   },
   async signOut(){await ready;signingOut=true;database?.unsubscribe?.();if(database)clearInterval(database.timer);try{await database?.flush();if(session)await request('/auth/v1/logout',{method:'POST'});}finally{saveSession(null);globalThis.SessionWorkspace?.clearPrivate?.();location.reload();}},
   async exportBackup(){const db=await open();await db.flush();const snap=await rpc('sessiontv_snapshot');return {format:'session-tv-backup',version:1,createdAt:new Date().toISOString(),values:{[SessionStore.KEY]:JSON.stringify(snap.database),...snap.preferences}};},

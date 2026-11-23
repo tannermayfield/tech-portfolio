@@ -2,3 +2,7 @@
 # credentials with Supabase Auth and rate-limits requests itself.
 [functions.username-login]
 verify_jwt = false
+
+# The function validates the bearer with Supabase Auth before any privileged action.
+[functions.account-delete]
+verify_jwt = false

@@ -19,7 +19,7 @@ function renderSettings(){
   const exp=pj.filter(t=>t.status==='done').length;
   const stat=(n,l,v)=>`<button type="button" class="db-stat" data-db="${v}" title="Open ${l}"><b>${n}</b><span>${l}</span></button>`;
   $('set-body').innerHTML=`<div class="set-grid">
-    <div class="set-card"><h3>Session Login</h3><div class="row"><button class="btn" id="local-open">${SessionWorkspace.mode==='private'?'Logout':'Login to Session'}</button></div></div>
+    <div class="set-card"><h3>Session Login</h3><div class="row">${SessionWorkspace.mode==='private'?'<button class="btn" id="account-settings-open">Account Settings</button>':''}<button class="btn" id="local-open">${SessionWorkspace.mode==='private'?'Logout':'Login to Session'}</button></div></div>
     <div class="set-card"><h3>Appearance</h3><div class="row"><button class="btn" id="preferences-open">Open appearance</button></div></div>
     <div class="set-card"><h3>Exit SessionTV</h3><div class="row"><a class="btn" id="session-exit" href="https://tannermayfield.dev/#projects">Return to portfolio</a></div></div>
     <div class="set-card session-preferences-card"><h3>Session Preferences</h3><div class="row"><button class="btn" id="session-preferences-open" ${SessionWorkspace.mode==='private'?'':'disabled'}>Open preferences</button></div></div>

@@ -14,7 +14,7 @@ async function boot(saved={},url='http://127.0.0.1:4173'){
  const dom=new JSDOM(html,{
   url,runScripts:'dangerously',virtualConsole:vc,pretendToBeVisual:true,
   beforeParse(w){
-   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','project-chats','add-forms','home','session-preferences','speech','music','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
+   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','account','project-chats','add-forms','home','session-preferences','speech','music','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
    for(const [k,v]of Object.entries(saved))w.localStorage.setItem(k,v);
    w.fetch=async()=>({ok:true,json:async()=>({aiConfigured:false})});
    w.matchMedia=q=>({matches:q.includes('reduced-motion'),media:q,addEventListener(){},removeEventListener(){}});
@@ -281,3 +281,14 @@ test('section preferences keep identity, Voicebox voices and Apple Music in sepa
   assert.deepEqual(errors,[]);
  }finally{dom.window.close()}
 });
+
+ test('account settings are private, expose linked status and require matching deletion confirmation',async()=>{
+ const {dom,w}=await boot();try{
+ w.SessionWorkspace.setPrivate('account-test');Object.defineProperty(w.SessionCloud,'user',{value:{email:'owner@example.test'},configurable:true});w.SessionCloud.accountInfo=async()=>({email:'owner@example.test',identities:[{provider:'email'}]});
+ let deletes=0;w.SessionCloud.deleteAccount=async()=>{deletes++};
+ w.eval('renderSettings()');assert.equal(w.document.getElementById('account-settings-open').nextElementSibling.id,'local-open');
+ await w.SessionAccount.open();assert.equal(w.document.getElementById('account-google').hidden,false);
+ w.document.getElementById('account-delete-email').value='wrong@example.test';w.document.getElementById('account-delete').dispatchEvent(new w.Event('submit',{cancelable:true}));await new Promise(r=>setTimeout(r,5));assert.equal(deletes,0);
+ w.dispatchEvent(new w.Event('sessiontv:auth'));assert.equal(w.document.getElementById('account-settings').open,false);
+ }finally{dom.window.close()}
+ });
