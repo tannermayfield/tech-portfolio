@@ -93,3 +93,5 @@ body.tv-home-active #view-log{visibility:hidden;pointer-events:none}#tv-home .gd
 #tv-settings .db-list:has(>.class-settings-row){grid-template-columns:1fr}.class-settings-row{margin-bottom:0}#class-edit{overflow:hidden}#class-edit>.local-panel{max-height:calc(var(--crt-h,100vh) - 48px);overflow:auto}
 
 #coach-form .project-model-controls{flex:none;gap:6px;margin:0;align-self:center}#coach-form .project-model-controls:empty{display:none}#coach-form #project-reasoning{width:auto;max-width:110px;padding:6px;font-size:11px}#coach-form .project-model-controls [role=status]{font-size:11px;max-width:150px}
+
+#class-edit .class-delete{border:0;padding:0;margin-top:16px}#class-delete-confirm{padding:0;width:min(520px,calc(var(--crt-w,100vw) - 32px))}#class-delete-confirm .danger{color:#c54e48;border-color:#c54e48}
