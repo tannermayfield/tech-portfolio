@@ -156,7 +156,7 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
  const {dom,w,errors}=await boot();
  try {
   w.SessionWorkspace={...w.SessionWorkspace,mode:'private'};
-  w.SessionCompanion.models=async()=>({models:[{id:'latest-codex',model:'latest-codex',displayName:'Latest available Codex'}],selectedModel:'latest-codex',efforts:['low','medium','high','xhigh']});
+  w.SessionCompanion.models=async()=>({models:[{id:'latest-codex',model:'latest-codex',displayName:'Latest available Codex'},{id:'gpt-6-luna',displayName:'GPT-6 Luna',efforts:['low']}],selectedModel:'latest-codex',efforts:['low','medium','high','xhigh']});
   w.SessionCompanion.pickFolder=async()=>({folder:'C:\\Projects\\example'});
   w.SessionCompanion.prepareProject=async folder=>({folder,chats:['plan','apply','work'].map(mode=>({mode,threadId:'thread-'+mode}))});
   w.document.getElementById('btn-set').click();
@@ -201,7 +201,7 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
   assert.equal(w.document.querySelector('.project-chat-heading'),null);assert.equal(w.document.querySelector('#project-reasoning'),null);
   w.eval("current.projModes={'Example project':'work'};renderWork()");
   assert.match(w.document.getElementById('project-effort-button').textContent,/Medium/);
-  w.document.getElementById('project-effort-button').click();w.document.getElementById('project-reasoning').value='2';w.document.getElementById('project-reasoning').dispatchEvent(new w.Event('change'));
+  await until(()=>!w.document.getElementById('project-effort-button').disabled);w.document.getElementById('project-effort-button').click();w.document.getElementById('project-reasoning').value='2';w.document.getElementById('project-reasoning').dispatchEvent(new w.Event('change'));
   w.renderWork();assert.match(w.document.getElementById('project-effort-button').textContent,/High/);
   expectedMode='work';expectedEffort='high';await w.sendCoach('Build with this effort');
   assert.match(w.document.getElementById('project-effort-button').textContent,/High/);
@@ -209,7 +209,7 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
   expectedEffort='medium';await w.sendCoach('Continue with the default');
   w.eval("current.projModes={'Example project':'plan'};renderWork()");
   assert.equal(w.document.getElementById('project-reasoning'),null);
-  expectedMode='plan';expectedEffort='low';await w.sendCoach('Plan the sprint');
+  expectedMode='plan';expectedEffort='low';await until(()=>!w.document.getElementById('coach-send').disabled);await w.sendCoach('Plan the sprint');
   w.SessionCompanion.prepareProject=async()=>{throw new Error('Sandbox setup needed')};
   await assert.rejects(w.SessionProjectChats.create('Not ready','C:\\Projects\\example'),/Sandbox setup needed/);
   assert.equal(w.SessionProjectChats.names().includes('Not ready'),false);

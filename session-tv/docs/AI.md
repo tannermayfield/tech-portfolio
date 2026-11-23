@@ -63,7 +63,7 @@ References: [local-app overview](https://developers.openai.com/siwc/token-sharin
 
 The companion reads the available Codex catalog via `model/list`, follows pagination and uses its recommended default model (or the first model in server order if no default is advertised). This follows Codex’s recommendation rather than guessing model versions from names. It refreshes on each run.
 
-Plan and Apply always send `low` (Light). Work sends `medium` by default and allows `low`, `medium`, `high`, or `xhigh` when the selected model advertises support. The browser resets Work to Medium when entering the chat; ordinary streaming re-renders preserve the choice. Unsupported combinations fail clearly rather than silently changing effort. Model and effort are explicitly set on `turn/start`, including resumed threads.
+Plan and Apply use `gpt-6-luna` at `low` (Light). If Luna is unavailable, they report an error instead of silently falling back to Sol. Work sends `medium` by default and allows `low`, `medium`, `high`, or `xhigh` when the selected model advertises support. The browser resets Work to Medium when entering the chat; ordinary streaming re-renders preserve the choice. Unsupported combinations fail clearly rather than silently changing effort. Model and effort are explicitly set on `turn/start`, including resumed threads.
 
 ## Project chats and folder links
 

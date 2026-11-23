@@ -129,12 +129,13 @@ test('model catalog follows server recommendation across paginated account-scope
 
 test('Plan and Apply force Light while Work defaults Medium and only supported effort reaches a turn',async()=>{
  const bridge=Object.create(CodexBridge.prototype),calls=[],events=[];bridge.prepare=async()=> 'thread';bridge.emit=(method,event)=>events.push(event);
- bridge.models=async()=>({models:[{id:'newest',displayName:'Newest'}],selectedModel:'newest',efforts:['low','medium','high','xhigh']});bridge.request=async(method,params)=>{calls.push({method,params});return {}};
- for(const mode of ['plan','apply']){await bridge.start(tmpdir(),'message',undefined,mode,'xhigh');assert.equal(calls.at(-1).params.effort,'low');assert.equal(calls.at(-1).params.model,'newest')}
- await bridge.start(tmpdir(),'message');assert.equal(calls.at(-1).params.effort,'medium');
+ bridge.models=async()=>({models:[{id:'newest',displayName:'Newest'},{id:'gpt-6-luna',displayName:'Luna',efforts:['low']}],selectedModel:'newest',efforts:['low','medium','high','xhigh']});bridge.request=async(method,params)=>{calls.push({method,params});return {}};
+ for(const mode of ['plan','apply']){await bridge.start(tmpdir(),'message',undefined,mode,'xhigh');assert.equal(calls.at(-1).params.effort,'low');assert.equal(calls.at(-1).params.model,'gpt-6-luna')}
+ await bridge.start(tmpdir(),'message');assert.equal(calls.at(-1).params.effort,'medium');assert.equal(calls.at(-1).params.model,'newest');
  for(const effort of ['low','medium','high','xhigh']){await bridge.start(tmpdir(),'message',undefined,'work',effort);assert.equal(calls.at(-1).params.effort,effort)}
  const count=calls.length;await assert.rejects(bridge.start(tmpdir(),'message',undefined,'work','unsupported'),/does not support/);assert.equal(calls.length,count);
- bridge.models=async()=>({models:[{id:'newest'}],selectedModel:'newest',efforts:['medium']});await assert.rejects(bridge.start(tmpdir(),'message',undefined,'plan'),/does not support low/);assert.equal(calls.length,count);
+ bridge.models=async()=>({models:[{id:'newest'},{id:'gpt-6-luna',efforts:['medium']}],selectedModel:'newest',efforts:['medium']});await assert.rejects(bridge.start(tmpdir(),'message',undefined,'plan'),/does not support low/);assert.equal(calls.length,count);
+ bridge.models=async()=>({models:[{id:'newest',efforts:['low']}],selectedModel:'newest',efforts:['low']});await assert.rejects(bridge.start(tmpdir(),'message',undefined,'apply'),/Luna is unavailable/);assert.equal(calls.length,count);
  assert.ok(events.some(event=>event.method==='sessiontv/model'&&event.params.effort==='medium'));
 });
 

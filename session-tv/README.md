@@ -20,7 +20,7 @@ See [cloud setup](docs/CLOUD.md) and [simple next steps](docs/NEXT-STEPS.md). En
 
 Settings → Session Preferences → AI Connection manages the local Codex companion and optional ChatGPT plan-backed general chat. ChatGPT authorization and inference run on your computer using the official local-app OAuth flow; the website receives no OpenAI credentials. Continue with ChatGPT requires your own browser consent. Use included plan usage and leave credit use disabled in ChatGPT Settings → Usage; there is no API-key or paid fallback. See [AI setup](docs/AI.md).
 
-Project Plan and Apply use the Codex catalog’s recommended model at Light effort. Work uses that model and opens at Medium, with Light, Medium, High and Extra high offered when supported. Every turn sends the selected model and effort explicitly.
+Project Plan and Apply use GPT-6 Luna at Light effort. Work uses that model and opens at Medium, with Light, Medium, High and Extra high offered when supported. Every turn sends the selected model and effort explicitly.
 
 The old `server.mjs` Claude API proxy remains for compatibility with the original explicit local API-key setup/tests. The new frontend never calls it, including when an environment key is present. It is not shipped to GitHub Pages. No ChatGPT/Claude tokens belong in browser storage or project configuration.
 

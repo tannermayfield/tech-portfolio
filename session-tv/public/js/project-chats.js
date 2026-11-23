@@ -12,28 +12,30 @@
  addEventListener('resize',()=>closeEffort());addEventListener('pagehide',()=>closeEffort());addEventListener('sessiontv:auth',()=>closeEffort());
  document.addEventListener('keydown',event=>{if(event.key==='Escape')closeEffort(true)});
  document.addEventListener('pointerdown',event=>{if(effortPopup&&!effortPopup.contains(event.target)&&!event.target.closest('#project-effort-button'))closeEffort()});
- function modelCatalog(folder) {
-  let catalog = modelCatalogs.get(folder);
+ function modelCatalog(folder,mode) {
+  const key=folder+'|'+mode;
+  let catalog = modelCatalogs.get(key);
   if (catalog) return catalog;
   catalog = {loading:true,models:[],efforts:[],error:''};
-  modelCatalogs.set(folder,catalog);
+  modelCatalogs.set(key,catalog);
   Promise.resolve().then(()=>SessionCompanion.models(folder)).then(result=>{
    if (!result.selectedModel || !Array.isArray(result.efforts)) throw new Error('Codex returned an incomplete model catalog.');
+   if(mode!=='work'){const luna=result.models?.find(model=>(model.id||model.model)==='gpt-6-luna');if(!luna)throw Error('GPT-6 Luna is unavailable. Reconnect or update Codex to use Plan and Apply.');result={...result,selectedModel:'gpt-6-luna',efforts:luna.efforts||[]}}
    Object.assign(catalog,result,{loading:false});
   }).catch(error=>{catalog.loading=false;catalog.error=error.message}).finally(()=>{
    const active=selected();
-   if (SessionWorkspace.mode==='private' && active && entry(active.name).folder===folder) renderProjectChat();
+   if (SessionWorkspace.mode==='private' && active && entry(active.name).folder===folder&&active.mode===mode) renderProjectChat();
   });
   return catalog;
  }
  function renderModelControls(heading,folder,mode) {
-  const catalog=modelCatalog(folder), controls=document.createElement('div');controls.className='project-model-controls';
+  const catalog=modelCatalog(folder,mode), controls=document.createElement('div');controls.className='project-model-controls';
   heading.querySelector('.project-model-controls')?.remove();
   const speech=heading.querySelector('.speech-controls');if(speech)heading.insertBefore(controls,speech);else $('coach-input').insertAdjacentElement('afterend',controls);
   if(catalog.loading||catalog.error){const state=document.createElement('span');state.textContent=catalog.error||'Connecting Codex…';state.setAttribute('role','status');controls.append(state)}
   if (catalog.error) {
    const retry=document.createElement('button');retry.type='button';retry.className='btn ghost';retry.textContent='Retry';retry.disabled=!!running;
-   retry.onclick=()=>{modelCatalogs.delete(folder);renderProjectChat()};controls.appendChild(retry);
+   retry.onclick=()=>{modelCatalogs.delete(folder+'|'+mode);renderProjectChat()};controls.appendChild(retry);
   }
   if (mode==='work') {
    const chosen=catalog.models.find(model=>(model.id||model.model)===catalog.selectedModel),modelName=chosen?.displayName||catalog.selectedModel||'Codex';
@@ -223,7 +225,7 @@
   if(SessionWorkspace.mode!=='private')return toast('Sign in to use project chats.');
   const {name,mode,task}=active, value=entry(name), chat=value.chats.find(chat=>chat.mode===mode);
   if(!chat?.threadId)return toast('Prepare the project’s starter chats in Manage first.');
-  const catalog=modelCatalog(value.folder),effort=mode==='work'?workEffort:'low';
+  const catalog=modelCatalog(value.folder,mode),effort=mode==='work'?workEffort:'low';
   if (catalog.loading||catalog.error||!catalog.efforts.includes(effort)) return toast(catalog.error||'Wait for a supported Codex model and effort before sending.');
   chat.messages.push({role:'user',text:show||prompt});const reply={role:'assistant',text:''};chat.messages.push(reply);
   running={name,mode,value};save(name,value);$('coach-input').value='';renderProjectChat();

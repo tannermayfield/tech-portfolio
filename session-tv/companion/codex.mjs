@@ -100,8 +100,10 @@ export class CodexBridge extends EventEmitter {
   const id=await this.prepare(cwd,mode,threadId);
   const catalog=await this.models();
   const effort=mode==='work'?(requestedEffort||'medium'):'low';
-  if(!['low','medium','high','xhigh'].includes(effort)||!catalog.efforts.includes(effort))throw new Error('The latest available Codex model does not support '+effort+' effort. Choose a supported effort.');
-  const model=catalog.selectedModel;
+  const model=mode==='work'?catalog.selectedModel:'gpt-6-luna';
+  const chosen=catalog.models.find(value=>value.id===model);
+  if(!chosen)throw new Error('GPT-6 Luna is unavailable for this Codex account. Plan and Apply require Luna Light.');
+  if(!['low','medium','high','xhigh'].includes(effort)||!(chosen.efforts||catalog.efforts).includes(effort))throw new Error('The latest available Codex model does not support '+effort+' effort. Choose a supported effort.');
   this.emit('event',{method:'sessiontv/model',params:{model,effort,displayName:catalog.models.find(value=>value.id===model).displayName}});
   const permissions=mode==='work'?'sessiontv':'sessiontv_'+mode;
   this.emit('event',{method:'sessiontv/thread',params:{threadId:id}});

@@ -102,7 +102,7 @@ try{
  await privatePage.evaluate(async()=>{
   const task=tasks.find(task=>typeOf(task)==='project'),name=task.course;
   store('sb.projectCodingChats',{[name]:{folder:'test-folder',chats:['plan','apply','work'].map(mode=>({mode,threadId:mode,messages:[]}))}});
-  SessionCompanion.models=async()=>({models:[{id:'latest-codex',displayName:'Latest Codex'}],selectedModel:'latest-codex',efforts:['low','medium','high','xhigh']});
+  SessionCompanion.models=async()=>({models:[{id:'latest-codex',displayName:'Latest Codex'},{id:'gpt-6-luna',displayName:'GPT-6 Luna',efforts:['low']}],selectedModel:'latest-codex',efforts:['low','medium','high','xhigh']});
   document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());current.projModes={...(current.projModes||{}),[name]:'work'};await tune(task.id,{cut:false});closeSheets();go('work');renderWork();
  });
  await privatePage.waitForFunction(()=>document.getElementById('project-effort-button')&&!document.getElementById('project-effort-button').disabled);
