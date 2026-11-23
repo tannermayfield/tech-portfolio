@@ -7,6 +7,11 @@
  const effortLabels = {low:'Light',medium:'Medium',high:'High',xhigh:'Extra high'};
  const modelCatalogs = new Map();
  let chatContext = '', workEffort = 'medium';
+ let effortPopup=null;
+ function closeEffort(restore=false){if(!effortPopup)return;try{effortPopup.hidePopover?.()}catch{}effortPopup.remove();effortPopup=null;const trigger=document.getElementById('project-effort-button');trigger?.setAttribute('aria-expanded','false');if(trigger){trigger.firstElementChild.textContent=trigger.dataset.model;trigger.lastElementChild.hidden=false;trigger.lastElementChild.textContent=effortLabels[workEffort]}if(restore)document.getElementById('project-effort-button')?.focus()}
+ addEventListener('resize',()=>closeEffort());addEventListener('pagehide',()=>closeEffort());addEventListener('sessiontv:auth',()=>closeEffort());
+ document.addEventListener('keydown',event=>{if(event.key==='Escape')closeEffort(true)});
+ document.addEventListener('pointerdown',event=>{if(effortPopup&&!effortPopup.contains(event.target)&&!event.target.closest('#project-effort-button'))closeEffort()});
  function modelCatalog(folder) {
   let catalog = modelCatalogs.get(folder);
   if (catalog) return catalog;
@@ -31,12 +36,22 @@
    retry.onclick=()=>{modelCatalogs.delete(folder);renderProjectChat()};controls.appendChild(retry);
   }
   if (mode==='work') {
-   const select=document.createElement('select');select.id='project-reasoning';select.setAttribute('aria-label','Codex reasoning effort');
-   for (const [value,label]of Object.entries(effortLabels)) {
-    const option=new Option(label,value);option.disabled=!catalog.efforts.includes(value);select.add(option);
-   }
-   select.value=workEffort;select.disabled=!!running||catalog.loading||!!catalog.error;
-   select.onchange=()=>{workEffort=select.value;renderProjectChat()};controls.appendChild(select);
+   const chosen=catalog.models.find(model=>(model.id||model.model)===catalog.selectedModel),modelName=chosen?.displayName||catalog.selectedModel||'Codex';
+   const trigger=document.createElement('button');trigger.type='button';trigger.id='project-effort-button';trigger.className='project-effort-button';trigger.dataset.model=modelName;trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-controls','project-effort-popup');trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-label','Select Codex effort: '+effortLabels[workEffort]);trigger.disabled=!!running||catalog.loading||!!catalog.error;
+   const name=document.createElement('span');name.textContent=modelName;const effort=document.createElement('span');effort.className='effort-muted';effort.textContent=effortLabels[workEffort];trigger.append(name,effort);controls.append(trigger);
+   trigger.onclick=()=>{
+    if(effortPopup){closeEffort();return}
+    const choices=Object.keys(effortLabels).filter(value=>catalog.efforts.includes(value));if(!choices.length)return;
+    const popup=effortPopup=document.createElement('div');popup.id='project-effort-popup';popup.className='project-effort-popup';popup.setAttribute('popover','auto');popup.setAttribute('role','dialog');popup.setAttribute('aria-label','Select Codex effort');
+    const header=document.createElement('div');header.className='effort-popup-head';const selected=document.createElement('strong');selected.textContent=effortLabels[workEffort];const reset=document.createElement('button');reset.type='button';reset.className='effort-reset';reset.textContent='↺';reset.title='Reset to Medium';reset.setAttribute('aria-label','Reset effort to Medium');reset.disabled=!choices.includes('medium');header.append(selected,reset);
+    const model=document.createElement('p');model.className='effort-model';model.textContent=modelName;
+    const track=document.createElement('div');track.className='effort-track';const range=document.createElement('input');range.type='range';range.id='project-reasoning';range.min='0';range.max=String(choices.length-1);range.step='1';range.value=String(Math.max(0,choices.indexOf(workEffort)));range.setAttribute('aria-label','Reasoning effort');range.setAttribute('aria-valuetext',effortLabels[workEffort]);track.append(range);
+    const ticks=document.createElement('div');ticks.className='effort-ticks';for(const value of choices){const tick=document.createElement('button');tick.type='button';tick.textContent=effortLabels[value];tick.setAttribute('aria-pressed',String(value===workEffort));tick.onclick=()=>choose(value);ticks.append(tick)}
+    function choose(value){workEffort=value;selected.textContent=effortLabels[value];effort.textContent=effortLabels[value];trigger.setAttribute('aria-label','Select Codex effort: '+effortLabels[value]);range.value=String(choices.indexOf(value));range.setAttribute('aria-valuetext',effortLabels[value]);ticks.querySelectorAll('button').forEach((tick,index)=>tick.setAttribute('aria-pressed',String(choices[index]===value)))}
+    range.oninput=()=>choose(choices[Number(range.value)]);range.onchange=()=>choose(choices[Number(range.value)]);reset.onclick=()=>choose('medium');popup.append(header,model,track,ticks);document.body.append(popup);popup.showPopover?.();trigger.setAttribute('aria-expanded','true');name.textContent='Select effort';effort.hidden=true;
+    const anchor=trigger.getBoundingClientRect(),box=popup.getBoundingClientRect();popup.style.left=Math.max(8,Math.min(innerWidth-box.width-8,anchor.right-box.width))+'px';popup.style.top=Math.max(8,anchor.top-box.height-12)+'px';range.focus();popup.addEventListener('toggle',event=>{if(effortPopup===popup&&event.newState==='closed')closeEffort()});
+   };
+
   }
   const requested=mode==='work'?workEffort:'low';
   if (!catalog.loading && !catalog.error && !catalog.efforts.includes(requested)) {
@@ -158,7 +173,7 @@
   if(!names().length) { const empty = document.createElement('p'); empty.className='db-empty'; empty.textContent='No projects yet.'; table.appendChild(empty); }
  };
  function renderProjectChat() {
-  const active = selected(); if(!active)return false;
+  closeEffort();const active = selected(); if(!active)return false;
   const {name,mode,task} = active, value = entry(name), chat = modeChat(name,mode);
   const context=TV.mode==='task'?name+'|'+mode+'|'+value.folder:'';
   if (context!==chatContext) {chatContext=context;workEffort='medium'}

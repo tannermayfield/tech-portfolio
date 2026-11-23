@@ -103,12 +103,12 @@ try{
   const task=tasks.find(task=>typeOf(task)==='project'),name=task.course;
   store('sb.projectCodingChats',{[name]:{folder:'test-folder',chats:['plan','apply','work'].map(mode=>({mode,threadId:mode,messages:[]}))}});
   SessionCompanion.models=async()=>({models:[{id:'latest-codex',displayName:'Latest Codex'}],selectedModel:'latest-codex',efforts:['low','medium','high','xhigh']});
-  current.projModes={...(current.projModes||{}),[name]:'work'};await tune(task.id,{cut:false});closeSheets();go('work');renderWork();
+  document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());current.projModes={...(current.projModes||{}),[name]:'work'};await tune(task.id,{cut:false});closeSheets();go('work');renderWork();
  });
- await privatePage.waitForFunction(()=>document.getElementById('project-reasoning')&&!document.getElementById('project-reasoning').disabled);
- assert.equal(await privatePage.locator('#project-reasoning').inputValue(),'medium');
- assert.equal(await privatePage.locator('#coach-form .project-model-controls + .speech-controls').count(),1);assert.equal(await privatePage.locator('.project-chat-heading').count(),0);assert.equal(await privatePage.locator('#coach-log [data-chatgpt-open]').count(),0);await privatePage.locator('#project-reasoning').selectOption('xhigh');assert.equal(await privatePage.locator('#project-reasoning').inputValue(),'xhigh');
- await privatePage.evaluate(()=>{openSettings();closeSheets();renderWork()});assert.equal(await privatePage.locator('#project-reasoning').inputValue(),'medium');
+ await privatePage.waitForFunction(()=>document.getElementById('project-effort-button')&&!document.getElementById('project-effort-button').disabled);
+ assert.match(await privatePage.locator('#project-effort-button').textContent(),/Medium/);
+ assert.equal(await privatePage.locator('#coach-form .project-model-controls + .speech-controls').count(),1);assert.equal(await privatePage.locator('.project-chat-heading').count(),0);assert.equal(await privatePage.locator('#coach-log [data-chatgpt-open]').count(),0);await privatePage.locator('#project-effort-button').click();assert.equal(await privatePage.locator('#project-effort-popup').isVisible(),true);await privatePage.locator('.effort-ticks button').filter({hasText:'Extra high'}).click();assert.equal(await privatePage.locator('#project-reasoning').getAttribute('aria-valuetext'),'Extra high');await privatePage.locator('#project-effort-popup').screenshot({path:'test-results/effort-popup.png'});await privatePage.keyboard.press('Escape');assert.match(await privatePage.locator('#project-effort-button').textContent(),/Extra high/);
+ await privatePage.evaluate(()=>{openSettings();closeSheets();renderWork()});assert.match(await privatePage.locator('#project-effort-button').textContent(),/Medium/);
  for(const mode of ['plan','apply']){
   await privatePage.evaluate(mode=>{const task=tasks.find(task=>typeOf(task)==='project');current.projModes[task.course]=mode;renderWork()},mode);
   assert.equal(await privatePage.locator('#project-reasoning').count(),0);assert.equal(await privatePage.locator('.project-chat-heading').count(),0);assert.equal(await privatePage.locator('[data-speech=speaker]').count(),0);

@@ -200,12 +200,12 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
   assert.match(w.document.getElementById('coach-log').textContent,/A small hint/);
   assert.equal(w.document.querySelector('.project-chat-heading'),null);assert.equal(w.document.querySelector('#project-reasoning'),null);
   w.eval("current.projModes={'Example project':'work'};renderWork()");
-  assert.equal(w.document.getElementById('project-reasoning').value,'medium');
-  w.document.getElementById('project-reasoning').value='high';w.document.getElementById('project-reasoning').dispatchEvent(new w.Event('change'));
-  w.renderWork();assert.equal(w.document.getElementById('project-reasoning').value,'high');
+  assert.match(w.document.getElementById('project-effort-button').textContent,/Medium/);
+  w.document.getElementById('project-effort-button').click();w.document.getElementById('project-reasoning').value='2';w.document.getElementById('project-reasoning').dispatchEvent(new w.Event('change'));
+  w.renderWork();assert.match(w.document.getElementById('project-effort-button').textContent,/High/);
   expectedMode='work';expectedEffort='high';await w.sendCoach('Build with this effort');
-  assert.equal(w.document.getElementById('project-reasoning').value,'high');
-  w.openSettings();w.closeSheets();w.renderWork();assert.equal(w.document.getElementById('project-reasoning').value,'medium');
+  assert.match(w.document.getElementById('project-effort-button').textContent,/High/);
+  w.openSettings();w.closeSheets();w.renderWork();assert.match(w.document.getElementById('project-effort-button').textContent,/Medium/);
   expectedEffort='medium';await w.sendCoach('Continue with the default');
   w.eval("current.projModes={'Example project':'plan'};renderWork()");
   assert.equal(w.document.getElementById('project-reasoning'),null);
