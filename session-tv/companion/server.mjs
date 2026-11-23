@@ -7,6 +7,7 @@ import {CodexBridge} from './codex.mjs';
 import {folderStore} from './folders.mjs';
 import {voiceService} from './voice.mjs';
 import {chatGPTService} from './chatgpt.mjs';
+import {canvasService} from './canvas.mjs';
 
 const failure=(status,message)=>Object.assign(new Error(message),{status});
 const secret=()=>randomBytes(24).toString('base64url');
@@ -16,10 +17,11 @@ export async function canonicalWorkspaces(values){
  const roots=[];for(const value of values){const root=await realpath(value);if(!(await stat(root)).isDirectory()||path.parse(root).root===root)throw new Error('Select a project directory, not a filesystem root.');roots.push(root)}
  if(!roots.length)throw new Error('Select at least one project directory with SESSIONTV_WORKSPACES (JSON array).');return [...new Set(roots)];
 }
-export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now,deviceToken,configPath,pickFolder,openFolder,voice=voiceService(),chatgpt}){
+export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now,deviceToken,configPath,pickFolder,openFolder,voice=voiceService(),chatgpt,canvas}){
  if(!/^https:\/\//.test(supabaseUrl||'')||!publishableKey||!ownerId||!home||!workspaces?.length)throw new Error('Supabase URL, public key, owner UUID, dedicated CODEX_HOME and selected workspaces are required.');
  if(new URL(origin).origin!==origin)throw new Error('SESSIONTV_ORIGIN must be an exact origin.');
  const generalChat=chatgpt||chatGPTService({home});
+ const schoolCanvas=canvas||canvasService({home});
  const chatRequest=async request=>{try{return await request}catch(error){if([401,403].includes(error.status))throw failure(424,error.message);throw error}};
  const folders=folderStore({configPath,initialWorkspaces:workspaces,home,pickFolder,openFolder});
  const code=secret(),expires=now()+600000,pairs=new Map();let attempts=0,paired=false,active=null,activeConfirmed=false,operation=false,generalRun=null;
@@ -91,6 +93,14 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     paired=true;const token=deviceToken||secret();pairs.set(token,{userId:user.id,expires:now()+1800000});json(res,200,{token,remember:!!deviceToken,expiresIn:deviceToken?null:1800});return;
    }
    await authorize(req);
+   if(route.startsWith('/canvas/')){
+    const body=await readJSON(req);
+    if(route==='/canvas/status'){json(res,200,await chatRequest(schoolCanvas.status()));return;}
+    if(route==='/canvas/connect'){json(res,200,await chatRequest(schoolCanvas.connect({token:body.token})));return;}
+    if(route==='/canvas/disconnect'){json(res,200,await chatRequest(schoolCanvas.disconnect()));return;}
+    if(route==='/canvas/snapshot'){json(res,200,await chatRequest(schoolCanvas.snapshot()));return;}
+    throw failure(404,'Unknown Canvas endpoint.');
+   }
    if(route==='/codex/connect'||route==='/codex/login-status'){
     await readJSON(req);expireCodexLogin();
     if(route==='/codex/connect'){json(res,200,await connectCodex());return;}
@@ -188,7 +198,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    }catch(error){if(res.headersSent){write({method:'sessiontv/error',params:{error:error.message}});res.end()}else throw error;stop()}
   }catch(error){if(!res.headersSent)json(res,error.status||500,{error:error.status?error.message:'Companion request failed. Check local setup.'});else res.end()}
  });
- server.on('close',()=>{if(codexLogin)endCodexLogin(codexLogin,{error:'Codex sign-in was canceled.'});active?.stop();generalRun?.abort();generalChat.close?.()});
+ server.on('close',()=>{if(codexLogin)endCodexLogin(codexLogin,{error:'Codex sign-in was canceled.'});active?.stop();generalRun?.abort();generalChat.close?.();schoolCanvas.close?.()});
  return {server,pairingCode:code,listen:()=>new Promise(resolve=>server.listen(port,'127.0.0.1',resolve))};
 }
 async function main(){

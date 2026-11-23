@@ -186,6 +186,7 @@ let tdId=null;
 function fmtDue(t){if(!t.due)return 'No due date';const d=parseDay(t.due);return d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+(t.dueTime?' at '+fmtTime(t.dueTime):'')}
 function openTask(id,edit){
   const t=T(id);if(!t)return;tdId=id;const done=t.status==='done',d=t.due?dueFor(t):null,lead=leadOf(t);
+  let canvasLink='';try{const url=new URL(t.canvas?.url);if(url.origin==='https://byu.instructure.com'&&!url.username&&!url.password)canvasLink=url.href}catch{}
   let start='';if(t.due){const s=parseDay(t.due);s.setDate(s.getDate()-lead);start=s.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}
   $('td-view').innerHTML=`<div class="td-head"><h3 id="td-title">${esc(t.title)}</h3><button type="button" class="td-x" id="td-close" aria-label="Close">×</button></div>
     <dl class="td-rows">
@@ -194,16 +195,21 @@ function openTask(id,edit){
       <dt>Start early</dt><dd>${lead} day${lead===1?'':'s'} ahead${start?` <span class="muted">(shows as due soon from ${esc(start)})</span>`:''}</dd>
       <dt>Status</dt><dd>${done?`<span style="color:var(--ok)">✓ Submitted</span>${t.doneAt?` <span class="muted">${esc(new Date(t.doneAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}))}</span>`:''}`:'Not submitted'}</dd>
       ${t.goal?`<dt>Goal</dt><dd>By the end, you should be able to explain ${esc(t.goal)}</dd>`:''}
+      ${t.description?`<dt>Instructions</dt><dd class="assignment-instructions">${esc(t.description)}</dd>`:''}
+      ${Array.isArray(t.skills)&&t.skills.length?`<dt>Skills</dt><dd>${esc(t.skills.join(', '))}</dd>`:''}
+      ${t.points!==undefined&&t.points!==''?`<dt>Points</dt><dd>${esc(t.points)}</dd>`:''}
+      ${t.canvas?`<dt>Source</dt><dd>Canvas · submission status updates on sync${canvasLink?` · <a href="${esc(canvasLink)}" target="_blank" rel="noopener noreferrer">Open in Canvas</a>`:''}</dd>`:''}
     </dl>
     <div class="dd-btns"><button type="button" class="btn ghost" id="td-edit">Edit</button><button type="button" class="btn primary" id="td-sub">${done?'Mark not submitted':'Mark submitted'}</button></div>`;
   if(TV.tdPast===id){const x=$('td-close');x.textContent='‹ Back';x.classList.add('td-back');x.setAttribute('aria-label','Back to past assignments');x.onclick=()=>{TV.tdPast=null;openPast()}}
   else $('td-close').onclick=()=>$('task-dlg').close();
+  $('td-sub').hidden=!!t.canvas;
   $('td-sub').onclick=()=>{toggleSubmitted(id);setTimeout(()=>openTask(id),50)};
   $('td-edit').onclick=()=>openTask(id,true);
   $('td-view').hidden=!!edit;$('td-form').hidden=!edit;
   if(edit){$('td-t').value=t.title||'';$('td-course').value=t.course||'';$('td-lead').value=lead;$('td-due').value=t.due||'';$('td-time').value=t.dueTime||'';$('td-goal').value=t.goal||''}
   if(!$('task-dlg').open)$('task-dlg').showModal();
-  (edit?$('td-t'):$('td-sub')).focus();
+  (edit?$('td-t'):t.canvas?$('td-close'):$('td-sub')).focus();
 }
 $('task-dlg').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.close()});
 $('task-dlg').addEventListener('close',()=>{TV.tdPast=null});
@@ -2068,7 +2074,7 @@ function gdInfoHTML(k){
     return `<div class="gd-sel"><div class="gd-t">${esc(t.title)}</div></div>
       <div class="gd-desc">${esc(d.text)}${done?' · submitted':''}${t.goal?` — by the end, explain ${esc(t.goal)}.`:''}</div>
       <div class="gd-det-row"><button type="button" class="btn gd-det" data-act="homework">Homework Overview</button></div>
-      <div class="gd-acts">${done?'':`<button type="button" class="btn primary" data-act="tune">Tune in ▸</button>`}<button type="button" class="btn" data-act="sub">${done?'Mark not submitted':'Mark submitted'}</button></div>`}
+      <div class="gd-acts">${done?'':`<button type="button" class="btn primary" data-act="tune">Tune in ▸</button>`}${t.canvas?'':`<button type="button" class="btn" data-act="sub">${done?'Mark not submitted':'Mark submitted'}</button>`}</div>`}
   if(k==='skill'){const t=T(sel);if(!t)return `<div class="gd-sel"><div class="gd-t">No skills here</div></div><div class="gd-desc">Pick another category, or add a skill from Settings.</div>`;
     const n=skillLevel(t);
     return `<div class="gd-sel"><div class="gd-t">${esc(skShort(t))}</div></div>

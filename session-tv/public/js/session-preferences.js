@@ -53,6 +53,7 @@
   globalThis.SessionSpeech?.mountSettings(document.getElementById('session-voices'));
   globalThis.SessionMusic?.mountSettings(document.getElementById('session-music'));
   globalThis.SessionChatGPT?.mountSettings(document.getElementById('chatgpt-connection'));
+  globalThis.SessionCanvas?.mountSettings(document.getElementById('session-canvas'));
   selectTab(selectedTab);
  }};
  selectTab(selectedTab);

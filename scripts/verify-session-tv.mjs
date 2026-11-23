@@ -58,7 +58,7 @@ try{
  await privatePage.locator('#account-settings [data-close]').click();await privatePage.locator('#session-preferences-open').click();
  for(const width of [1280,390]){
   await privatePage.setViewportSize({width,height:width===390?844:628});
-  for(const tab of ['sections','voices','music','ai']){
+  for(const tab of ['sections','voices','music','canvas','ai']){
    await privatePage.locator('#pref-tab-'+tab).click();
    const panel=privatePage.locator('#session-'+(tab==='ai'?'ai':tab));assert.equal(await panel.isVisible(),true);
    const box=await privatePage.locator('#local-setup').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width+1);
