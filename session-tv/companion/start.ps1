@@ -33,13 +33,17 @@ $env:SESSIONTV_DEVICE_TOKEN = $sessionTvConfig.deviceToken
 $env:SESSIONTV_OWNER_ID = $sessionTvConfig.ownerId
 $env:SESSIONTV_WORKSPACES = ConvertTo-Json -Compress -InputObject @($sessionTvConfig.folders)
 $env:SESSIONTV_CODEX_HOME = Join-Path $env:LOCALAPPDATA 'SessionTV-Codex'
+New-Item -ItemType Directory -Path $env:SESSIONTV_CODEX_HOME -Force | Out-Null
 $env:SUPABASE_URL = 'https://tghzpzecxwerhwxoljkd.supabase.co'
 $env:SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_5Mhqzdy9P1ezF5TsVEQpuA_Za7Q-dkR'
 $sessionTvCodex = Get-Command codex.exe -ErrorAction SilentlyContinue
 if ($sessionTvCodex) { $env:SESSIONTV_CODEX_BINARY = $sessionTvCodex.Source }
 else {
-    $sessionTvInstalled = Get-ChildItem -LiteralPath (Join-Path $env:LOCALAPPDATA 'OpenAI\Codex\bin') -Filter codex.exe -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    if (!$sessionTvInstalled) { throw 'Install Codex CLI before starting the companion.' }
+    $sessionTvSearchRoots = @((Join-Path $env:LOCALAPPDATA 'OpenAI\Codex\bin'))
+    $sessionTvNpmShim = Get-Command codex.cmd -ErrorAction SilentlyContinue
+    if ($sessionTvNpmShim) { $sessionTvSearchRoots += Join-Path (Split-Path $sessionTvNpmShim.Source -Parent) 'node_modules\@openai' }
+    $sessionTvInstalled = $sessionTvSearchRoots | Where-Object { Test-Path -LiteralPath $_ -PathType Container } | ForEach-Object { Get-ChildItem -LiteralPath $_ -Filter codex.exe -Recurse -ErrorAction SilentlyContinue } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if (!$sessionTvInstalled) { throw 'Install Codex CLI or the Codex desktop app before starting the companion, then reopen this launcher.' }
     $env:SESSIONTV_CODEX_BINARY = $sessionTvInstalled.FullName
 }
 Write-Host ('Saved settings: ' + $sessionTvConfigFile)

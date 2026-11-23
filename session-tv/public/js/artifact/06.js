@@ -22,7 +22,7 @@ function renderSettings(){
     <div class="set-card"><h3>Session Login</h3><div class="row">${SessionWorkspace.mode==='private'?'<button class="btn" id="account-settings-open">Account Settings</button>':''}<button class="btn" id="local-open">${SessionWorkspace.mode==='private'?'Logout':'Login to Session'}</button></div></div>
     <div class="set-card"><h3>Appearance</h3><div class="row"><button class="btn" id="preferences-open">Open appearance</button></div></div>
     <div class="set-card"><h3>Exit SessionTV</h3><div class="row"><a class="btn" id="session-exit" href="https://tannermayfield.dev/#projects">Return to portfolio</a></div></div>
-    <div class="set-card session-preferences-card"><h3>Session Preferences</h3><div class="row"><button class="btn" id="session-preferences-open" ${SessionWorkspace.mode==='private'?'':'disabled'}>Open preferences</button></div></div>
+    <div class="set-card session-preferences-card"><h3>Session Preferences</h3><div id="session-connection-summary"></div><div class="row"><button class="btn" id="session-preferences-open" ${SessionWorkspace.mode==='private'?'':'disabled'}>Open Full Preferences</button></div></div>
     ${setTimeCard()}
     <div class="set-card db-card"><h3>My Database</h3>
       <div class="db-stats">${stat(courses.length,'Classes','classes')}${stat(sk.length,'Skills','skills')}${stat(projects.length,'Projects','projects')}<button type="button" class="db-stat resume-placeholder" disabled title="Coming later"><span>Resume &amp; Portfolio</span><small>Coming later</small></button></div>

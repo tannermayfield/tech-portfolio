@@ -23,6 +23,46 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
  const chatRequest=async request=>{try{return await request}catch(error){if([401,403].includes(error.status))throw failure(424,error.message);throw error}};
  const folders=folderStore({configPath,initialWorkspaces:workspaces,home,pickFolder,openFolder});
  const code=secret(),expires=now()+600000,pairs=new Map();let attempts=0,paired=false,active=null,activeConfirmed=false,operation=false,generalRun=null;
+ let codexLogin=null,codexLoginState={pending:false,connected:false,error:null};
+ function endCodexLogin(record,state){
+  if(codexLogin!==record)return;
+  codexLogin=null;clearTimeout(record.timer);record.bridge.removeListener('event',record.onEvent);record.bridge.removeListener('stopped',record.onStopped);
+  codexLoginState={pending:false,connected:!!state.connected,error:state.error||null};record.bridge.stop();
+ }
+ function expireCodexLogin(){if(codexLogin&&now()>=codexLogin.expires)endCodexLogin(codexLogin,{error:'Codex sign-in expired. Please connect again.'});}
+ async function connectCodex(){
+  expireCodexLogin();
+  if(codexLogin){if(!codexLogin.authUrl)throw failure(409,'Codex sign-in is starting. Try again shortly.');return {...codexLoginState,authUrl:codexLogin.authUrl,loginId:codexLogin.loginId};}
+  if(active||operation||codexLogin)throw failure(409,'A computer request is already running. Finish it before connecting Codex.');
+  operation=true;let bridge,record;
+  try{
+   bridge=bridgeFactory({executable,home,cwd:folders.workspaces[0]});await bridge.initialize();
+   const account=await bridge.account();
+   if(account.signedIn){codexLoginState={pending:false,connected:true,error:null};return {...codexLoginState,authUrl:null,loginId:null};}
+   record={bridge,loginId:null,authUrl:null,expires:now()+300000,early:[],finishing:false};
+   record.onEvent=event=>{
+    if(event.method!=='account/login/completed')return;
+    if(!record.loginId){if(record.early.length<8)record.early.push(event);return;}
+    if(codexLogin!==record||event.params?.loginId!==record.loginId||record.finishing)return;
+    record.finishing=true;
+    if(event.params.success!==true){endCodexLogin(record,{error:'Codex sign-in was canceled or could not be completed. Try again.'});return;}
+    bridge.account().then(account=>{
+     endCodexLogin(record,account.signedIn?{connected:true}:{error:'Codex did not confirm a ChatGPT sign-in. Connect again.'});
+    }).catch(()=>endCodexLogin(record,{error:'Codex sign-in could not be verified. Connect again.'}));
+   };
+   record.onStopped=()=>endCodexLogin(record,{error:'Codex stopped before sign-in completed. Connect again.'});
+   bridge.on('event',record.onEvent);bridge.on('stopped',record.onStopped);codexLogin=record;codexLoginState={pending:true,connected:false,error:null};
+   record.timer=setTimeout(()=>endCodexLogin(record,{error:'Codex sign-in expired. Please connect again.'}),300000);record.timer.unref?.();
+   const result=await bridge.request('account/login/start',{type:'chatgpt',useHostedLoginSuccessPage:true,appBrand:'codex'});
+   let authorization;try{authorization=new URL(result.authUrl);}catch{throw failure(503,'Codex returned an invalid sign-in link. Update Codex and retry.');}
+   if(result.type!=='chatgpt'||typeof result.loginId!=='string'||!result.loginId||result.loginId.length>200||authorization.protocol!=='https:'||authorization.username||authorization.password||authorization.port||['access_token','refresh_token','id_token','id_token_hint','api_key'].some(key=>authorization.searchParams.has(key))||!['auth.openai.com','chatgpt.com'].includes(authorization.hostname))throw failure(503,'Codex returned an invalid sign-in link. Update Codex and retry.');
+   if(codexLogin!==record)throw failure(503,'Codex stopped before sign-in started. Connect again.');
+   record.authUrl=authorization.href;record.loginId=result.loginId;
+   for(const event of record.early)record.onEvent(event);record.early=[];
+   return {...codexLoginState,authUrl:record.authUrl,loginId:record.loginId};
+  }catch(error){if(record)endCodexLogin(record,{error:'Codex sign-in could not start. Update Codex and try again.'});throw error.status?error:failure(503,'Codex sign-in could not start. Check that Codex is installed and try again.');}
+  finally{if(bridge&&codexLogin?.bridge!==bridge)bridge.stop();operation=false;}
+ }
  const verify=verifyUser||(async token=>{
   const response=await fetch(new URL('/auth/v1/user',supabaseUrl),{headers:{apikey:publishableKey,Authorization:'Bearer '+token},signal:AbortSignal.timeout(10000)});
   if(!response.ok)throw failure(401,'Your Supabase session is invalid. Sign in again.');return response.json();
@@ -51,6 +91,16 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     paired=true;const token=deviceToken||secret();pairs.set(token,{userId:user.id,expires:now()+1800000});json(res,200,{token,remember:!!deviceToken,expiresIn:deviceToken?null:1800});return;
    }
    await authorize(req);
+   if(route==='/codex/connect'||route==='/codex/login-status'){
+    await readJSON(req);expireCodexLogin();
+    if(route==='/codex/connect'){json(res,200,await connectCodex());return;}
+    if(codexLogin||active||operation){json(res,200,codexLogin?codexLoginState:{pending:false,connected:activeConfirmed||codexLoginState.connected,error:codexLoginState.error});return;}
+    operation=true;let bridge;
+    try{bridge=bridgeFactory({executable,home,cwd:folders.workspaces[0]});await bridge.initialize();const account=await bridge.account();codexLoginState={pending:false,connected:!!account.signedIn,error:account.signedIn?null:codexLoginState.error};}
+    catch{codexLoginState={pending:false,connected:false,error:'Codex could not be reached. Check that Codex is installed and connect again.'};}
+    finally{bridge?.stop();operation=false;}
+    json(res,200,codexLoginState);return;
+   }
    if(route.startsWith('/chatgpt/')){
     const body=await readJSON(req);
     if(route==='/chatgpt/status'){json(res,200,await chatRequest(generalChat.status()));return}
@@ -81,9 +131,9 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
      const audio=await voice.speak(body,controller.signal);res.writeHead(200,{'Content-Type':audio.type});res.end(audio.body);return;
     } finally {clearTimeout(timer);res.removeListener('close',abort)}
    }
-   if(route==='/disconnect'){pairs.delete(req.headers['x-sessiontv-pair']);active?.stop();generalRun?.abort();json(res,200,{disconnected:true});return}
+   if(route==='/disconnect'){if(codexLogin)endCodexLogin(codexLogin,{error:'Codex sign-in was canceled.'});pairs.delete(req.headers['x-sessiontv-pair']);active?.stop();generalRun?.abort();json(res,200,{disconnected:true});return}
    if(route==='/folders/pick'||route==='/folders/open'||route==='/projects/prepare'){
-    if(active||operation)throw failure(409,'A computer request is already running. Wait for it to finish.');
+    if(active||operation||codexLogin)throw failure(409,'A computer request is already running. Wait for it to finish.');
     operation=true;let bridge;
     try {
      const body=await readJSON(req);
@@ -98,7 +148,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     finally {bridge?.stop();operation=false}
    }
    if(route==='/models'){
-    if(active||operation)throw failure(409,'A computer request is already running. Try loading models when it finishes.');
+    if(active||operation||codexLogin)throw failure(409,'A computer request is already running. Try loading models when it finishes.');
     operation=true;let bridge;
     try{
      const body=await readJSON(req),cwd=body.workspace?await folders.authorized(body.workspace):folders.workspaces[0];
@@ -109,13 +159,14 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     return;
    }
    if(route==='/status'){
+    expireCodexLogin();if(codexLogin){json(res,200,{connected:true,available:true,signedIn:false,loginPending:true,busy:false,workspaces:folders.workspaces});return;}
     if(active||operation){json(res,200,{connected:true,available:activeConfirmed,signedIn:activeConfirmed,busy:true,workspaces:folders.workspaces});return}
     const bridge=bridgeFactory({executable,home,cwd:folders.workspaces[0]});
     try{await bridge.initialize();const account=await bridge.account();json(res,200,{connected:true,available:true,...account,workspaces:folders.workspaces,chatgpt:await generalChat.status().catch(()=>({connected:false,error:'Check your ChatGPT connection in Session Preferences.'}))})}
     catch(error){json(res,200,{connected:true,available:false,signedIn:false,error:error.message,workspaces:folders.workspaces})}finally{bridge.stop()};return;
    }
    if(route!=='/run')throw failure(404,'Unknown endpoint.');
-   if(active||operation)throw failure(409,'A coding request is already running.');
+   if(active||operation||codexLogin)throw failure(409,'A coding request is already running.');
    const body=await readJSON(req);if(typeof body.prompt!=='string'||!body.prompt.trim()||body.prompt.length>16000)throw failure(400,'Enter a coding request (up to 16,000 characters).');
    if(typeof body.workspace!=='string')throw failure(400,'Select an authorized workspace.');
    const cwd=await folders.authorized(body.workspace);
@@ -137,7 +188,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    }catch(error){if(res.headersSent){write({method:'sessiontv/error',params:{error:error.message}});res.end()}else throw error;stop()}
   }catch(error){if(!res.headersSent)json(res,error.status||500,{error:error.status?error.message:'Companion request failed. Check local setup.'});else res.end()}
  });
- server.on('close',()=>{active?.stop();generalRun?.abort();generalChat.close?.()});
+ server.on('close',()=>{if(codexLogin)endCodexLogin(codexLogin,{error:'Codex sign-in was canceled.'});active?.stop();generalRun?.abort();generalChat.close?.()});
  return {server,pairingCode:code,listen:()=>new Promise(resolve=>server.listen(port,'127.0.0.1',resolve))};
 }
 async function main(){

@@ -145,3 +145,48 @@ test('models endpoint requires pairing and authorizes a requested folder before 
  const response=await post('/models',{workspace:workspaces[0]},headers);assert.equal(response.status,200);const result=await response.json();assert.equal(result.selectedModel,'latest');assert.deepEqual(result.efforts,['low','medium','high','xhigh']);
  assert.equal((await post('/run',{workspace:workspaces[0],prompt:'hello',effort:'invalid'},headers)).status,400);
 }));
+
+async function loginFixture(callback,{authUrl='https://auth.openai.com/authorize?state=test',signedIn=false}={}){
+ const workspaces=await canonicalWorkspaces([tmpdir()]);let clock=1000,accountSignedIn=signedIn;const bridges=[];
+ class LoginBridge extends EventEmitter{
+  constructor(){super();this.requests=[];this.stops=0;bridges.push(this);}
+  get signedIn(){return accountSignedIn;}
+  set signedIn(value){accountSignedIn=value;}
+  async initialize(){}
+  async account(){return {signedIn:this.signedIn,authType:this.signedIn?'chatgpt':null};}
+  async request(method,params){this.requests.push({method,params});return {type:'chatgpt',loginId:'test-login',authUrl};}
+  stop(){this.stops++;}
+ }
+ const companion=createCompanion({port:0,origin:'https://tannermayfield.dev',supabaseUrl:'https://test.supabase.co',publishableKey:'public',ownerId:'owner',home:tmpdir()+'-sessiontv-login',workspaces,now:()=>clock,deviceToken:'remembered',verifyUser:async token=>({id:token==='owner-jwt'?'owner':'visitor'}),bridgeFactory:()=>new LoginBridge()});
+ await companion.listen();const url='http://127.0.0.1:'+companion.server.address().port;
+ const post=(route,body={},headers={})=>fetch(url+route,{method:'POST',headers:{Origin:'https://tannermayfield.dev','Content-Type':'application/json',Authorization:'Bearer owner-jwt','X-SessionTV-Pair':'remembered',...headers},body:JSON.stringify(body)});
+ try{await callback({post,companion,bridges,workspaces,advance:milliseconds=>clock+=milliseconds});}finally{if(companion.server.listening)await new Promise(resolve=>companion.server.close(resolve));}
+}
+test('Codex connect requires paired owner and does not initiate another login when already connected',()=>loginFixture(async({post,bridges})=>{
+ assert.equal((await post('/codex/connect',{}, {'X-SessionTV-Pair':''})).status,401);assert.equal((await post('/codex/connect',{}, {Authorization:'Bearer visitor-jwt'})).status,403);assert.equal(bridges.length,0);
+ const result=await(await post('/codex/connect')).json();assert.equal(result.connected,true);assert.equal(result.authUrl,null);assert.equal(bridges[0].requests.length,0);assert(bridges[0].stops>0);
+},{signedIn:true}));
+test('Codex login survives HTTP response and verifies matching completion before reporting connected',()=>loginFixture(async({post,bridges,workspaces})=>{
+ const result=await(await post('/codex/connect')).json();assert.equal(result.pending,true);assert.equal(result.loginId,'test-login');assert.equal(result.authUrl,'https://auth.openai.com/authorize?state=test');const bridge=bridges[0];assert.equal(bridge.stops,0);
+ assert.deepEqual(bridge.requests,[{method:'account/login/start',params:{type:'chatgpt',useHostedLoginSuccessPage:true,appBrand:'codex'}}]);
+ assert.equal((await(await post('/codex/connect')).json()).authUrl,result.authUrl);assert.equal(bridges.length,1);
+ assert.equal((await(await post('/status')).json()).loginPending,true);assert.equal(bridges.length,1);
+ assert.deepEqual(await(await post('/codex/login-status')).json(),{pending:true,connected:false,error:null});
+ assert.equal((await post('/models')).status,409);assert.equal((await post('/projects/prepare',{folder:workspaces[0]})).status,409);assert.equal((await post('/run',{workspace:workspaces[0],prompt:'Hi'})).status,409);
+ bridge.emit('event',{method:'account/login/completed',params:{loginId:'other-login',success:true}});assert.equal(bridge.stops,0);
+ bridge.signedIn=true;bridge.emit('event',{method:'account/login/completed',params:{loginId:'test-login',success:true}});await new Promise(resolve=>setImmediate(resolve));assert(bridge.stops>0);assert.equal(bridge.listenerCount('event'),0);
+ // A fresh status probe verifies the persisted account without exposing credentials.
+ bridges.length=0;
+ const status=await(await post('/codex/login-status')).json();assert.equal(status.pending,false);assert.equal(status.connected,true);assert(!JSON.stringify(status).includes('authUrl'));
+}));
+test('Codex login errors are safe and completion success without authenticated account remains disconnected',()=>loginFixture(async({post,bridges})=>{
+ await post('/codex/connect');bridges[0].emit('event',{method:'account/login/completed',params:{loginId:'test-login',success:false,error:'secret-access-token'}});assert(bridges[0].stops>0);let status=await(await post('/codex/login-status')).json();assert.equal(status.connected,false);assert(!status.error.includes('secret-access-token'));
+ await post('/codex/connect');const bridge=bridges.at(-1);bridge.emit('event',{method:'account/login/completed',params:{loginId:'test-login',success:true}});await new Promise(resolve=>setImmediate(resolve));assert(bridge.stops>0);status=await(await post('/codex/login-status')).json();assert.equal(status.connected,false);assert.match(status.error,/did not confirm/);
+}));
+test('Codex login rejects untrusted authorization URLs and cleans up its bridge',async()=>{
+ for(const authUrl of ['https://evil.example/authorize','http://auth.openai.com/authorize','https://secret@chatgpt.com/authorize','https://chatgpt.com/authorize?access_token=secret'])await loginFixture(async({post,bridges})=>{const response=await post('/codex/connect');assert.equal(response.status,503);assert(bridges[0].stops>0);assert.equal(bridges[0].listenerCount('event'),0);assert(!(await response.text()).includes('secret'));},{authUrl});
+});
+test('Codex login expires in five minutes and server close clears pending listeners and child',()=>loginFixture(async({post,bridges,advance,companion})=>{
+ await post('/codex/connect');const first=bridges[0];advance(300001);const status=await(await post('/codex/login-status')).json();assert.equal(status.pending,false);assert.equal(status.connected,false);assert.match(status.error,/expired/);assert(first.stops>0);
+ await post('/codex/connect');const second=bridges.at(-1);await new Promise(resolve=>companion.server.close(resolve));assert(second.stops>0);assert.equal(second.listenerCount('event'),0);assert.equal(second.listenerCount('stopped'),0);
+}));

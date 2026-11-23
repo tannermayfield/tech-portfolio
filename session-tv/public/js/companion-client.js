@@ -20,6 +20,8 @@
    if(!pairToken)return {connected:false,available:false,signedIn:false,workspaces:[],error:'Start the local companion and enter its pairing code.'};
    try{return await (await request('/status')).json()}catch(error){return {connected:false,available:false,signedIn:false,workspaces:[],error:error.message+' Allow browser local-network access when prompted; check that the companion is running.'}}
   },
+  async codexConnect(){return (await request('/codex/connect')).json()},
+  async codexLoginStatus(){return (await request('/codex/login-status')).json()},
   async chatGPTStatus(){return (await request('/chatgpt/status')).json()},
   async connectChatGPT(){return (await request('/chatgpt/connect')).json()},
   async disconnectChatGPT(){return (await request('/chatgpt/disconnect')).json()},
