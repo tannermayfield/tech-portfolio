@@ -2,6 +2,7 @@
 (() => {
  const school='https://byu.instructure.com';
  let container=null,connection=null,active=null,controller=null,epoch=0,timer=null,message='',disconnecting=false;
+ let mutationQueue=Promise.resolve(),mutationPending=0;
  const privateUser=()=>globalThis.SessionWorkspace?.mode==='private'&&!!globalThis.SessionCloud?.user;
  const current=e=>e===epoch&&privateUser();
  const enabled=()=>recall('sb.canvasSync',true)!==false;
@@ -34,7 +35,7 @@
   try{const result=await SessionCompanion.canvasStatus();if(!current(e))return;connection=result;message='';render();schedule();return result}catch{if(current(e)){message='Canvas status unavailable. Check the local companion and pairing.';render()}}
  }
  function sync(){
-  if(!privateUser()||disconnecting)return Promise.resolve();if(active)return active;
+  if(!privateUser()||disconnecting||mutationPending)return Promise.resolve();if(active)return active;
   const e=epoch,abort=new AbortController();controller=abort;
   active=(async()=>{
    try{
@@ -42,22 +43,34 @@
     message='Syncing Canvas…';render();const snapshot=await SessionCompanion.canvasSnapshot(abort.signal);if(!current(e))return;
     if(!Array.isArray(snapshot.courses)||!Array.isArray(snapshot.assignments)||!snapshot.account?.id)throw Error('Invalid Canvas snapshot');
     const account=String(snapshot.account.id),previous=recall('sb.canvasAccount',null);if(previous&&previous!==account)throw Error('Canvas account changed. Disconnect before connecting another account.');
-    const classes=JSON.parse(JSON.stringify(recall('sb.classes',{}))),map={...recall('sb.canvasCourses',{})};
-    for(const course of snapshot.courses){const id=String(course.id);if(!/^[0-9]+$/.test(id))continue;let name=map[id];if(!name){name=String(course.code&&course.code!==course.name?course.code+' — '+course.name:course.name||course.code||'Canvas '+id);if(classes[name]&&String(classes[name].canvasId)!==id)name+=' (Canvas '+id+')';map[id]=name}classes[name]={...classes[name],canvasId:id,url:safeURL(course.url)};}
+    const classes=JSON.parse(JSON.stringify(recall('sb.classes',{}))),map={...recall('sb.canvasCourses',{})},excluded=new Set(recall('sb.canvasExcludedCourses',[]).map(String));
+    for(const course of snapshot.courses){const id=String(course.id);if(!/^[0-9]+$/.test(id)||excluded.has(id))continue;let name=map[id];if(!name){name=String(course.code&&course.code!==course.name?course.code+' — '+course.name:course.name||course.code||'Canvas '+id);if(classes[name]&&String(classes[name].canvasId)!==id)name+=' (Canvas '+id+')';map[id]=name}classes[name]={code:String(course.code||''),name:String(course.name||''),...classes[name],canvasId:id,url:safeURL(course.url)};}
     for(const assignment of snapshot.assignments){
-     if(!current(e)||abort.signal.aborted)return;const id=String(assignment.id),courseId=String(assignment.courseId);if(!/^[0-9]+$/.test(id)||!map[courseId])continue;
+     if(!current(e)||abort.signal.aborted)return;const id=String(assignment.id),courseId=String(assignment.courseId);if(!/^[0-9]+$/.test(id)||!map[courseId]||excluded.has(courseId))continue;
      const key='canvas-'+courseId+'-'+id,existing=typeof T==='function'?T(key):tasks.find(task=>task.id===key),submission=assignment.submission||{};
      const patch={track:'class',title:String(assignment.title||'Canvas assignment'),description:description(assignment.description),course:map[courseId],...dates(assignment.dueAt),points:assignment.points??null,status:submission.submitted?'done':'todo',canvas:{assignmentId:id,courseId,accountId:account,url:safeURL(assignment.url),dueAt:assignment.dueAt||null,missing:!!submission.missing,submitted:!!submission.submitted,submittedAt:submission.submittedAt||null,workflowState:String(submission.workflowState||'')}};
      if(Object.keys(patch).some(field=>JSON.stringify(existing?.[field])!==JSON.stringify(patch[field]))){if(!current(e)||abort.signal.aborted)return;const doc=db.doc('tasks/'+key);if(existing)await doc.update(patch);else await doc.set(patch)}
     }
-    if(!current(e))return;for(const [key,value] of [['sb.classes',classes],['sb.canvasCourses',map],['sb.canvasAccount',account]]){if(!current(e))return;if(JSON.stringify(recall(key,null))!==JSON.stringify(value))store(key,value)}store('sb.canvasLastSync',new Date().toISOString());message='Canvas is up to date.';if(typeof renderGuide==='function'&&typeof TV!=='undefined'&&TV.mode==='guide')renderGuide();
+    if(!current(e))return;for(const [key,value] of [['sb.classes',classes],['sb.canvasCourses',map],['sb.canvasAccount',account],['sb.canvasAvailableCourses',snapshot.courses.map(course=>String(course.id))]]){if(!current(e))return;if(JSON.stringify(recall(key,null))!==JSON.stringify(value))store(key,value)}store('sb.canvasLastSync',new Date().toISOString());message='Canvas is up to date.';if(typeof renderGuide==='function'&&typeof TV!=='undefined'&&TV.mode==='guide')renderGuide();
    }catch(error){if(current(e))message=safeError(error,'Canvas sync failed. Your existing records were kept. Check the companion and try again.')}
    finally{if(controller===abort)controller=null;if(epoch===e)active=null;if(current(e)){render();schedule()}}
   })();return active;
  }
- function schedule(){clearInterval(timer);timer=null;if(!privateUser()||disconnecting||!connection?.connected||!enabled())return;timer=setInterval(()=>{if(!document.hidden&&navigator.onLine!==false)sync()},300000)}
+ function schedule(){clearInterval(timer);timer=null;if(!privateUser()||disconnecting||mutationPending||!connection?.connected||!enabled())return;timer=setInterval(()=>{if(!document.hidden&&navigator.onLine!==false)sync()},300000)}
+ function mutateClasses(fn){
+  if(!privateUser())return Promise.reject(Error('Sign in to edit classes.'));
+  const e=epoch,pendingSync=active;mutationPending++;clearInterval(timer);timer=null;
+  const result=mutationQueue.catch(()=>{}).then(async()=>{
+   if(pendingSync)await pendingSync;
+   if(!current(e))throw Error('Your workspace changed. Reopen class settings and try again.');
+   return fn();
+  });
+  mutationQueue=result.finally(()=>{mutationPending--;schedule()});
+  // Keep the serialization chain handled even when the caller handles its own error.
+  mutationQueue.catch(()=>{});return result;
+ }
  function clear(){epoch++;controller?.abort();controller=null;clearInterval(timer);timer=null;active=null;connection=null;message='';disconnecting=false;container?.replaceChildren();container=null}
  function init(){if(!privateUser())return;refresh().then(result=>{if(privateUser()&&result?.connected&&enabled()&&!document.hidden&&navigator.onLine!==false)sync()})}
- globalThis.SessionCanvas={mountSettings(node){if(!node||!privateUser())return;container=node;render();refresh()},sync,status:refresh};
+ globalThis.SessionCanvas={mountSettings(node){if(!node||!privateUser())return;container=node;render();refresh()},sync,status:refresh,mutateClasses,get syncing(){return !!active},get connection(){return connection?JSON.parse(JSON.stringify(connection)):null}};
  addEventListener('sessiontv:auth',()=>{clear();init()});addEventListener('pagehide',clear);addEventListener('online',()=>{if(privateUser()&&connection?.connected&&enabled()&&!document.hidden)sync()});init();
 })();

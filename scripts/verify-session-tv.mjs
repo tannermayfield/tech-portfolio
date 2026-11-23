@@ -33,7 +33,7 @@ try{
    await page.locator('[data-db="'+view+'"]').click();
    assert.equal(await page.locator('#tv-settings .sheet-head #db-add').count(),1);
    assert.equal(await page.locator('#set-x').getAttribute('aria-label'),'Back to settings');
-   if(view==='classes')assert.ok(await page.locator('.class-section [data-add-assignment]').count()>0);
+   if(view==='classes')assert.ok(await page.locator('.class-settings-row .class-counters').count()>0);
    assert.equal(await page.locator('#set-x').evaluate(el=>el.previousElementSibling.id),'db-add');
    await page.screenshot({path:'test-results/settings-'+view+'-'+width+'.png'});
    await page.locator('#set-x').click();assert.equal(await page.locator('#preferences-open').isVisible(),true);
@@ -54,7 +54,7 @@ try{
  await privatePage.locator('#btn-set').click();assert.equal(await privatePage.locator('#account-settings-open').isVisible(),true);await privatePage.evaluate(()=>{Object.defineProperty(SessionCloud,'user',{get:()=>({id:'test-owner',email:'owner@example.test'}),configurable:true});SessionCompanion.status=async()=>({connected:true,signedIn:true,workspaces:[]});SessionCompanion.chatGPTStatus=async()=>({connected:true});return SessionConnections.refresh()});await privatePage.waitForFunction(()=>document.querySelectorAll('#session-connection-summary .connected').length===2);assert.equal(await privatePage.locator('#session-preferences-open').textContent(),'Open Full Preferences');
  await privatePage.evaluate(()=>{Object.defineProperty(SessionCloud,'user',{get:()=>({id:'test-owner',email:'owner@example.test'}),configurable:true});SessionCloud.accountInfo=async()=>({id:'test-owner',email:'owner@example.test',identities:[{provider:'email'}]})});
  await privatePage.locator('#account-settings-open').click();await privatePage.waitForFunction(()=>document.getElementById('account-email').textContent==='owner@example.test');
- for(const width of [1280,390]){await privatePage.setViewportSize({width,height:width===390?844:628});const box=await privatePage.locator('#account-settings').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width+1);await privatePage.locator('#account-settings').screenshot({path:'test-results/account-settings-'+width+'.png'})}
+ for(const width of [1280,390]){await privatePage.setViewportSize({width,height:width===390?844:628});await privatePage.waitForFunction(()=>{const r=document.getElementById('account-settings').getBoundingClientRect();return r.x>=0&&r.right<=innerWidth+1});const box=await privatePage.locator('#account-settings').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width+1);await privatePage.locator('#account-settings').screenshot({path:'test-results/account-settings-'+width+'.png'})}
  await privatePage.locator('#account-settings [data-close]').click();await privatePage.locator('#session-preferences-open').click();
  for(const width of [1280,390]){
   await privatePage.setViewportSize({width,height:width===390?844:628});
@@ -113,6 +113,7 @@ try{
   await privatePage.evaluate(mode=>{const task=tasks.find(task=>typeOf(task)==='project');current.projModes[task.course]=mode;renderWork()},mode);
   assert.equal(await privatePage.locator('#project-reasoning').count(),0);assert.match(await privatePage.locator('.project-model-controls').textContent(),/Light/);
  }
+ await privatePage.evaluate(()=>{document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());openSettings();TV.dbView='classes';renderSettings()});await privatePage.locator('.class-settings-row > .btn').first().click();assert.equal(await privatePage.locator('#class-edit').isVisible(),true);for(const width of [1280,390]){await privatePage.setViewportSize({width,height:width===390?844:628});await privatePage.waitForFunction(()=>{const r=document.getElementById('class-edit').getBoundingClientRect();return r.x>=0&&r.right<=innerWidth+1});const box=await privatePage.locator('#class-edit').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width+1);await privatePage.locator('#class-edit').screenshot({path:'test-results/class-edit-'+width+'.png'})}await privatePage.locator('#class-edit [data-close]').click();
  await privateContext.close();
  assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);console.log('Static Pages preview: immutable records, navigation/refresh, visitor isolation, hidden edit controls, usable sign-in, AI gate, mobile and assets passed.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}
