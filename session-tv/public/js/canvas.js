@@ -16,7 +16,7 @@
   const title=document.createElement('h4');title.textContent='BYU Canvas';container.append(title);
   const state=document.createElement('p');state.setAttribute('role','status');state.textContent=message||(connection?.connected?'Connected'+(connection.account?.name?' · '+connection.account.name:''):connection?.error||'Not connected');container.append(state);
   const last=document.createElement('p');last.className='canvas-note';const date=recall('sb.canvasLastSync',null);last.textContent=date?'Last successful sync: '+new Date(date).toLocaleString():'No successful sync yet.';container.append(last);
-  const note=document.createElement('p');note.className='canvas-note';note.textContent='Imports classes, assignments, deadlines and submission status. Changes in SessionTV do not update Canvas. Automatic sync runs when you open or return to this page, or your internet connection returns.';container.append(note);
+  const note=document.createElement('p');note.className='canvas-note';note.textContent='Imports classes, assignments, deadlines and submission status. Changes in SessionTV do not update Canvas. Automatic sync runs once per day when you first open the site online. Use Sync now for additional updates.';container.append(note);
   if(!connection?.connected){
    const steps=document.createElement('p');steps.className='canvas-note';steps.textContent='In BYU Canvas, open Account → Settings → Approved Integrations → New Access Token. Use SessionTV as the purpose, choose an expiration, then paste the token here.';
    const link=document.createElement('a');link.href=school+'/profile/settings';link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open BYU Canvas settings';
@@ -26,7 +26,7 @@
    container.append(steps,link,form);
   }else{
    container.append(button(active?'Syncing…':'Sync now',()=>sync()),button('Disconnect',async()=>{epoch++;const e=epoch;controller?.abort();controller=null;active=null;clearTimeout(resumeTimer);resumeTimer=null;disconnecting=true;render();try{await SessionCompanion.disconnectCanvas();if(!current(e))return;connection={connected:false};store('sb.canvasAccount',null);message='';render()}catch{if(current(e)){message='Could not disconnect Canvas. Check the companion and retry.';render()}}finally{if(current(e)){disconnecting=false;render()}}}));
-   const label=document.createElement('label');label.className='canvas-auto';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=enabled();checkbox.onchange=()=>{store('sb.canvasSync',checkbox.checked);resumeSchedule()};label.append(checkbox,'Sync automatically when opening or returning');container.append(label);
+   const label=document.createElement('label');label.className='canvas-auto';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=enabled();checkbox.onchange=()=>{store('sb.canvasSync',checkbox.checked);resumeSchedule()};label.append(checkbox,'Sync automatically once per day');container.append(label);
   }
   container.append(button('Check status',refresh));for(const b of container.querySelectorAll('button'))if(disconnecting||(active&&b.textContent!=='Disconnect'))b.disabled=true;
  }
@@ -66,7 +66,9 @@
  function automatic(force=false){
   if(!privateUser()||disconnecting||!connection?.connected||!enabled())return;
   if(document.hidden||navigator.onLine===false||mutationPending){pendingAuto=true;pendingForce=pendingForce||force;return}
-  if(!force&&Date.now()-lastAuto<60000)return;
+  const now=new Date(),day=[now.getFullYear(),now.getMonth()+1,now.getDate()].join('-');
+  if(recall('sb.canvasAutoSyncDay',null)===day)return;
+  store('sb.canvasAutoSyncDay',day);
   pendingAuto=false;pendingForce=false;lastAuto=Date.now();sync();
  }
  function resumeSchedule(force=false){

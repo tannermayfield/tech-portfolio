@@ -50,9 +50,7 @@ test('class mutations cancel snapshots promptly, serialize changes and reject la
  }finally{dom.window.close()}
 });
 
-test('automatic Canvas sync uses load, resume and internet restoration without interval polling',async()=>{
- const {dom,w,data,calls}=boot();try{assert.ok(!source.includes('setInterval'));data.set('sb.canvasSync',true);w.dispatchEvent(new w.Event('sessiontv:auth'));await until(()=>calls()===1);w.dispatchEvent(new w.Event('focus'));w.document.dispatchEvent(new w.Event('visibilitychange'));await new Promise(r=>setTimeout(r,260));assert.equal(calls(),1);
- w.dispatchEvent(new w.Event('online'));w.dispatchEvent(new w.Event('focus'));await until(()=>calls()===2);w.dispatchEvent(new w.Event('focus'));await new Promise(r=>setTimeout(r,260));assert.equal(calls(),2);await w.SessionCanvas.sync();assert.equal(calls(),3);
- Object.defineProperty(w.document,'hidden',{configurable:true,value:true});w.dispatchEvent(new w.Event('online'));await new Promise(r=>setTimeout(r,260));assert.equal(calls(),3);Object.defineProperty(w.document,'hidden',{configurable:true,value:false});w.document.dispatchEvent(new w.Event('visibilitychange'));await until(()=>calls()===4);
+test('automatic Canvas sync is once per local day across reloads, with manual sync always available',async()=>{
+ const {dom,w,data,calls}=boot();try{data.set('sb.canvasSync',true);w.dispatchEvent(new w.Event('sessiontv:auth'));await until(()=>calls()===1);const day=data.get('sb.canvasAutoSyncDay');assert.ok(day);for(const event of ['online','focus','sessiontv:auth'])w.dispatchEvent(new w.Event(event));await new Promise(r=>setTimeout(r,300));assert.equal(calls(),1);await w.SessionCanvas.sync();assert.equal(calls(),2);assert.equal(data.get('sb.canvasAutoSyncDay'),day);data.set('sb.canvasAutoSyncDay','2000-1-1');w.dispatchEvent(new w.Event('online'));await until(()=>calls()===3);assert.equal(data.get('sb.canvasAutoSyncDay'),day);
  }finally{dom.window.close()}
 });
