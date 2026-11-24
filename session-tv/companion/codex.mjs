@@ -1,4 +1,6 @@
 ﻿import {spawn} from 'node:child_process';
+import path from 'node:path';
+import {existsSync} from 'node:fs';
 import {createInterface} from 'node:readline';
 import {EventEmitter} from 'node:events';
 
@@ -8,6 +10,9 @@ export class CodexBridge extends EventEmitter {
   super();this.next=1;this.pending=new Map();this.closed=false;
   const profile={filesystem:{':minimal':'read',':workspace_roots':{'.':'write','.git':'read','.codex':'read','.agents':'read','.aws':'deny','.env':'deny'}},network:{enabled:false}};
   const readProfile={filesystem:{':minimal':'read',':workspace_roots':{'.':'read','.aws':'deny','.env':'deny'}},network:{enabled:false}};
+  // Codex discovers repository instructions above nested workspace roots.
+  // Grant only the existing instruction files, never the parent directory.
+  for(let parent=path.dirname(cwd);;parent=path.dirname(parent)){for(const name of ['AGENTS.md','AGENTS.override.md']){const file=path.join(parent,name);if(existsSync(file)){profile.filesystem[file]='read';readProfile.filesystem[file]='read'}}if(path.dirname(parent)===parent)break;}
   const args=['app-server','--listen','stdio://','-c','default_permissions="sessiontv"','-c','permissions.sessiontv='+toml(profile),
    '-c','permissions.sessiontv_plan='+toml(readProfile),'-c','permissions.sessiontv_apply='+toml(readProfile),
    ...(process.platform==='win32'?['-c','features.prefer_mxc=true','-c','windows.sandbox="mxc"']:[]),
