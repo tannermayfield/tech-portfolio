@@ -85,6 +85,26 @@ test('skill levels, timer, written teach-back and learning log work without AI',
  }finally{dom.window.close()}
 });
 
+test('skills menu lists one chat per skill and practicing it stamps every tool',async()=>{
+ const {dom,w,errors}=await boot();
+ try{
+  await w.eval("Promise.all([db.collection('tasks').add({track:'develop',title:'CTEs',course:'SQL',cat:'Data',level:2,status:'todo',order:1}),db.collection('tasks').add({track:'develop',title:'Window functions',course:'SQL',cat:'Data',level:1,status:'todo',order:2})])");
+  await until(()=>w.eval('tasks.length===2'));
+  const skills=Array.from(w.eval("TV.gFilter='Data';gdSkills().map(s=>s.title)"));
+  assert.equal(skills.filter(name=>name==='SQL').length,1);
+  assert.equal(skills.includes('CTEs'),false);
+  const sql=w.eval("gdSkills().find(s=>s.title==='SQL')");
+  assert.equal(sql.skillChannel,true);assert.deepEqual(Array.from(sql.tools),['CTEs','Window functions']);assert.equal(sql.level,2);
+  w.gdTune('skill',sql.id);await until(()=>w.eval('current.active')===sql.id);
+  assert.equal(w.document.querySelector('#focus h2').textContent,'SQL');
+  await w.setLevel(sql.id,3);assert.equal(w.eval('T(current.active).level'),3);
+  await w.markDone(sql.id);
+  await until(()=>w.eval("tasks.every(t=>t.lastPracticed)"));
+  assert.ok(w.eval(`T(${JSON.stringify(sql.id)}).lastPracticed`));
+  assert.deepEqual(errors,[]);
+ }finally{dom.window.close()}
+});
+
 test('SQL executes on the airline sample data and editor drafts persist',async()=>{
  const {default:initSqlJs}=await import('sql.js');
  const {dom,w,errors}=await boot();

@@ -61,7 +61,7 @@ function dueLabel(t){
 function agoLabel(iso){if(!iso)return 'Not practiced yet';const d=Math.floor((Date.now()-new Date(iso).getTime())/864e5);return d<=0?'Practiced today':d===1?'Practiced yesterday':`Practiced ${d}d ago`}
 const byOrder=(a,b)=>(a.order??999)-(b.order??999);
 function byDue(a,b){const x=(a.due||'9999-12-31')+(a.dueTime||'23:59'),y=(b.due||'9999-12-31')+(b.dueTime||'23:59');return x<y?-1:x>y?1:byOrder(a,b)}
-const T=id=>tasks.find(t=>t.id===id)||archived.find(t=>t.id===id)||globalThis.SessionProjectChats?.channel(id);
+const T=id=>tasks.find(t=>t.id===id)||archived.find(t=>t.id===id)||globalThis.SessionProjectChats?.channel(id)||globalThis.SessionSkills?.channel(id);
 // one main skill per area (SQL, AWS, Python for Data…). Older sub-skills were archived and point at their main skill.
 const mainSkillName=t=>{if(!t||!isSkill(t))return null;if(t.mainId){const m=T(t.mainId);return m?m.title:(t.course||t.title)}return t.title};
 const mainSkillTask=n=>tasks.find(t=>isSkill(t)&&t.title===n);
@@ -235,6 +235,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('[data-subtoggle]'))r
 function recentSubmitted(){const cut=Date.now()-14*864e5;return tasks.filter(t=>typeOf(t)==='class'&&t.status==='done'&&(t.doneAt?new Date(t.doneAt).getTime()>=cut:false)).sort((a,b)=>(b.doneAt||'').localeCompare(a.doneAt||''))}
 async function setLevel(id,n){
   const t=T(id);if(!t||skillLevel(t)===n&&t.level!=null)return;
+  if(t.skillChannel){SessionSkills.setLevel(id,n);refresh();return} // a skill's level is the skill's own, not a tool record's
   t.level=n;refresh(); // show it right away; the database snapshot confirms it
   await guard(()=>db.doc('tasks/'+id).update({level:n}));
 }
@@ -634,7 +635,7 @@ async function markDone(id){
   if(next){current.active=next;current.cur[current.mood]=next}
   saveState();
   const msg=next?'Nice. On to the next one.':'Nothing left here. Switch pages or end the session.';
-  if(isSkill(t))await guard(()=>db.doc('tasks/'+id).update({lastPracticed:new Date().toISOString(),reps:(t.reps||0)+1}),msg);
+  if(isSkill(t))await guard(()=>t.skillChannel?SessionSkills.practice(id):db.doc('tasks/'+id).update({lastPracticed:new Date().toISOString(),reps:(t.reps||0)+1}),msg);
   else await guard(()=>db.doc('tasks/'+id).update({status:'done',doneAt:new Date().toISOString()}),msg);
   renderWork();
 }
@@ -1682,7 +1683,7 @@ function curSub(k){const s=subsOf(k);return s.includes(TV.sub[k])?TV.sub[k]:s[0]
 function listFor(k,sub){
   let l=candidates(k).filter(t=>t.status!=='done');
   if(k==='class')return (sub==='Due Date'?l:l.filter(t=>t.course===sub)).sort(byDue);
-  if(k==='skill')return l.filter(t=>catOf(t)===sub).sort((a,b)=>byOrder(a,b)||skillLevel(a)-skillLevel(b));
+  if(k==='skill')return globalThis.SessionSkills?SessionSkills.channels(sub):l.filter(t=>catOf(t)===sub).sort((a,b)=>byOrder(a,b)||skillLevel(a)-skillLevel(b)); // one channel per skill; its tools ride along
   const channel=globalThis.SessionProjectChats?.channel('project:'+pslug(sub));
   if(channel)return [channel,...l.filter(t=>(t.course||'Other')===sub)];
   return sub==='All'?l:l.filter(t=>(t.course||'Other')===sub);
@@ -1755,7 +1756,7 @@ async function markDone(id){
   const k=typeOf(t),list=listFor(k,curSub(k)),i=list.findIndex(x=>x.id===id);
   const after=[...list.slice(i+1),...list.slice(0,Math.max(0,i))].find(x=>x.id!==id&&!isDoneNow(x))||allChannels(k).find(x=>x.id!==id&&!isDoneNow(x));
   saveState();
-  if(isSkill(t))await guard(()=>db.doc('tasks/'+id).update({lastPracticed:new Date().toISOString(),reps:(t.reps||0)+1}),after?'Nice. On to the next channel.':'That was the last one here.');
+  if(isSkill(t))await guard(()=>t.skillChannel?SessionSkills.practice(id):db.doc('tasks/'+id).update({lastPracticed:new Date().toISOString(),reps:(t.reps||0)+1}),after?'Nice. On to the next channel.':'That was the last one here.');
   else await guard(()=>db.doc('tasks/'+id).update({status:'done',doneAt:new Date().toISOString()}),after?'Nice. On to the next channel.':'That was the last one here.');
   if(after)tune(after.id);else renderWork();
 }
