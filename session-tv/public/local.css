@@ -118,3 +118,5 @@ body.tv-home-active #view-log{visibility:hidden;pointer-events:none}#tv-home .gd
 .project-table-row .class-identity strong{font:26px/1.2 var(--f-osd);margin:0}
 .project-table-row .class-identity .btn{margin-left:0;margin-right:0}
 @media(max-width:850px){.project-table-row{grid-template-columns:minmax(0,1fr) auto}.project-table-row .project-counters{grid-template-columns:repeat(4,minmax(0,calc(15ch + 12px)));max-width:100%}}
+
+#tv-settings .sheet-head #set-x.btn{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}#tv-settings .sheet-head #set-x.btn:hover{background:transparent!important;color:var(--ink)}
