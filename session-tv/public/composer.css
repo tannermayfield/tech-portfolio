@@ -13,3 +13,13 @@
 #coach-form[data-composer-section="class"] textarea,#coach-form[data-composer-section="skill"] textarea{display:block;line-height:22px;padding:6px 2px;margin:0;box-sizing:border-box}
 #coach-form:has(.composer-attachments:not([hidden])) .composer-input-row,#coach-form:has(.composer-attachments:not([hidden])) .composer-left,#coach-form:has(.composer-attachments:not([hidden])) .composer-right{grid-row:2}
 #chatgpt-form{align-items:center}#chatgpt-form .speech-controls,#chatgpt-form button{align-self:center}
+
+/* Shorter chat inputs, retaining automatic growth for longer drafts. */
+#coach-form.session-composer{padding:4px 10px;gap:5px}
+#coach-form.session-composer:not(.composer-work) .composer-input-row,#coach-form.session-composer:not(.composer-work) .composer-left,#coach-form.session-composer:not(.composer-work) .composer-right{grid-row:1}
+#coach-form.session-composer .composer-input-row textarea{min-height:28px;padding:3px 2px;line-height:22px;box-sizing:border-box}
+#coach-form.composer-work{padding:8px 12px;gap:5px}
+#coach-form.composer-work textarea{min-height:32px}
+#coach-form.session-composer:has(.composer-attachments:not([hidden])) .composer-input-row,#coach-form.session-composer:has(.composer-attachments:not([hidden])) .composer-left,#coach-form.session-composer:has(.composer-attachments:not([hidden])) .composer-right{grid-row:2}
+#wc-form{padding-top:4px;padding-bottom:4px;align-items:center}#wc-form textarea{min-height:26px;padding-top:3px;padding-bottom:3px}
+#chatgpt-form textarea{min-height:34px;height:34px;padding:6px 10px;box-sizing:border-box}
