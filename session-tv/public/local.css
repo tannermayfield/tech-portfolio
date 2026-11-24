@@ -108,3 +108,13 @@ body.tv-home-active #view-log{visibility:hidden;pointer-events:none}#tv-home .gd
 .settings-skill-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}.settings-skill-filters button{cursor:pointer}.settings-skill-filters button[aria-pressed=true]{background:var(--ink);color:var(--modal)}#set-body .db-grp[hidden]{display:none!important}
 
 #tv-settings .db-list:has(>.project-table){grid-template-columns:minmax(0,1fr)}.project-table{width:100%;min-width:0}.project-table-row{grid-template-columns:minmax(140px,1fr) minmax(0,3fr) auto;padding:18px;border:1px solid var(--line);border-radius:10px;background:var(--modal);gap:18px}.project-counters{grid-template-columns:repeat(4,minmax(0,1fr))}.project-table-row .class-identity .btn{align-self:flex-start}.project-table-row .class-identity strong{overflow-wrap:anywhere}@media(max-width:850px){.project-table-row{grid-template-columns:minmax(0,1fr) auto}.project-table-row .project-counters{grid-column:1/-1;grid-row:2}.project-table-row>.btn{grid-column:2;grid-row:1}}
+
+/* Compact project metrics; labels wrap after a 15-character line. */
+.project-table-row{grid-template-columns:minmax(140px,1fr) auto auto}
+.project-table-row .project-counters{font:10px var(--f-mono,monospace);grid-template-columns:repeat(4,calc(15ch + 12px));justify-self:end}
+.project-counters>span{box-sizing:border-box;min-width:0;padding:8px 5px}
+.project-counters small{font:inherit;line-height:1.35;max-inline-size:15ch;margin-inline:auto;white-space:normal;overflow-wrap:normal;min-height:2.7em}
+.project-table-row .class-identity{align-items:flex-start;padding-top:8px;gap:10px}
+.project-table-row .class-identity strong{font:26px/1.2 var(--f-osd);margin:0}
+.project-table-row .class-identity .btn{margin-left:0;margin-right:0}
+@media(max-width:850px){.project-table-row{grid-template-columns:minmax(0,1fr) auto}.project-table-row .project-counters{grid-template-columns:repeat(4,minmax(0,calc(15ch + 12px)));max-width:100%}}
