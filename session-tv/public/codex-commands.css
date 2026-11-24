@@ -1,0 +1,2 @@
+.codex-command summary{font-weight:700;cursor:pointer}.codex-command pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 var(--f-mono,monospace);margin:6px 0 0;padding:8px;background:var(--sunk);border-radius:6px;cursor:pointer;color:var(--ink)}
+.codex-command:not([open]) pre{display:none}

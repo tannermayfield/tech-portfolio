@@ -8,6 +8,7 @@ import {folderStore} from './folders.mjs';
 import {voiceService} from './voice.mjs';
 import {chatGPTService} from './chatgpt.mjs';
 import {sessionTVPublisher,liveSessionTVCommit} from './publish.mjs';
+import {publishToolResponse} from './publish-tool.mjs';
 import {canvasService} from './canvas.mjs';
 
 const failure=(status,message)=>Object.assign(new Error(message),{status});
@@ -18,7 +19,7 @@ export async function canonicalWorkspaces(values){
  const roots=[];for(const value of values){const root=await realpath(value);if(!(await stat(root)).isDirectory()||path.parse(root).root===root)throw new Error('Select a project directory, not a filesystem root.');roots.push(root)}
  if(!roots.length)throw new Error('Select at least one project directory with SESSIONTV_WORKSPACES (JSON array).');return [...new Set(roots)];
 }
-export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now,deviceToken,configPath,pickFolder,openFolder,voice=voiceService(),chatgpt,canvas,publisherFactory=sessionTVPublisher}){
+export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now,deviceToken,configPath,pickFolder,openFolder,voice=voiceService(),chatgpt,canvas,publisherFactory=sessionTVPublisher,verifyDeployment=liveSessionTVCommit}){
  if(!/^https:\/\//.test(supabaseUrl||'')||!publishableKey||!ownerId||!home||!workspaces?.length)throw new Error('Supabase URL, public key, owner UUID, dedicated CODEX_HOME and selected workspaces are required.');
  if(new URL(origin).origin!==origin)throw new Error('SESSIONTV_ORIGIN must be an exact origin.');
  const generalChat=chatgpt||chatGPTService({home});
@@ -26,6 +27,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
  const chatRequest=async request=>{try{return await request}catch(error){if([401,403].includes(error.status))throw failure(424,error.message);throw error}};
  const folders=folderStore({configPath,initialWorkspaces:workspaces,home,pickFolder,openFolder});
  const code=secret(),expires=now()+600000,pairs=new Map();let attempts=0,paired=false,active=null,activeConfirmed=false,operation=false,generalRun=null;
+ let connectedPublisher=null;
  let codexLogin=null,codexLoginState={pending:false,connected:false,error:null};
  function endCodexLogin(record,state){
   if(codexLogin!==record)return;
@@ -80,6 +82,17 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
  const server=http.createServer(async(req,res)=>{
   res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
   try{
+   if(req.url==='/codex/publish-tool'){
+    if(req.headers.host!=='127.0.0.1:'+server.address().port||req.headers.origin||!connectedPublisher||!equal(req.headers.authorization,'Bearer '+connectedPublisher.token))throw failure(403,'Publishing tool is not authorized for this turn.');
+    if(req.method!=='POST'){res.writeHead(405);res.end();return;}
+    const connection=connectedPublisher;
+    const result=await publishToolResponse(await readJSON(req),()=>{
+     if(connectedPublisher!==connection)throw failure(409,'The Work turn has ended.');
+     return connection.publish();
+    });
+    if(result===null){res.writeHead(202);res.end();}else json(res,200,result);
+    return;
+   }
    if(req.headers.host!=='127.0.0.1:'+server.address().port||req.headers.origin!==origin)throw failure(403,'Host or origin not allowed.');
    res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');
    if(req.method==='OPTIONS'){
@@ -96,7 +109,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    await authorize(req);
    if(route==='/publish/status'){
     const body=await readJSON(req);
-    json(res,200,{live:await liveSessionTVCommit(body.commit).catch(()=>false)});return;
+    json(res,200,{live:await verifyDeployment(body.commit).catch(()=>false)});return;
    }
    if(route==='/codex/approval'){
     const body=await readJSON(req);
@@ -194,19 +207,56 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    if(body.mode!==undefined&&!['plan','apply','work'].includes(body.mode))throw failure(400,'Choose Plan, Apply, or Work.');
    if(body.effort!==undefined&&!['low','medium','high','xhigh'].includes(body.effort))throw failure(400,'Choose Light, Medium, High, or Extra high effort.');
    if(body.reviewer!==undefined&&!['user','auto_review'].includes(body.reviewer))throw failure(400,'Choose a supported approval mode.');
-   const bridge=active=bridgeFactory({executable,home,cwd,reviewChanges:body.mode==='work',reviewer:body.mode==='work'?body.reviewer:'user'});activeConfirmed=false;let timeout,settling=false,publisher,baseline;
-   const stop=()=>{clearTimeout(timeout);bridge.stop();if(active===bridge){active=null;activeConfirmed=false}};
+   if(active||operation||codexLogin)throw failure(409,'A coding request is already running.');
+   const leaf=path.basename(cwd).toLowerCase(),parent=path.basename(path.dirname(cwd)).toLowerCase();
+   const canPublish=body.mode==='work'&&(leaf==='tech-portfolio'||(leaf==='session-tv'&&parent==='tech-portfolio'));
+   const toolConnection=canPublish?{token:secret(),url:'http://127.0.0.1:'+server.address().port+'/codex/publish-tool',publish:()=>publishChanges(true)}:null;
+   const bridge=active=bridgeFactory({executable,home,cwd,reviewChanges:body.mode==='work',reviewer:body.mode==='work'?body.reviewer:'user',publishTool:toolConnection});
+   if(toolConnection)connectedPublisher=toolConnection;
+   activeConfirmed=false;
+   let timeout,settling=false,publisher,baseline,readinessError,release,publishInFlight;
+   const stop=()=>{
+    clearTimeout(timeout);bridge.stop();
+    if(active===bridge){active=null;activeConfirmed=false;}
+    if(connectedPublisher===toolConnection)connectedPublisher=null;
+   };
    res.on('close',()=>{if(!settling)stop()});
    const write=event=>{if(!res.destroyed)res.write(JSON.stringify(event)+'\n')};
+   const publishStatus=(message,commit)=>write({method:'sessiontv/publish',params:{message,commit}});
+   async function publishChanges(waitForLive){
+    if(!baseline)throw failure(409,readinessError||'The SessionTV checkout did not start clean.');
+    if(publishInFlight)return publishInFlight;
+    publishInFlight=(async()=>{
+     const review=await publisher.snapshot();
+     if(review.base!==baseline.base)throw failure(409,'The repository changed during this turn.');
+     if(review.tree){
+      publishStatus('Publishing SessionTV…');
+      release=await publisher.publish(review);baseline={base:release.commit};
+      publishStatus('Pushed '+release.commit.slice(0,7)+'. Waiting for GitHub Pages…',release.commit);
+     }
+     if(!release){publishStatus('No SessionTV file changes to publish.');return {status:'no_changes'};}
+     if(waitForLive){
+      const deadline=Date.now()+75000;
+      do{
+       if(await verifyDeployment(release.commit).catch(()=>false)){
+        publishStatus('SessionTV is live at '+release.commit.slice(0,7)+'.');
+        return {...release,status:'live'};
+       }
+       if(res.destroyed||active!==bridge)break;
+       await new Promise(resolve=>setTimeout(resolve,4000));
+      }while(Date.now()<deadline);
+     }
+     return {...release,status:'pushed',deployment:'pending'};
+    })().finally(()=>{publishInFlight=null;});
+    return publishInFlight;
+   }
    try{
     await bridge.initialize();res.writeHead(200,{'Content-Type':'application/x-ndjson','X-Accel-Buffering':'no'});res.flushHeaders();
-    const publishStatus=(message,commit)=>write({method:'sessiontv/publish',params:{message,commit}});
-    const leaf=path.basename(cwd).toLowerCase(),parent=path.basename(path.dirname(cwd)).toLowerCase();
-    if(body.mode==='work'&&(leaf==='tech-portfolio'||(leaf==='session-tv'&&parent==='tech-portfolio'))){
+    if(canPublish){
      try{
       publisher=await publisherFactory(cwd);baseline=await publisher.snapshot();
-      if(baseline.tree){baseline=null;publishStatus('Automatic publish paused: SessionTV already had local changes before this turn.');}
-     }catch(error){publishStatus('Automatic publish unavailable: '+error.message);}
+      if(baseline.tree){baseline=null;readinessError='SessionTV already had local changes before this turn.';publishStatus('Automatic publish paused: '+readinessError);}
+     }catch(error){readinessError=error.message;publishStatus('Automatic publish unavailable: '+readinessError);}
     }
     if(res.destroyed){stop();return;}
     bridge.on('event',event=>{
@@ -216,13 +266,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
      settling=true;clearTimeout(timeout);
      void (async()=>{
       try{
-       if(event.params.turn?.status!=='completed'||!baseline)return;
-       const review=await publisher.snapshot();
-       if(review.base!==baseline.base)throw Error('The repository changed during this turn.');
-       if(!review.tree){publishStatus('No SessionTV file changes to publish.');return;}
-       publishStatus('Publishing SessionTV…');
-       const release=await publisher.publish(review);
-       publishStatus('Pushed '+release.commit.slice(0,7)+'. Waiting for GitHub Pages…',release.commit);
+       if(event.params.turn?.status==='completed'&&baseline)await publishChanges(false);
       }catch(error){publishStatus('Automatic publish paused: '+error.message);}
       finally{stop();res.end();}
      })();

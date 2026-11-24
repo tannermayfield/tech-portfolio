@@ -181,12 +181,22 @@
   }
   if(!names().length) { const empty = document.createElement('p'); empty.className='db-empty'; empty.textContent='No projects yet.'; table.appendChild(empty); }
  };
+ const expandedCommands=new WeakMap();
  function renderReplyContent(content, message, working) {
   content.replaceChildren();
   if(working||message.activity?.length){
    const activity=document.createElement('div');activity.className='codex-activity';
    for(const step of message.activity||[]){
-    const row=document.createElement('div');row.className='codex-step';
+    const isCommand=step.kind==='command'||/^(Running command|Command finished|Command failed)$/.test(step.label);
+    const row=document.createElement(isCommand?'details':'div');row.className=isCommand?'codex-step codex-command':'codex-step';
+    if(isCommand){
+     const open=expandedCommands.get(message)||new Set();expandedCommands.set(message,open);
+     row.open=open.has(step.id);
+     const summary=document.createElement('summary');summary.textContent=step.label;
+     const command=document.createElement('pre');command.textContent=step.detail||'';command.onclick=()=>{open.delete(step.id);row.open=false;summary.focus()};
+     summary.onclick=()=>{if(row.open)open.delete(step.id);else open.add(step.id)};
+     row.append(summary,command);activity.append(row);continue;
+    }
     const label=document.createElement('strong');label.textContent=step.label;
     const detail=document.createElement('span');detail.textContent=step.detail||'';
     row.append(label,detail);activity.append(row);
@@ -216,14 +226,14 @@
   }
   if(!item?.id||!['item/started','item/completed'].includes(method))return;
   const finished=method==='item/completed';
-  if(item.type==='commandExecution')return setStep(item.id,finished?(item.exitCode!=null&&item.exitCode!==0?'Command failed':'Command finished'):'Running command',item.command);
+  if(item.type==='commandExecution')return setStep(item.id,finished?(item.exitCode!=null&&item.exitCode!==0?'Command failed':'Command finished'):'Running command',item.command,'command');
   if(item.type==='fileChange')return setStep(item.id,finished?'File changes reported':'Changing files',(item.changes||[]).map(change=>change.path).join('\n'));
   if(item.type==='mcpToolCall')return setStep(item.id,finished?'Tool finished':'Using tool',[item.server,item.tool].filter(Boolean).join(' / '));
   if(item.type==='webSearch')return setStep(item.id,finished?'Search finished':'Searching the web',item.query);
   if(item.type==='reasoning'&&finished&&Array.isArray(item.summary)&&item.summary.length)return setStep(item.id,'Progress summary',item.summary.join('\n'));
-  function setStep(id,label,detail){
+  function setStep(id,label,detail,kind){
    const steps=reply.activity??=[];
-   const entry={id,label,detail:String(detail||'').slice(0,1200)};
+   const entry={id,label,kind,detail:kind==='command'?String(detail||''):String(detail||'').slice(0,1200)};
    const index=steps.findIndex(step=>step.id===id);
    if(index>=0)steps[index]=entry;else steps.push(entry);
    if(steps.length>40)steps.shift();
@@ -256,8 +266,7 @@
   }
   for(const message of chat.messages) {
    const bubble = document.createElement('div'); bubble.className = 'msg ' + (message.role === 'user' ? 'me' : 'ai');
-   const heading = document.createElement('div'); heading.className='ai-name'; heading.textContent=message.role==='user'?'You':'Codex';
-   const content = document.createElement('div');if(running?.reply===message)content.dataset.codexLive='';renderReplyContent(content,message,running?.reply===message); bubble.append(heading,content); log.appendChild(bubble);
+   const content = document.createElement('div');if(running?.reply===message)content.dataset.codexLive='';renderReplyContent(content,message,running?.reply===message); bubble.append(content); log.appendChild(bubble);
   }
   $('coach-send').disabled = !!running || !modelReady;
   $('coach-input').placeholder=mode==='work'?'Work with Codex':'Ask Codex';

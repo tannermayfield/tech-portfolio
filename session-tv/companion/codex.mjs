@@ -7,8 +7,8 @@ import {EventEmitter} from 'node:events';
 
 // All protocol messages go through stdio. There is no exposed app-server socket.
 export class CodexBridge extends EventEmitter {
- constructor({executable='codex',home,cwd,reviewChanges=false,reviewer='user',spawnProcess=spawn}) {
-  super();this.next=1;this.pending=new Map();this.closed=false;this.reviewChanges=reviewChanges;this.reviewer=reviewChanges&&reviewer==='auto_review'?'auto_review':'user';this.approvals=new Map();
+ constructor({executable='codex',home,cwd,reviewChanges=false,reviewer='user',publishTool,spawnProcess=spawn}) {
+  super();this.next=1;this.pending=new Map();this.closed=false;this.reviewChanges=reviewChanges;this.reviewer=reviewChanges&&reviewer==='auto_review'?'auto_review':'user';this.approvals=new Map();this.publishTool=!!publishTool;
   const profile={filesystem:{':minimal':'read',':workspace_roots':{'.':'write','.git':'read','.codex':'read','.agents':'read','.aws':'deny','.env':'deny'}},network:{enabled:false}};
   const readProfile={filesystem:{':minimal':'read',':workspace_roots':{'.':'read','.aws':'deny','.env':'deny'}},network:{enabled:false}};
   // Codex discovers repository instructions above nested workspace roots.
@@ -24,9 +24,10 @@ export class CodexBridge extends EventEmitter {
    '-c','approval_policy="on-request"','-c','approvals_reviewer='+JSON.stringify(this.reviewer),'-c','model_provider="openai"','-c','forced_login_method="chatgpt"',
    '-c','shell_environment_policy.inherit="none"',
    ...(process.platform==='win32'?['-c','shell_environment_policy.set='+toml(windowsShellEnvironment)]:[]),
-   '-c','features.multi_agent=false','-c','mcp_servers={}'];
+   '-c','features.multi_agent=false','-c','mcp_servers='+toml(publishTool?{sessiontv_release:{url:publishTool.url,bearer_token_env_var:'SESSIONTV_RELEASE_TOKEN',tool_timeout_sec:150}}:{})];
   const env={...process.env,CODEX_HOME:home};
   for(const key of Object.keys(env))if(/API_KEY|ACCESS_TOKEN|SESSIONTV_|SUPABASE_|ANTHROPIC|AWS_|OPENAI_/i.test(key))delete env[key];
+  if(publishTool)env.SESSIONTV_RELEASE_TOKEN=publishTool.token;
   this.process=spawnProcess(executable,args,{cwd,env,windowsHide:true,stdio:['pipe','pipe','pipe'],shell:false});
   createInterface({input:this.process.stdout}).on('line',line=>this.receive(line));
   this.process.stderr.on('data',()=>{}); // Never forward credentials or uncontrolled diagnostic output.
@@ -113,7 +114,7 @@ export class CodexBridge extends EventEmitter {
    started=await this.request(threadId?'thread/resume':'thread/start',{
     ...(threadId?{threadId,excludeTurns:true}:{}),cwd,runtimeWorkspaceRoots:[cwd],permissions,
     approvalPolicy:'on-request',approvalsReviewer:reviewer,modelProvider:'openai',
-    developerInstructions:MODE_INSTRUCTIONS[mode]+' Work only in the selected workspace. Report modified files and test results. '+(mode==='work'&&this.reviewChanges?'Ask for one-time owner approval when a command or file change needs it.':'This companion declines additional permissions and command approvals.')+' Explain any action that needs separate owner approval. Never use API credentials or other providers.'
+    developerInstructions:MODE_INSTRUCTIONS[mode]+' Work only in the selected workspace. Report modified files and test results. '+(mode==='work'&&this.reviewChanges?'Ask for one-time owner approval when a command or file change needs it.':'This companion declines additional permissions and command approvals.')+' Explain any action that needs separate owner approval. Never use API credentials or other providers.'+(this.publishTool&&mode==='work'?' To publish SessionTV, call the publish_sessiontv tool after checks and before your final reply. Report the push and live verification result from the tool. Do not attempt Git operations to publish through the shell.':'')
    });
   } catch(error) {
    if(/sandbox|MXC/i.test(error.message))throw new Error('Codex could not start its Windows sandbox. '+error.message);

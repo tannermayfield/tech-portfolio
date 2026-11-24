@@ -216,3 +216,25 @@ test('companion publishes successful Work changes before closing the stream',asy
   assert.equal(response.status,200);const events=(await response.text()).trim().split('\n').map(line=>JSON.parse(line));assert.equal(pushes,1);assert.equal(events.at(-1).method,'sessiontv/publish');assert.equal(events.at(-1).params.commit,'a'.repeat(40));
  }finally{await new Promise(resolve=>companion.server.close(resolve));await rm(temporary,{recursive:true,force:true})}
 });
+
+test('Codex can call the scoped publish tool and receive a verified live commit before its reply',async()=>{
+ const temporary=await mkdtemp(path.join(tmpdir(),'sessiontv-tool-'));const folder=path.join(temporary,'tech-portfolio');await mkdir(folder);
+ const workspaces=await canonicalWorkspaces([folder]);const commit='b'.repeat(40);let snapshots=0,pushes=0,connection;
+ class PublishingBridge extends FakeBridge{
+  async start(){
+   const response=await fetch(connection.url,{method:'POST',headers:{Authorization:'Bearer '+connection.token,'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'publish_sessiontv',arguments:{}}})});
+   const payload=await response.json();const result=JSON.parse(payload.result.content[0].text);
+   this.emit('event',{method:'item/agentMessage/delta',params:{delta:result.status+':'+result.commit}});
+   this.emit('event',{method:'turn/completed',params:{turn:{status:'completed'}}});
+  }
+ }
+ const companion=createCompanion({port:0,supabaseUrl:'https://test.supabase.co',publishableKey:'public',ownerId:'owner',home:path.join(temporary,'profile'),workspaces,deviceToken:'paired',verifyUser:async()=>({id:'owner'}),bridgeFactory:options=>{connection=options.publishTool;return new PublishingBridge()},publisherFactory:async()=>({snapshot:async()=>snapshots++===0?{base:'base',tree:null}:pushes?{base:commit,tree:null}:{base:'base',tree:'tree'},publish:async()=>{pushes++;return{commit}}}),verifyDeployment:async sha=>sha===commit});
+ await companion.listen();
+ try{
+  const base='http://127.0.0.1:'+companion.server.address().port;
+  const response=await fetch(base+'/run',{method:'POST',headers:{Origin:'https://tannermayfield.dev','Content-Type':'application/json',Authorization:'Bearer fixture','X-SessionTV-Pair':'paired'},body:JSON.stringify({workspace:workspaces[0],prompt:'Publish those changes',mode:'work'})});
+  const events=(await response.text()).trim().split('\n').map(line=>JSON.parse(line));assert.equal(pushes,1);assert(events.some(event=>event.params.delta==='live:'+commit));
+  assert(events.findIndex(event=>event.params.message?.includes('is live'))<events.findIndex(event=>event.method==='item/agentMessage/delta'));
+  const stale=await fetch(connection.url,{method:'POST',headers:{Authorization:'Bearer '+connection.token,'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/list'})});assert.equal(stale.status,403);
+ }finally{await new Promise(resolve=>companion.server.close(resolve));await rm(temporary,{recursive:true,force:true})}
+});
