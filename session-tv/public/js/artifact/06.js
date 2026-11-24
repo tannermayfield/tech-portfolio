@@ -28,7 +28,14 @@ function renderSettings(){
       <div class="db-stats">${stat(courses.length,'Classes','classes')}${stat(sk.length,'Skills','skills')}${stat(projects.length,'Projects','projects')}<button type="button" class="db-stat resume-placeholder" disabled title="Coming later"><span>Resume &amp; Portfolio</span><small>Coming later</small></button></div>
       </div>
   </div>`;
-  if($('tt-range'))$('tt-range').onclick=()=>{const i=TT_RANGES.findIndex(x=>x[0]===TV.ttRange);TV.ttRange=TT_RANGES[(i+1)%TT_RANGES.length][0];try{SessionWorkspace.storage.setItem('sb.ttRange',TV.ttRange)}catch(e){}renderSettings()};
+  if($('tt-range'))$('tt-range').onclick=()=>{const i=TT_RANGES.findIndex(x=>x[0]===TV.ttRange);TV.ttRange=TT_RANGES[(i+1)%TT_RANGES.length][0];try{SessionWorkspace.storage.setItem('sb.ttRange',TV.ttRange)}catch(e){}
+    const card=$('tt-range').closest('.tt-card');
+    const next=document.createElement('template');
+    next.innerHTML=setTimeCard();
+    for(const selector of ['.tt-range','.tt-rows','.tt-tot']){
+      card.querySelector(selector).innerHTML=next.content.querySelector(selector).innerHTML;
+    }
+  };
   $('set-body').querySelectorAll('[data-db]').forEach(b=>b.onclick=()=>{if(b.dataset.db==='learning'){closeSheets();go('log');return}TV.dbView=b.dataset.db;renderSettings()});
 }
 const TT_RANGES=[['last','Last Session'],['14','Last 14 Days'],['all','Lifetime']];
