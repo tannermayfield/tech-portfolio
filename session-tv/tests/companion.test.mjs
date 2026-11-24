@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
 import {tmpdir} from 'node:os';
+import {mkdtemp,mkdir,rm} from 'node:fs/promises';
+import path from 'node:path';
 import http from 'node:http';
 import {createCompanion,canonicalWorkspaces} from '../companion/server.mjs';
 import {CodexBridge} from '../companion/codex.mjs';
@@ -202,4 +204,15 @@ test('Work approvals are one-time decisions and cannot be replayed or used in Pl
   assert.equal(bridge.answerApproval('wrong',true),false);assert.equal(bridge.answerApproval(pending.params.id,true),true);assert.equal(bridge.answerApproval(pending.params.id,true),false);assert.deepEqual(messages.at(-1),{id:43,result:{decision:'accept'}});
   bridge.currentMode='plan';bridge.receive(JSON.stringify({...call,id:44}));assert.deepEqual(messages.at(-1),{id:44,result:{decision:'decline'}});
  }finally{bridge.stop()}
+});
+
+test('companion publishes successful Work changes before closing the stream',async()=>{
+ const temporary=await mkdtemp(path.join(tmpdir(),'sessiontv-auto-'));const folder=path.join(temporary,'tech-portfolio');await mkdir(folder);
+ const workspaces=await canonicalWorkspaces([folder]);let snapshots=0,pushes=0;
+ const companion=createCompanion({port:0,origin:'https://tannermayfield.dev',supabaseUrl:'https://test.supabase.co',publishableKey:'public',ownerId:'owner',home:path.join(temporary,'profile'),workspaces,deviceToken:'paired',verifyUser:async()=>({id:'owner'}),bridgeFactory:()=>new FakeBridge(),publisherFactory:async()=>({snapshot:async()=>({base:'base',tree:snapshots++?'tree':null}),publish:async(review)=>{assert.equal(review.tree,'tree');pushes++;return{commit:'a'.repeat(40)}}})});
+ await companion.listen();
+ try{
+  const response=await fetch('http://127.0.0.1:'+companion.server.address().port+'/run',{method:'POST',headers:{Origin:'https://tannermayfield.dev','Content-Type':'application/json',Authorization:'Bearer fixture','X-SessionTV-Pair':'paired'},body:JSON.stringify({workspace:workspaces[0],prompt:'Update the project',mode:'work'})});
+  assert.equal(response.status,200);const events=(await response.text()).trim().split('\n').map(line=>JSON.parse(line));assert.equal(pushes,1);assert.equal(events.at(-1).method,'sessiontv/publish');assert.equal(events.at(-1).params.commit,'a'.repeat(40));
+ }finally{await new Promise(resolve=>companion.server.close(resolve));await rm(temporary,{recursive:true,force:true})}
 });

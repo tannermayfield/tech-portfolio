@@ -18,7 +18,7 @@ export async function canonicalWorkspaces(values){
  const roots=[];for(const value of values){const root=await realpath(value);if(!(await stat(root)).isDirectory()||path.parse(root).root===root)throw new Error('Select a project directory, not a filesystem root.');roots.push(root)}
  if(!roots.length)throw new Error('Select at least one project directory with SESSIONTV_WORKSPACES (JSON array).');return [...new Set(roots)];
 }
-export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now,deviceToken,configPath,pickFolder,openFolder,voice=voiceService(),chatgpt,canvas}){
+export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl,publishableKey,ownerId,workspaces,home,executable='codex',port=4319,verifyUser,bridgeFactory=opts=>new CodexBridge(opts),now=Date.now,deviceToken,configPath,pickFolder,openFolder,voice=voiceService(),chatgpt,canvas,publisherFactory=sessionTVPublisher}){
  if(!/^https:\/\//.test(supabaseUrl||'')||!publishableKey||!ownerId||!home||!workspaces?.length)throw new Error('Supabase URL, public key, owner UUID, dedicated CODEX_HOME and selected workspaces are required.');
  if(new URL(origin).origin!==origin)throw new Error('SESSIONTV_ORIGIN must be an exact origin.');
  const generalChat=chatgpt||chatGPTService({home});
@@ -94,17 +94,9 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     paired=true;const token=deviceToken||secret();pairs.set(token,{userId:user.id,expires:now()+1800000});json(res,200,{token,remember:!!deviceToken,expiresIn:deviceToken?null:1800});return;
    }
    await authorize(req);
-   if(route==='/publish/preview'||route==='/publish/run'||route==='/publish/status'){
+   if(route==='/publish/status'){
     const body=await readJSON(req);
-    if(route==='/publish/status'){json(res,200,{live:await liveSessionTVCommit(body.commit).catch(()=>false)});return;}
-    if(active||operation||codexLogin)throw failure(409,'Wait until the companion is idle before publishing.');
-    operation=true;
-    try{
-     const folder=await folders.authorized(body.folder),publisher=await sessionTVPublisher(folder);
-     if(route==='/publish/preview'){json(res,200,await publisher.snapshot());return;}
-     if(!/^[a-f0-9]{40}$/.test(body.base)||!/^[a-f0-9]{40}$/.test(body.tree))throw failure(400,'Review the publish preview first.');
-     json(res,200,await publisher.publish(body));return;
-    }finally{operation=false;}
+    json(res,200,{live:await liveSessionTVCommit(body.commit).catch(()=>false)});return;
    }
    if(route==='/codex/approval'){
     const body=await readJSON(req);
@@ -202,16 +194,40 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    if(body.mode!==undefined&&!['plan','apply','work'].includes(body.mode))throw failure(400,'Choose Plan, Apply, or Work.');
    if(body.effort!==undefined&&!['low','medium','high','xhigh'].includes(body.effort))throw failure(400,'Choose Light, Medium, High, or Extra high effort.');
    if(body.reviewer!==undefined&&!['user','auto_review'].includes(body.reviewer))throw failure(400,'Choose a supported approval mode.');
-   const bridge=active=bridgeFactory({executable,home,cwd,reviewChanges:body.mode==='work',reviewer:body.mode==='work'?body.reviewer:'user'});activeConfirmed=false;let timeout;
+   const bridge=active=bridgeFactory({executable,home,cwd,reviewChanges:body.mode==='work',reviewer:body.mode==='work'?body.reviewer:'user'});activeConfirmed=false;let timeout,settling=false,publisher,baseline;
    const stop=()=>{clearTimeout(timeout);bridge.stop();if(active===bridge){active=null;activeConfirmed=false}};
-   res.on('close',stop);
+   res.on('close',()=>{if(!settling)stop()});
    const write=event=>{if(!res.destroyed)res.write(JSON.stringify(event)+'\n')};
    try{
     await bridge.initialize();res.writeHead(200,{'Content-Type':'application/x-ndjson','X-Accel-Buffering':'no'});res.flushHeaders();
+    const publishStatus=(message,commit)=>write({method:'sessiontv/publish',params:{message,commit}});
+    const leaf=path.basename(cwd).toLowerCase(),parent=path.basename(path.dirname(cwd)).toLowerCase();
+    if(body.mode==='work'&&(leaf==='tech-portfolio'||(leaf==='session-tv'&&parent==='tech-portfolio'))){
+     try{
+      publisher=await publisherFactory(cwd);baseline=await publisher.snapshot();
+      if(baseline.tree){baseline=null;publishStatus('Automatic publish paused: SessionTV already had local changes before this turn.');}
+     }catch(error){publishStatus('Automatic publish unavailable: '+error.message);}
+    }
+    if(res.destroyed){stop();return;}
     bridge.on('event',event=>{
-     write(event);if(event.method==='turn/completed'){stop();res.end()}
+     if(settling)return;
+     write(event);
+     if(event.method!=='turn/completed')return;
+     settling=true;clearTimeout(timeout);
+     void (async()=>{
+      try{
+       if(event.params.turn?.status!=='completed'||!baseline)return;
+       const review=await publisher.snapshot();
+       if(review.base!==baseline.base)throw Error('The repository changed during this turn.');
+       if(!review.tree){publishStatus('No SessionTV file changes to publish.');return;}
+       publishStatus('Publishing SessionTV…');
+       const release=await publisher.publish(review);
+       publishStatus('Pushed '+release.commit.slice(0,7)+'. Waiting for GitHub Pages…',release.commit);
+      }catch(error){publishStatus('Automatic publish paused: '+error.message);}
+      finally{stop();res.end();}
+     })();
     });
-    bridge.on('stopped',error=>{if(!res.destroyed&&!res.writableEnded){write({method:'sessiontv/stopped',params:{error:error.message}});res.end()}});
+    bridge.on('stopped',error=>{if(!settling&&!res.destroyed&&!res.writableEnded){write({method:'sessiontv/stopped',params:{error:error.message}});res.end()}});
     timeout=setTimeout(()=>{write({method:'sessiontv/error',params:{error:'Request reached the 30-minute limit.'}});stop();res.end()},1800000);
     if(body.threadId!==undefined&&(typeof body.threadId!=='string'||body.threadId.length>200))throw failure(400,'Invalid chat reference.');
     await bridge.start(cwd,body.prompt,body.threadId,body.mode,body.effort,body.image);if(active===bridge)activeConfirmed=true;

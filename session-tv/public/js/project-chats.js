@@ -287,7 +287,6 @@
   chat.messages.push({role:'user',text:show||prompt});const reply={role:'assistant',text:''};chat.messages.push(reply);
   running={name,mode,value,reply,approvals:new Map()};save(name,value);$('coach-input').value='';renderProjectChat();
   let repaint=null,lastMessageItem=null,failed=false,completed=false;
-  const publishBase=mode==='work'?await globalThis.SessionProjectPublish?.baseline(value.folder):null;
   const streamedMessages=new Set();
   const paint=()=>{
    repaint=null;
@@ -303,6 +302,10 @@
    await SessionCompanion.start({workspace:value.folder,prompt:context+'\n\nUser message: '+prompt,threadId:chat.threadId,mode,effort,image:options.image,reviewer:mode==='work'?globalThis.SessionComposer?.approvalMode():undefined,onEvent:event=>{
     if(event.method==='sessiontv/approval')running.approvals.set(event.params.id,event.params);
     if(event.method==='sessiontv/approvalResolved')running.approvals.delete(event.params.id);
+    if(event.method==='sessiontv/publish'){
+     reply.activity??=[];reply.activity.push({label:'GitHub Pages',detail:event.params.message});
+     if(event.params.commit)globalThis.SessionProjectPublish?.verify(event.params.commit);
+    }
     updateActivity(reply,event);
     if(event.method==='sessiontv/thread')chat.threadId=event.params.threadId;
     if(event.method==='item/agentMessage/delta'){
@@ -324,7 +327,6 @@
    }});
   } catch(error) { failed=true;reply.text+=(error.name==='AbortError'?'\nStopped.':'\n'+error.message); }
   finally { clearTimeout(repaint);if(!reply.text.trim())reply.text=completed?'Codex finished without a text reply.':'Codex stopped before sending a reply.';running=null;save(name,value);if(selected()?.name===name)renderProjectChat(); }
-  if(!failed&&completed&&publishBase)await SessionProjectPublish.afterTurn(value.folder,publishBase);
   return {sent:!failed&&completed,completed:!failed&&completed};
  };
  sendCoach=sendProject;
