@@ -127,3 +127,7 @@ body.tv-home-active #view-log{visibility:hidden;pointer-events:none}#tv-home .gd
 
 /* ChatGPT thinking stays configured internally, without composer chrome. */
 #coach-form .composer-study-effort,#chatgpt-chat .chatgpt-options label:has(#chatgpt-effort){display:none!important}
+
+/* Inset chat headings without moving project header actions. */
+body.tv #work-mid #focus.chat-head{padding-left:clamp(28px,calc(var(--tv-vw,1vw) * 6),64px)!important}
+body.tv #work-mid:has(#coach-form[data-composer-section="class"]) #focus.chat-head,body.tv #work-mid:has(#coach-form[data-composer-section="skill"]) #focus.chat-head{padding-right:clamp(28px,calc(var(--tv-vw,1vw) * 6),64px)!important}
