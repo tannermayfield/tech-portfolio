@@ -171,6 +171,7 @@
    const open = document.createElement('button'); open.className = 'btn ghost'; open.textContent = 'Open folder'; open.disabled = !value.folder;
    open.onclick = () => SessionCompanion.openFolder(value.folder).catch(error=>toast(error.message));
    const pd=projData(name),owners=new Map();for(const sprint of [...(pd.past||[]),pd.sprint].filter(Boolean))for(const item of spItems(sprint))if(item.who)owners.set(item.id,item.who);
+   for(const [id,who] of Object.entries(pd.taskAssignments||{}))owners.set(id,who);
    const completed=tasks.filter(task=>typeOf(task)==='project'&&task.course===name&&task.status==='done');
    const skills=new Set(completed.flatMap(task=>Array.isArray(task.skills)?task.skills:[]));
    const counters=document.createElement('div');counters.className='class-counters project-counters';for(const [count,caption] of [[totals.sprints,'Sprints completed'],[completed.filter(task=>owners.get(task.id)==='me').length,'Tasks completed by me'],[skills.size,'Skills applied'],[completed.filter(task=>owners.get(task.id)==='ai').length,'Tasks completed by Codex']]){const counter=document.createElement('span'),number=document.createElement('b'),label=document.createElement('small');number.textContent=count;label.textContent=caption;counter.append(number,label);counters.append(counter);}
