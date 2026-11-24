@@ -151,7 +151,3 @@ body.tv #work-mid:has(#coach-form[data-composer-section="class"]) #focus.chat-he
 #homework-overview .homework-list{margin-bottom:18px}
 
 .codex-activity{display:grid;gap:6px;margin:4px 0 10px;font-size:12px;color:var(--muted)}.codex-step{display:grid;gap:3px;border-inline-start:2px solid var(--line);padding-inline-start:9px}.codex-step span{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--f-mono)}.codex-step span:empty{display:none}.codex-working{font-style:italic}
-
-#sessiontv-publish{width:min(620px,calc(100vw - 32px));padding:0}#sessiontv-publish [data-files]{max-height:30vh;overflow:auto;overflow-wrap:anywhere}#sessiontv-publish input[type=checkbox]{width:auto}
-
-#coach-quick:has([data-sessiontv-publish]){display:flex!important;justify-content:flex-end;padding-inline:24px}

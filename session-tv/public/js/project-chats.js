@@ -259,9 +259,6 @@
    const heading = document.createElement('div'); heading.className='ai-name'; heading.textContent=message.role==='user'?'You':'Codex';
    const content = document.createElement('div');if(running?.reply===message)content.dataset.codexLive='';renderReplyContent(content,message,running?.reply===message); bubble.append(heading,content); log.appendChild(bubble);
   }
-  if(mode==='work'&&privateChat&&globalThis.SessionProjectPublish?.supported(value.folder)){
-   const button=document.createElement('button');button.type='button';button.className='btn ghost';button.textContent='Publish';button.dataset.sessiontvPublish='';button.disabled=!!running;button.onclick=()=>SessionProjectPublish.open(value.folder);$('coach-quick').append(button);
-  }
   $('coach-send').disabled = !!running || !modelReady;
   $('coach-input').placeholder=mode==='work'?'Work with Codex':'Ask Codex';
   let stop = $('project-stop');
@@ -327,7 +324,7 @@
    }});
   } catch(error) { failed=true;reply.text+=(error.name==='AbortError'?'\nStopped.':'\n'+error.message); }
   finally { clearTimeout(repaint);if(!reply.text.trim())reply.text=completed?'Codex finished without a text reply.':'Codex stopped before sending a reply.';running=null;save(name,value);if(selected()?.name===name)renderProjectChat(); }
-  if(!failed&&completed&&publishBase)void SessionProjectPublish.afterTurn(value.folder,publishBase);
+  if(!failed&&completed&&publishBase)await SessionProjectPublish.afterTurn(value.folder,publishBase);
   return {sent:!failed&&completed,completed:!failed&&completed};
  };
  sendCoach=sendProject;
