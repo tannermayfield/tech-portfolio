@@ -1771,7 +1771,7 @@ function staticBurst(){
 }
 
 /* ---------- cutscene ---------- */
-function canvasFit(cv,scale=1){const r=cv.getBoundingClientRect(),dpr=Math.min(1.5,window.devicePixelRatio||1)*scale;const w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}return {W:w,H:h}}
+function canvasFit(cv,scale=1){const r=cv.getBoundingClientRect(),dpr=Math.min(1.5,window.devicePixelRatio||1,Math.sqrt(1280*720/Math.max(1,r.width*r.height)))*scale;const w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}return {W:w,H:h}}
 function playCut(th,ch){
   stopCut();if(!TV.cutLen||reduce())return;
   const crt=$('crt'),cv=$('tv-cut'),x=cv.getContext('2d');
@@ -1792,7 +1792,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&TV.cut)stopCut()});
 const AMB={raf:0,last:0};
 function ambLoop(ts){
   AMB.raf=requestAnimationFrame(ambLoop);
-  if(ts-AMB.last<66)return;AMB.last=ts;
+  if(document.hidden||TV.cut||ts-AMB.last<66)return;AMB.last=ts;
   const cv=$('tv-amb'),{W,H}=canvasFit(cv,.35),x=cv.getContext('2d'),th=activeTheme(),p=th.pal,t=ts/1000;
   const dark=document.body.dataset.scheme==='dark';
   const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,p[0]);g.addColorStop(1,p[1]);x.fillStyle=g;x.fillRect(0,0,W,H);

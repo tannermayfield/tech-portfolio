@@ -22,7 +22,7 @@
   const host=document.getElementById('session-connection-summary');if(!host||busy)return;lastHost=host;
   if(!privateMode()){render(host,{},{});return}busy=true;lastCheck=Date.now();const version=epoch;
   try{
-   const [computer,chat,canvas]=await Promise.all([SessionCompanion.status(),SessionCompanion.chatGPTStatus().catch(()=>({connected:false})),SessionCompanion.canvasStatus().catch(()=>({connected:false,error:'Computer disconnected'}))]);
+   const [computer,chat,canvas]=await Promise.all([SessionCompanion.status(),SessionCompanion.chatGPTStatus().catch(()=>({connected:false})),Promise.resolve().then(()=>SessionCompanion.canvasStatus()).catch(()=>({connected:false,error:'Computer disconnected'}))]);
    if(version!==epoch||!privateMode())return;
    let codex={connected:!!computer.signedIn,setup:!computer.connected,pending:!!computer.loginPending};pending=pending||!!computer.loginPending;
    if(pending&&computer.connected){const state=await SessionCompanion.codexLoginStatus().catch(()=>({pending:false}));codex={...codex,...state};pending=!!state.pending;}

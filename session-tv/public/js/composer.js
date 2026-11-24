@@ -66,7 +66,7 @@
  }
  // Avoid rebuilding chips or inputs during unrelated DOM changes.
  function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;mount()})}
- const observer=new MutationObserver(schedule);observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','data-view']});
+ const observer=new MutationObserver(records=>{if(context!==state().key||records.some(record=>record.target.closest?.('#coach-wrap,#coach-form')||Array.from(record.addedNodes).some(node=>node.id==='coach-form')))schedule()});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','data-view']});
  // Rendering attachments must not itself restart the observer indefinitely.
  const originalChips=chips;let fileSignature='';chips=()=>{const signature=context+'|'+files.map(f=>f.name+':'+f.size).join('|');if(signature===fileSignature)return;fileSignature=signature;originalChips()};
  globalThis.SessionComposer={peekAttachments(){return files.map(({name,text})=>({name,text}))},consumeAttachments(){const result=files.map(({name,text})=>({name,text}));files=[];chips();return result},get attachments(){return files.map(({name,text})=>({name,text}))},attach};
