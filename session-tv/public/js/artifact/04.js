@@ -1674,7 +1674,7 @@ applyScheme();
 
 /* ---------- channels ---------- */
 function subsOf(k){
-  if(k==='class')return ['Due Date','IS 401','IS 402','IS 403','IS 404'];
+  if(k==='class')return ['Due Date',...gdCourses()];
   if(k==='skill')return Object.keys(SKILL_TAGS);
   const p=[...new Set([...filterOptions('project'),...(globalThis.SessionProjectChats?.names()||[])])];return p.length?p:['All'];
 }
@@ -2044,7 +2044,7 @@ const gdVis=()=>{const w=$('crt').getBoundingClientRect().width;return w<600?2:w
 function gdClock(){
   if(current?.mood==='class'){const t=T(TV.gSel.class);if(!t)return '';if(!t.due)return 'No due date';const d=dueAt(t)||parseDay(t.due);return `Due ${d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})} · ${fmtClock(d)}`}
   const d=new Date();return `${d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})} · ${fmtClock(d)}`}
-function gdCourses(){const all=candidates('class');return [...new Set(['IS 401','IS 402','IS 404','IS 403',...all.map(t=>t.course).filter(Boolean)])]}
+function gdCourses(){if(globalThis.SessionClasses?.names)return SessionClasses.names();return [...new Set([...Object.keys(recall('sb.classes',{})),...tasks.filter(t=>typeOf(t)==='class'&&t.status!=='archived').map(t=>t.course||'Other')])].sort()}
 function gdDays(){
   const all=candidates('class'),today=gdYmd(new Date());let lo=today,hi=gdYmd(new Date(Date.now()+6*864e5));
   all.forEach(t=>{if(!t.due)return;if(t.status!=='done'&&t.due<lo)lo=t.due;if(t.due>hi)hi=t.due});
@@ -2136,7 +2136,7 @@ function renderGuide(){
       <div class="gd-row gd-hdr"><div class="gd-ch"><button type="button" data-slide="-1" aria-label="Earlier days">◀</button><button type="button" data-today>Today</button></div>
         <div class="gd-vp"><div class="gd-track" style="${tr}">${days.map((d,j)=>`<div class="gd-day${d===today?' today':''}" style="${cwOf(j)}">${dayLbl(d)}</div>`).join('')}</div></div>
         <div class="gd-end"><button type="button" data-slide="1" aria-label="Later days">▶</button></div></div>
-      ${courses.map((c,i)=>`<div class="gd-row"><div class="gd-ch"><b>${esc(c)}</b><small>${esc(GD_COURSE_NAMES[c]||('CH '+(101+i)))}</small></div>
+      ${courses.map((c,i)=>`<div class="gd-row"><div class="gd-ch"><b>${esc(globalThis.SessionClasses?.fields(c).code||c)}</b><small>${esc(globalThis.SessionClasses?.fields(c).name||GD_COURSE_NAMES[c]||('CH '+(101+i)))}</small></div>
         <div class="gd-vp"><div class="gd-track" style="${tr}">${days.map((d,j)=>{const all=gdCellItems(c,d),wide=TV.gWide.has(d),items=all.length>2&&!wide?all.slice(0,2):all;
           const more=all.length>2?(wide?`<button type="button" class="gd-more-btn" data-less="${d}" aria-label="Show fewer">&lt;</button>`:`<button type="button" class="gd-more-btn" data-more="${d}" aria-label="Show ${all.length-2} more">+${all.length-2}</button>`):'';
           return `<div class="gd-cell${d===today?' today':''}" style="${cwOf(j)}">${items.length?items.map(t=>{const late=t.status!=='done'&&dueAt(t)&&dueAt(t)<new Date();
