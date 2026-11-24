@@ -13,11 +13,17 @@ export class CodexBridge extends EventEmitter {
   // Codex discovers repository instructions above nested workspace roots.
   // Grant only the existing instruction files, never the parent directory.
   for(let parent=path.dirname(cwd);;parent=path.dirname(parent)){for(const name of ['AGENTS.md','AGENTS.override.md']){const file=path.join(parent,name);if(existsSync(file)){profile.filesystem[file]='read';readProfile.filesystem[file]='read'}}if(path.dirname(parent)===parent)break;}
+  // Windows needs these OS paths to launch commands with an otherwise empty environment.
+  const windowsShellEnvironment=Object.fromEntries(
+   ['SystemRoot','WINDIR','ComSpec'].map(name=>[name,process.env[name]]).filter(([,value])=>value)
+  );
   const args=['app-server','--listen','stdio://','-c','default_permissions="sessiontv"','-c','permissions.sessiontv='+toml(profile),
    '-c','permissions.sessiontv_plan='+toml(readProfile),'-c','permissions.sessiontv_apply='+toml(readProfile),
    ...(process.platform==='win32'?['-c','features.prefer_mxc=true','-c','windows.sandbox="mxc"']:[]),
    '-c','approval_policy="on-request"','-c','approvals_reviewer="user"','-c','model_provider="openai"','-c','forced_login_method="chatgpt"',
-   '-c','shell_environment_policy.inherit="none"','-c','features.multi_agent=false','-c','mcp_servers={}'];
+   '-c','shell_environment_policy.inherit="none"',
+   ...(process.platform==='win32'?['-c','shell_environment_policy.set='+toml(windowsShellEnvironment)]:[]),
+   '-c','features.multi_agent=false','-c','mcp_servers={}'];
   const env={...process.env,CODEX_HOME:home};
   for(const key of Object.keys(env))if(/API_KEY|ACCESS_TOKEN|SESSIONTV_|SUPABASE_|ANTHROPIC|AWS_|OPENAI_/i.test(key))delete env[key];
   this.process=spawnProcess(executable,args,{cwd,env,windowsHide:true,stdio:['pipe','pipe','pipe'],shell:false});
