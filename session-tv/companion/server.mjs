@@ -93,6 +93,12 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     paired=true;const token=deviceToken||secret();pairs.set(token,{userId:user.id,expires:now()+1800000});json(res,200,{token,remember:!!deviceToken,expiresIn:deviceToken?null:1800});return;
    }
    await authorize(req);
+   if(route==='/codex/approval'){
+    const body=await readJSON(req);
+    if(typeof body.id!=='string'||typeof body.accept!=='boolean')throw failure(400,'Invalid approval decision.');
+    if(!active?.answerApproval?.(body.id,body.accept))throw failure(409,'This approval is no longer pending.');
+    json(res,200,{ok:true});return;
+   }
    if(route.startsWith('/canvas/')){
     const body=await readJSON(req);
     if(route==='/canvas/status'){json(res,200,await chatRequest(schoolCanvas.status()));return;}
@@ -182,7 +188,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    const cwd=await folders.authorized(body.workspace);
    if(body.mode!==undefined&&!['plan','apply','work'].includes(body.mode))throw failure(400,'Choose Plan, Apply, or Work.');
    if(body.effort!==undefined&&!['low','medium','high','xhigh'].includes(body.effort))throw failure(400,'Choose Light, Medium, High, or Extra high effort.');
-   const bridge=active=bridgeFactory({executable,home,cwd});activeConfirmed=false;let timeout;
+   const bridge=active=bridgeFactory({executable,home,cwd,reviewChanges:body.mode==='work'});activeConfirmed=false;let timeout;
    const stop=()=>{clearTimeout(timeout);bridge.stop();if(active===bridge){active=null;activeConfirmed=false}};
    res.on('close',stop);
    const write=event=>{if(!res.destroyed)res.write(JSON.stringify(event)+'\n')};

@@ -1,4 +1,5 @@
-﻿import {spawn} from 'node:child_process';
+﻿import {randomUUID} from 'node:crypto';
+import {spawn} from 'node:child_process';
 import path from 'node:path';
 import {existsSync} from 'node:fs';
 import {createInterface} from 'node:readline';
@@ -6,8 +7,8 @@ import {EventEmitter} from 'node:events';
 
 // All protocol messages go through stdio. There is no exposed app-server socket.
 export class CodexBridge extends EventEmitter {
- constructor({executable='codex',home,cwd,spawnProcess=spawn}) {
-  super();this.next=1;this.pending=new Map();this.closed=false;
+ constructor({executable='codex',home,cwd,reviewChanges=false,spawnProcess=spawn}) {
+  super();this.next=1;this.pending=new Map();this.closed=false;this.reviewChanges=reviewChanges;this.approvals=new Map();
   const profile={filesystem:{':minimal':'read',':workspace_roots':{'.':'write','.git':'read','.codex':'read','.agents':'read','.aws':'deny','.env':'deny'}},network:{enabled:false}};
   const readProfile={filesystem:{':minimal':'read',':workspace_roots':{'.':'read','.aws':'deny','.env':'deny'}},network:{enabled:false}};
   // Codex discovers repository instructions above nested workspace roots.
@@ -35,7 +36,16 @@ export class CodexBridge extends EventEmitter {
  receive(line) {
   let message;try{message=JSON.parse(line)}catch{return}
   if(message.method&&Object.hasOwn(message,'id')) {
-   // Never allow an approval to lift the sandbox or grant new permissions.
+   const params=message.params||{};
+   const isCommand=message.method==='item/commandExecution/requestApproval';
+   const isFile=message.method==='item/fileChange/requestApproval';
+   if(this.reviewChanges&&this.currentMode==='work'&&((isCommand&&(params.command||params.networkApprovalContext?.host))||isFile)&&(!params.availableDecisions||params.availableDecisions.includes('accept'))){
+    const id=randomUUID();
+    const timer=setTimeout(()=>this.answerApproval(id,false),120000);
+    this.approvals.set(id,{requestId:message.id,timer});
+    this.emit('event',{method:'sessiontv/approval',params:{id,kind:params.networkApprovalContext?'Network access':isCommand?'Run command':'Change files',command:params.command,cwd:params.cwd,reason:params.reason,host:params.networkApprovalContext?.host,grantRoot:params.grantRoot,additionalPermissions:params.additionalPermissions}});
+    return;
+   }
    const result=message.method==='item/permissions/requestApproval'?{permissions:{}}:
     message.method.includes('elicitation')?{action:'decline',content:null}:{decision:'decline'};
    this.send({id:message.id,result});
@@ -47,6 +57,13 @@ export class CodexBridge extends EventEmitter {
    this.pending.delete(message.id);clearTimeout(pending.timer);
    message.error?pending.reject(new Error(message.error.message||'Codex request failed.')):pending.resolve(message.result);
   } else if(message.method)this.emit('event',message);
+ }
+ answerApproval(id,accept){
+  const approval=this.approvals.get(id);if(!approval||this.closed)return false;
+  this.approvals.delete(id);clearTimeout(approval.timer);
+  this.send({id:approval.requestId,result:{decision:accept?'accept':'decline'}});
+  this.emit('event',{method:'sessiontv/approvalResolved',params:{id,accepted:accept}});
+  return true;
  }
  send(message){if(this.closed)throw new Error('Codex is offline.');this.process.stdin.write(JSON.stringify(message)+'\n')}
  request(method,params={}) {
@@ -95,7 +112,7 @@ export class CodexBridge extends EventEmitter {
    started=await this.request(threadId?'thread/resume':'thread/start',{
     ...(threadId?{threadId,excludeTurns:true}:{}),cwd,runtimeWorkspaceRoots:[cwd],permissions,
     approvalPolicy:'on-request',approvalsReviewer:'user',modelProvider:'openai',
-    developerInstructions:MODE_INSTRUCTIONS[mode]+' Work only in the selected workspace. Report modified files and test results. This companion declines additional permissions and command approvals. Explain any action that needs separate owner approval. Never use API credentials or other providers.'
+    developerInstructions:MODE_INSTRUCTIONS[mode]+' Work only in the selected workspace. Report modified files and test results. '+(mode==='work'&&this.reviewChanges?'Ask for one-time owner approval when a command or file change needs it.':'This companion declines additional permissions and command approvals.')+' Explain any action that needs separate owner approval. Never use API credentials or other providers.'
    });
   } catch(error) {
    if(/sandbox|MXC/i.test(error.message))throw new Error('Codex could not start its Windows sandbox. '+error.message);
@@ -108,6 +125,7 @@ export class CodexBridge extends EventEmitter {
   return started.thread.id;
  }
  async start(cwd,prompt,threadId,mode='work',requestedEffort){
+  this.currentMode=mode;
   const id=await this.prepare(cwd,mode,threadId);
   const catalog=await this.models();
   const effort=mode==='work'?(requestedEffort||'medium'):'low';

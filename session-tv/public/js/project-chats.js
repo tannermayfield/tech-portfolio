@@ -192,6 +192,18 @@
     row.append(label,detail);activity.append(row);
    }
    if(working){const status=document.createElement('div');status.className='codex-working';status.setAttribute('role','status');status.textContent=message.activity?.length?'Working…':'Starting Codex…';activity.append(status)}
+   if(working)for(const approval of running.approvals.values()){
+    const panel=document.createElement('section');panel.className='codex-step';
+    const heading=document.createElement('strong');heading.textContent=approval.kind+' approval';panel.append(heading);
+    const detail=document.createElement('span');detail.textContent=[approval.command,approval.cwd,approval.host,approval.grantRoot,approval.reason,approval.additionalPermissions?JSON.stringify(approval.additionalPermissions):''].filter(Boolean).join('\n');panel.append(detail);
+    const actions=document.createElement('div');actions.className='row';
+    for(const accept of [true,false]){
+     const button=document.createElement('button');button.className='btn';button.type='button';button.textContent=accept?'Approve once':'Deny';button.disabled=approval.sending;
+     button.onclick=async()=>{approval.sending=true;for(const control of actions.children)control.disabled=true;try{await SessionCompanion.answerCodexApproval(approval.id,accept)}catch(error){approval.sending=false;for(const control of actions.children)control.disabled=false;toast(error.message)}};
+     actions.append(button);
+    }
+    panel.append(actions);activity.append(panel);
+   }
    content.append(activity);
   }
   const text=document.createElement('div');text.innerHTML=fmtMsg(message.text||message.content||'',message.role!=='user');content.append(text);
@@ -273,7 +285,7 @@
   const catalog=modelCatalog(value.folder,mode),effort=mode==='work'?(options.effort||workEffort):'low';
   if (catalog.loading||catalog.error||!catalog.efforts.includes(effort)){toast(catalog.error||'Wait for a supported Codex model and effort before sending.');return {sent:false};}
   chat.messages.push({role:'user',text:show||prompt});const reply={role:'assistant',text:''};chat.messages.push(reply);
-  running={name,mode,value,reply};save(name,value);$('coach-input').value='';renderProjectChat();
+  running={name,mode,value,reply,approvals:new Map()};save(name,value);$('coach-input').value='';renderProjectChat();
   let repaint=null,lastMessageItem=null,failed=false,completed=false;
   const streamedMessages=new Set();
   const paint=()=>{
@@ -288,6 +300,8 @@
    const learnedSkills=tasks.filter(item=>typeOf(item)==='skill').map(item=>item.title+' ('+skillLevel(item)+')').join(', ');
    const context='Project: '+name+'\nPreviously learned skills and self-rated levels: '+(learnedSkills||'None recorded yet')+'\n'+projectCtx(task);
    await SessionCompanion.start({workspace:value.folder,prompt:context+'\n\nUser message: '+prompt,threadId:chat.threadId,mode,effort,onEvent:event=>{
+    if(event.method==='sessiontv/approval')running.approvals.set(event.params.id,event.params);
+    if(event.method==='sessiontv/approvalResolved')running.approvals.delete(event.params.id);
     updateActivity(reply,event);
     if(event.method==='sessiontv/thread')chat.threadId=event.params.threadId;
     if(event.method==='item/agentMessage/delta'){

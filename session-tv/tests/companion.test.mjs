@@ -191,3 +191,15 @@ test('Codex login expires in five minutes and server close clears pending listen
  await post('/codex/connect');const first=bridges[0];advance(300001);const status=await(await post('/codex/login-status')).json();assert.equal(status.pending,false);assert.equal(status.connected,false);assert.match(status.error,/expired/);assert(first.stops>0);
  await post('/codex/connect');const second=bridges.at(-1);await new Promise(resolve=>companion.server.close(resolve));assert(second.stops>0);assert.equal(second.listenerCount('event'),0);assert.equal(second.listenerCount('stopped'),0);
 }));
+
+test('Work approvals are one-time decisions and cannot be replayed or used in Plan',()=>{
+ const child=new EventEmitter();child.stdin=new PassThrough();child.stdout=new PassThrough();child.stderr=new PassThrough();child.kill=()=>{};
+ const bridge=new CodexBridge({home:tmpdir(),cwd:tmpdir(),reviewChanges:true,spawnProcess:()=>child});
+ const messages=[],events=[];child.stdin.on('data',data=>messages.push(JSON.parse(data.toString())));bridge.on('event',event=>events.push(event));
+ try{
+  bridge.currentMode='work';const call={id:43,method:'item/commandExecution/requestApproval',params:{command:'git status',cwd:tmpdir()}};bridge.receive(JSON.stringify(call));
+  const pending=events.at(-1);assert.equal(pending.method,'sessiontv/approval');assert.equal(pending.params.command,'git status');assert.deepEqual(messages,[]);
+  assert.equal(bridge.answerApproval('wrong',true),false);assert.equal(bridge.answerApproval(pending.params.id,true),true);assert.equal(bridge.answerApproval(pending.params.id,true),false);assert.deepEqual(messages.at(-1),{id:43,result:{decision:'accept'}});
+  bridge.currentMode='plan';bridge.receive(JSON.stringify({...call,id:44}));assert.deepEqual(messages.at(-1),{id:44,result:{decision:'decline'}});
+ }finally{bridge.stop()}
+});
