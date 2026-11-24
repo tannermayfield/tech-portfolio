@@ -141,3 +141,11 @@ body.tv #work-mid:has(#coach-form[data-composer-section="class"]) #focus.chat-he
 #task-prompt-editor,#task-skill-picker{width:min(620px,calc(var(--crt-w,100vw) - 32px));padding:0}#task-prompt-editor textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:140px}.task-skill-list{max-height:40vh;overflow:auto;display:flex;flex-direction:column;gap:12px}.task-skill-list section{display:flex;flex-wrap:wrap;gap:8px}.task-skill-list h3{width:100%}#task-skill-picker [aria-pressed=true]{background:var(--ink);color:var(--modal)}#task-skill-picker [data-categories]{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}.project-task-table .task-prompt-button{min-width:32px}.task-prompt-button[data-ready=true]{border-color:var(--ink)}.project-task-table .pp-tt{min-width:0;overflow-wrap:anywhere}
 
 .project-task-table input[type=checkbox]{width:16px!important;height:16px!important;min-width:16px;max-width:16px;flex:0 0 16px;padding:0!important;margin:0!important}.project-task-table .pp-tt{flex:1 1 auto}.project-task-table .pp-x{flex:none}#task-prompt-editor textarea{background:var(--sunk);color:var(--ink);font:inherit;line-height:1.5;padding:10px}#task-prompt-editor form>.row,#task-skill-picker .local-panel>.row{justify-content:flex-end;gap:12px;margin-top:16px}
+
+#homework-overview{inset:0;z-index:26;border-radius:0;background:var(--modal);color:var(--ink)}
+#homework-overview[hidden]{display:none!important}
+#homework-overview .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:12px clamp(28px,calc(var(--tv-vw,1vw) * 6),64px);gap:12px}
+#homework-overview .sheet-head h2{font-size:clamp(17px,2.4vw,24px)}
+#homework-overview .sheet-head button{flex:none}
+#homework-overview .homework-stats,#homework-overview .homework-toolbar,#homework-overview .homework-list{margin-inline:clamp(16px,calc(var(--tv-vw,1vw) * 5),64px)}
+#homework-overview .homework-list{margin-bottom:18px}
