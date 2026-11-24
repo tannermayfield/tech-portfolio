@@ -15,7 +15,7 @@
   if(!host?.isConnected)return;host.replaceChildren();
   for(const [label,status,connect]of [['ChatGPT',chat,()=>login('chatgpt')],['Codex',codex,()=>login('codex')],['Canvas',canvas,canvasSetup]]){
    const item=row(label);item.state.textContent=status.connected?'Connected':status.pending?'Finish sign-in in your browser':privateMode()?(status.error||'Not connected'):'Sign in to connect';item.state.classList.toggle('connected',!!status.connected);
-   item.action.hidden=!!status.connected;item.action.disabled=!privateMode();item.action.textContent=label==='Canvas'?'Setup':status.setup?'Setup':status.pending?'Continue sign-in':'Sign in with ChatGPT';item.action.onclick=label==='Canvas'?canvasSetup:status.setup?guide:connect;host.append(item.node);
+   item.action.hidden=!!status.connected;item.action.disabled=!privateMode();item.action.textContent=label==='Canvas'?'Setup':status.setup?'Setup':status.pending?'Continue sign-in':'Sign in with ChatGPT';item.action.onclick=label==='Canvas'?canvasSetup:status.setup?guide:connect;if(label==='ChatGPT'||label==='Codex')item.action.hidden=true;host.append(item.node);
   }
  }
  async function refresh(){
@@ -24,7 +24,7 @@
   try{
    const [computer,chat,canvas]=await Promise.all([SessionCompanion.status(),SessionCompanion.chatGPTStatus().catch(()=>({connected:false})),Promise.resolve().then(()=>SessionCompanion.canvasStatus()).catch(()=>({connected:false,error:'Computer disconnected'}))]);
    if(version!==epoch||!privateMode())return;
-   let codex={connected:!!computer.signedIn,setup:!computer.connected,pending:!!computer.loginPending};pending=pending||!!computer.loginPending;
+   let codex={connected:!!computer.signedIn,setup:!computer.connected,pending:!!computer.loginPending,error:computer.error};pending=pending||!!computer.loginPending;
    if(pending&&computer.connected){const state=await SessionCompanion.codexLoginStatus().catch(()=>({pending:false}));codex={...codex,...state};pending=!!state.pending;}
    if(version===epoch&&privateMode())render(host,chat,codex,canvas);
   }finally{busy=false;if(lastHost!==document.getElementById('session-connection-summary'))refresh()}

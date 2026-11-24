@@ -173,7 +173,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     if(active||operation){json(res,200,{connected:true,available:activeConfirmed,signedIn:activeConfirmed,busy:true,workspaces:folders.workspaces});return}
     const bridge=bridgeFactory({executable,home,cwd:folders.workspaces[0]});
     try{await bridge.initialize();const account=await bridge.account();json(res,200,{connected:true,available:true,...account,workspaces:folders.workspaces,chatgpt:await generalChat.status().catch(()=>({connected:false,error:'Check your ChatGPT connection in Session Preferences.'}))})}
-    catch(error){json(res,200,{connected:true,available:false,signedIn:false,error:error.message,workspaces:folders.workspaces})}finally{bridge.stop()};return;
+    catch(error){json(res,200,{connected:true,available:false,signedIn:false,error:error.message,workspaces:folders.workspaces});if(/Codex could not start|Codex app-server stopped/.test(error.message))server.emit('codex-restart-needed')}finally{bridge.stop()};return;
    }
    if(route!=='/run')throw failure(404,'Unknown endpoint.');
    if(active||operation||codexLogin)throw failure(409,'A coding request is already running.');
@@ -208,6 +208,7 @@ async function main(){
  const workspaces=await canonicalWorkspaces(JSON.parse(env.SESSIONTV_WORKSPACES||'[]'));
  if(workspaces.some(root=>home===root||home.startsWith(root+path.sep)))throw new Error('Keep the Codex credential profile outside selected project directories.');
  const companion=createCompanion({supabaseUrl:env.SUPABASE_URL,publishableKey:env.SUPABASE_PUBLISHABLE_KEY,ownerId:env.SESSIONTV_OWNER_ID,origin:env.SESSIONTV_ORIGIN||'https://tannermayfield.dev',home,workspaces,configPath:env.SESSIONTV_CONFIG_PATH||path.join(env.LOCALAPPDATA||path.dirname(home),'SessionTV-Companion','settings.json'),deviceToken:env.SESSIONTV_DEVICE_TOKEN,executable:env.SESSIONTV_CODEX_BINARY||'codex',port:Number(env.SESSIONTV_COMPANION_PORT||4319)});
+ companion.server.once('codex-restart-needed',()=>{companion.server.close(()=>process.exit(0))});
  await companion.listen();console.log('Session TV companion listening on 127.0.0.1:'+companion.server.address().port+'\nPairing code (one use, valid 10 minutes): '+companion.pairingCode+'\nAuthorized workspaces:\n'+workspaces.join('\n')+'\nStop with Ctrl+C. No API billing fallback is configured.');
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{console.error(error.message);process.exitCode=1});
