@@ -7,8 +7,8 @@ import {EventEmitter} from 'node:events';
 
 // All protocol messages go through stdio. There is no exposed app-server socket.
 export class CodexBridge extends EventEmitter {
- constructor({executable='codex',home,cwd,reviewChanges=false,spawnProcess=spawn}) {
-  super();this.next=1;this.pending=new Map();this.closed=false;this.reviewChanges=reviewChanges;this.approvals=new Map();
+ constructor({executable='codex',home,cwd,reviewChanges=false,reviewer='user',spawnProcess=spawn}) {
+  super();this.next=1;this.pending=new Map();this.closed=false;this.reviewChanges=reviewChanges;this.reviewer=reviewChanges&&reviewer==='auto_review'?'auto_review':'user';this.approvals=new Map();
   const profile={filesystem:{':minimal':'read',':workspace_roots':{'.':'write','.git':'read','.codex':'read','.agents':'read','.aws':'deny','.env':'deny'}},network:{enabled:false}};
   const readProfile={filesystem:{':minimal':'read',':workspace_roots':{'.':'read','.aws':'deny','.env':'deny'}},network:{enabled:false}};
   // Codex discovers repository instructions above nested workspace roots.
@@ -21,7 +21,7 @@ export class CodexBridge extends EventEmitter {
   const args=['app-server','--listen','stdio://','-c','default_permissions="sessiontv"','-c','permissions.sessiontv='+toml(profile),
    '-c','permissions.sessiontv_plan='+toml(readProfile),'-c','permissions.sessiontv_apply='+toml(readProfile),
    ...(process.platform==='win32'?['-c','features.prefer_mxc=true','-c','windows.sandbox="mxc"']:[]),
-   '-c','approval_policy="on-request"','-c','approvals_reviewer="user"','-c','model_provider="openai"','-c','forced_login_method="chatgpt"',
+   '-c','approval_policy="on-request"','-c','approvals_reviewer='+JSON.stringify(this.reviewer),'-c','model_provider="openai"','-c','forced_login_method="chatgpt"',
    '-c','shell_environment_policy.inherit="none"',
    ...(process.platform==='win32'?['-c','shell_environment_policy.set='+toml(windowsShellEnvironment)]:[]),
    '-c','features.multi_agent=false','-c','mcp_servers={}'];
@@ -107,11 +107,12 @@ export class CodexBridge extends EventEmitter {
    const saved=await this.request('thread/read',{threadId});
    if(saved.thread?.cwd!==cwd)throw new Error('This chat belongs to a different folder. Create a new chat.');
   }
+  const reviewer=mode==='work'?(this.reviewer||'user'):'user';
   let started;
   try {
    started=await this.request(threadId?'thread/resume':'thread/start',{
     ...(threadId?{threadId,excludeTurns:true}:{}),cwd,runtimeWorkspaceRoots:[cwd],permissions,
-    approvalPolicy:'on-request',approvalsReviewer:'user',modelProvider:'openai',
+    approvalPolicy:'on-request',approvalsReviewer:reviewer,modelProvider:'openai',
     developerInstructions:MODE_INSTRUCTIONS[mode]+' Work only in the selected workspace. Report modified files and test results. '+(mode==='work'&&this.reviewChanges?'Ask for one-time owner approval when a command or file change needs it.':'This companion declines additional permissions and command approvals.')+' Explain any action that needs separate owner approval. Never use API credentials or other providers.'
    });
   } catch(error) {
@@ -119,7 +120,7 @@ export class CodexBridge extends EventEmitter {
    throw error;
   }
   const confirmedProfile=typeof started.activePermissionProfile==='string'?started.activePermissionProfile:started.activePermissionProfile?.id;
-  if(confirmedProfile!==permissions||started.approvalPolicy!=='on-request'||started.approvalsReviewer!=='user'||started.modelProvider!=='openai'||started.cwd!==cwd||
+  if(confirmedProfile!==permissions||started.approvalPolicy!=='on-request'||started.approvalsReviewer!==reviewer||started.modelProvider!=='openai'||started.cwd!==cwd||
    started.runtimeWorkspaceRoots?.length!==1||started.runtimeWorkspaceRoots[0]!==cwd)throw new Error('Codex did not confirm the required restricted workspace policy. No coding turn was started.');
   if(!threadId)await this.request('thread/name/set',{threadId:started.thread.id,name:'Session TV · '+mode[0].toUpperCase()+mode.slice(1)});
   return started.thread.id;

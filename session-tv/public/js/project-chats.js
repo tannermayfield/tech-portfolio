@@ -300,7 +300,7 @@
   try {
    const learnedSkills=tasks.filter(item=>typeOf(item)==='skill').map(item=>item.title+' ('+skillLevel(item)+')').join(', ');
    const context='Project: '+name+'\nPreviously learned skills and self-rated levels: '+(learnedSkills||'None recorded yet')+'\n'+projectCtx(task);
-   await SessionCompanion.start({workspace:value.folder,prompt:context+'\n\nUser message: '+prompt,threadId:chat.threadId,mode,effort,image:options.image,onEvent:event=>{
+   await SessionCompanion.start({workspace:value.folder,prompt:context+'\n\nUser message: '+prompt,threadId:chat.threadId,mode,effort,image:options.image,reviewer:mode==='work'?globalThis.SessionComposer?.approvalMode():undefined,onEvent:event=>{
     if(event.method==='sessiontv/approval')running.approvals.set(event.params.id,event.params);
     if(event.method==='sessiontv/approvalResolved')running.approvals.delete(event.params.id);
     updateActivity(reply,event);

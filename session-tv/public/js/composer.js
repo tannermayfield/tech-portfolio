@@ -34,10 +34,30 @@
   }catch(error){notify(error.message)}
 
  }
+ const approvalOptions=[
+  {value:'user',label:'Ask for approval',description:'Review each eligible permission request yourself.'},
+  {value:'auto_review',label:'Approve for me',description:'Let Codex review eligible permission requests.'},
+  {value:'full',label:'Full access',description:'Unavailable in SessionTV.'}
+ ];
+ const approvalKey=()=> 'sb.codexApproval:'+String(state().task?.course||'');
+ function approvalMode(){return typeof recall==='function'&&recall(approvalKey(),'user')==='auto_review'?'auto_review':'user'}
+ function approvalLabel(){return approvalOptions.find(option=>option.value===approvalMode()).label}
  function access(trigger){
-  if(accessPopup){accessPopup.remove();accessPopup=null;trigger.setAttribute('aria-expanded','false');return}
-  const panel=accessPopup=document.createElement('div');panel.className='composer-access-popup';panel.id='composer-access-popup';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Workspace access');panel.setAttribute('popover','auto');
-  const heading=document.createElement('strong');heading.textContent='Workspace access';const text=document.createElement('p');text.textContent='Codex can read and edit the linked project inside its restricted workspace. Network access is blocked by default. Work chat shows eligible one-time approval requests as they come up.';const close=button('Close');close.onclick=()=>{panel.remove();accessPopup=null;trigger.setAttribute('aria-expanded','false')};panel.append(heading,text,close);document.body.append(panel);panel.showPopover?.();trigger.setAttribute('aria-expanded','true');const bounds=trigger.getBoundingClientRect();panel.style.left=Math.max(12,Math.min(bounds.left,innerWidth-330))+'px';panel.style.top=Math.max(12,bounds.top-170)+'px';panel.addEventListener('toggle',event=>{if(event.newState==='closed'){panel.remove();if(accessPopup===panel)accessPopup=null;trigger.setAttribute('aria-expanded','false')}});
+  if(accessPopup){accessPopup.hidePopover?.();accessPopup.remove();accessPopup=null;trigger.setAttribute('aria-expanded','false');return}
+  const panel=document.createElement('div');accessPopup=panel;panel.className='composer-access-popup composer-approval-picker';panel.id='composer-access-popup';panel.setAttribute('aria-label','Codex approval mode');panel.setAttribute('role','group');panel.setAttribute('popover','auto');
+  for(const option of approvalOptions){
+   const selected=option.value===approvalMode(),choice=button('',option.label);
+   choice.setAttribute('aria-pressed',String(selected));choice.disabled=option.value==='full';
+   const title=document.createElement('strong');title.textContent=option.label;
+   const detail=document.createElement('small');detail.textContent=option.description;
+   const mark=document.createElement('span');mark.textContent=selected?'✓':'';mark.setAttribute('aria-hidden','true');
+   choice.append(title,detail,mark);choice.onclick=()=>{if(typeof store==='function')store(approvalKey(),option.value);trigger.textContent=approvalLabel();trigger.setAttribute('aria-label',approvalLabel());access(trigger);trigger.focus()};panel.append(choice);
+  }
+  document.body.append(panel);panel.showPopover?.();trigger.setAttribute('aria-expanded','true');
+  const bounds=trigger.getBoundingClientRect(),size=panel.getBoundingClientRect();
+  panel.style.left=Math.max(12,Math.min(bounds.left,innerWidth-size.width-12))+'px';
+  panel.style.top=Math.max(12,bounds.top-size.height-8)+'px';
+  panel.addEventListener('toggle',event=>{if(event.newState==='closed'){panel.remove();if(accessPopup===panel)accessPopup=null;trigger.setAttribute('aria-expanded','false')}});
  }
  function mount(){
   const form=document.getElementById('coach-form'),input=document.getElementById('coach-input'),send=document.getElementById('coach-send');if(!form||!input||!send)return;
@@ -49,13 +69,13 @@
    const area=document.createElement('div');area.className='composer-attachments';area.hidden=true;const status=document.createElement('span');status.id='composer-status';status.className='sr-only';status.setAttribute('role','status');
    const picker=document.createElement('input');picker.type='file';picker.multiple=true;picker.accept=[...extensions].map(ext=>'.'+ext).join(',');picker.hidden=true;picker.id='composer-files';picker.onchange=()=>{attach(picker.files);picker.value=''};
    const plus=button('+','Attach text or code files, up to 10 KB total');plus.className='composer-plus';plus.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 4v16M4 12h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';plus.title='Attach text or code files · 10 KB total';plus.onclick=()=>{picker.accept=[...[...extensions].map(ext=>'.'+ext),...(state().section==='project'?imageTypes:[])].join(',');picker.click()};
-   const permission=button('Workspace access');permission.className='composer-access';permission.setAttribute('aria-haspopup','dialog');permission.setAttribute('aria-controls','composer-access-popup');permission.setAttribute('aria-expanded','false');permission.onclick=()=>access(permission);
+   const permission=button(approvalLabel());permission.className='composer-access';permission.setAttribute('aria-controls','composer-access-popup');permission.setAttribute('aria-expanded','false');permission.onclick=()=>access(permission);
    left.append(plus,permission);form.append(area,main,bottom,picker,status);
   }
   const left=form.querySelector('.composer-left'),right=form.querySelector('.composer-right');
   if(input.parentElement!==main)main.append(input);
   const work=info.section==='project'&&info.mode==='work';form.classList.toggle('composer-work',work);form.dataset.composerSection=info.section;
-  const plus=left.querySelector('.composer-plus'),permission=left.querySelector('.composer-access');if(plus.hidden!==!privateUser())plus.hidden=!privateUser();const hideAccess=!work||!privateUser();if(permission.hidden!==hideAccess)permission.hidden=hideAccess;
+  const plus=left.querySelector('.composer-plus'),permission=left.querySelector('.composer-access');if(plus.hidden!==!privateUser())plus.hidden=!privateUser();if(permission.textContent!==approvalLabel()){permission.textContent=approvalLabel();permission.setAttribute('aria-label',approvalLabel());}const hideAccess=!work||!privateUser();if(permission.hidden!==hideAccess)permission.hidden=hideAccess;
   let thinking=right.querySelector('.composer-study-effort');
   if(info.section!=='project'){
    if(!thinking){thinking=document.createElement('select');thinking.className='composer-study-effort';thinking.setAttribute('aria-label','Thinking effort');for(const [value,label] of [['medium','Medium']]){const option=document.createElement('option');option.value=value;option.textContent=label;thinking.append(option)}right.prepend(thinking)}
@@ -83,6 +103,6 @@
  const observer=new MutationObserver(records=>{if(context!==state().key||records.some(record=>record.target.closest?.('#coach-wrap,#coach-form')||Array.from(record.addedNodes).some(node=>node.id==='coach-form')))schedule()});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','data-view']});
  // Rendering attachments must not itself restart the observer indefinitely.
  const originalChips=chips;let fileSignature='';chips=()=>{const signature=context+'|'+files.map(f=>f.name+':'+f.size).join('|');if(signature===fileSignature)return;fileSignature=signature;originalChips()};
- globalThis.SessionComposer={peekAttachments(){return files.map(({name,text,image})=>image?{name,image}:{name,text})},consumeAttachments(){const result=files.map(({name,text,image})=>image?{name,image}:{name,text});files=[];chips();return result},get attachments(){return files.map(({name,text,image})=>image?{name,image}:{name,text})},attach};
+ globalThis.SessionComposer={approvalMode,peekAttachments(){return files.map(({name,text,image})=>image?{name,image}:{name,text})},consumeAttachments(){const result=files.map(({name,text,image})=>image?{name,image}:{name,text});files=[];chips();return result},get attachments(){return files.map(({name,text,image})=>image?{name,image}:{name,text})},attach};
  addEventListener('sessiontv:auth',()=>{files=[];context='';fileSignature='';accessPopup?.remove();accessPopup=null;schedule()});mount();
 })();

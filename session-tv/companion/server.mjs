@@ -201,7 +201,8 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    const cwd=await folders.authorized(body.workspace);
    if(body.mode!==undefined&&!['plan','apply','work'].includes(body.mode))throw failure(400,'Choose Plan, Apply, or Work.');
    if(body.effort!==undefined&&!['low','medium','high','xhigh'].includes(body.effort))throw failure(400,'Choose Light, Medium, High, or Extra high effort.');
-   const bridge=active=bridgeFactory({executable,home,cwd,reviewChanges:body.mode==='work'});activeConfirmed=false;let timeout;
+   if(body.reviewer!==undefined&&!['user','auto_review'].includes(body.reviewer))throw failure(400,'Choose a supported approval mode.');
+   const bridge=active=bridgeFactory({executable,home,cwd,reviewChanges:body.mode==='work',reviewer:body.mode==='work'?body.reviewer:'user'});activeConfirmed=false;let timeout;
    const stop=()=>{clearTimeout(timeout);bridge.stop();if(active===bridge){active=null;activeConfirmed=false}};
    res.on('close',stop);
    const write=event=>{if(!res.destroyed)res.write(JSON.stringify(event)+'\n')};

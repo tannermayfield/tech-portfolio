@@ -45,10 +45,10 @@
   async pickFolder(){return (await request('/folders/pick',{},AbortSignal.timeout(180000))).json()},
   async openFolder(folder){return (await request('/folders/open',{folder})).json()},
   async prepareProject(folder,projectId){return (await request('/projects/prepare',{folder,projectId},AbortSignal.timeout(180000))).json()},
-  async start({workspace,prompt,threadId,mode='work',effort,image,onEvent=()=>{}}){
+  async start({workspace,prompt,threadId,mode='work',effort,image,reviewer,onEvent=()=>{}}){
    restore();if(!pairToken)throw new Error('Pair the local companion first.');if(controller)throw new Error('A coding request is already running. Stop it before starting another.');controller=new AbortController();
    let reader;
-   try{const response=await request('/run',{workspace,prompt,threadId,mode,effort,image},controller.signal);reader=response.body.getReader();const decoder=new TextDecoder();let text='';while(true){const {done,value}=await reader.read();text+=decoder.decode(value,{stream:!done});let index;while((index=text.indexOf('\n'))>=0){const line=text.slice(0,index);text=text.slice(index+1);if(line)onEvent(JSON.parse(line))}if(done)break}if(text.trim())onEvent(JSON.parse(text))}
+   try{const response=await request('/run',{workspace,prompt,threadId,mode,effort,image,reviewer},controller.signal);reader=response.body.getReader();const decoder=new TextDecoder();let text='';while(true){const {done,value}=await reader.read();text+=decoder.decode(value,{stream:!done});let index;while((index=text.indexOf('\n'))>=0){const line=text.slice(0,index);text=text.slice(index+1);if(line)onEvent(JSON.parse(line))}if(done)break}if(text.trim())onEvent(JSON.parse(text))}
    finally{reader?.releaseLock();controller=null}
   },
   cancel(){controller?.abort();controller=null},
