@@ -181,9 +181,45 @@
   }
   if(!names().length) { const empty = document.createElement('p'); empty.className='db-empty'; empty.textContent='No projects yet.'; table.appendChild(empty); }
  };
+ function renderReplyContent(content, message, working) {
+  content.replaceChildren();
+  if(working||message.activity?.length){
+   const activity=document.createElement('div');activity.className='codex-activity';
+   for(const step of message.activity||[]){
+    const row=document.createElement('div');row.className='codex-step';
+    const label=document.createElement('strong');label.textContent=step.label;
+    const detail=document.createElement('span');detail.textContent=step.detail||'';
+    row.append(label,detail);activity.append(row);
+   }
+   if(working){const status=document.createElement('div');status.className='codex-working';status.setAttribute('role','status');status.textContent=message.activity?.length?'Working…':'Starting Codex…';activity.append(status)}
+   content.append(activity);
+  }
+  const text=document.createElement('div');text.innerHTML=fmtMsg(message.text||message.content||'',message.role!=='user');content.append(text);
+ }
+ function updateActivity(reply, event){
+  const {method,params={}}=event,item=params.item;
+  if(method==='turn/started')return setStep('turn','Working on your request','');
+  if(method==='turn/plan/updated'&&Array.isArray(params.plan)){
+   return setStep('plan','Plan',params.plan.slice(0,12).map(step=>(step.status==='completed'?'✓ ':step.status==='inProgress'?'› ':'• ')+step.step).join('\n'));
+  }
+  if(!item?.id||!['item/started','item/completed'].includes(method))return;
+  const finished=method==='item/completed';
+  if(item.type==='commandExecution')return setStep(item.id,finished?(item.exitCode!=null&&item.exitCode!==0?'Command failed':'Command finished'):'Running command',item.command);
+  if(item.type==='fileChange')return setStep(item.id,finished?'File changes reported':'Changing files',(item.changes||[]).map(change=>change.path).join('\n'));
+  if(item.type==='mcpToolCall')return setStep(item.id,finished?'Tool finished':'Using tool',[item.server,item.tool].filter(Boolean).join(' / '));
+  if(item.type==='webSearch')return setStep(item.id,finished?'Search finished':'Searching the web',item.query);
+  if(item.type==='reasoning'&&finished&&Array.isArray(item.summary)&&item.summary.length)return setStep(item.id,'Progress summary',item.summary.join('\n'));
+  function setStep(id,label,detail){
+   const steps=reply.activity??=[];
+   const entry={id,label,detail:String(detail||'').slice(0,1200)};
+   const index=steps.findIndex(step=>step.id===id);
+   if(index>=0)steps[index]=entry;else steps.push(entry);
+   if(steps.length>40)steps.shift();
+  }
+ }
  function renderProjectChat() {
   const active = selected(); if(!active){closeEffort();return false;}
-  const {name,mode,task} = active, value = entry(name), chat = modeChat(name,mode);
+  const {name,mode,task} = active, value = running?.name===name?running.value:entry(name), chat = value.chats.find(chat=>chat.mode===mode);
   const context=TV.mode==='task'?name+'|'+mode+'|'+value.folder:'';
   if(effortPopup&&context!==effortContext)closeEffort();
   if (context!==chatContext) {chatContext=context;workEffort='medium'}
@@ -209,7 +245,7 @@
   for(const message of chat.messages) {
    const bubble = document.createElement('div'); bubble.className = 'msg ' + (message.role === 'user' ? 'me' : 'ai');
    const heading = document.createElement('div'); heading.className='ai-name'; heading.textContent=message.role==='user'?'You':'Codex';
-   const content = document.createElement('div'); content.innerHTML=fmtMsg(message.text || message.content || '',message.role!=='user'); bubble.append(heading,content); log.appendChild(bubble);
+   const content = document.createElement('div');if(running?.reply===message)content.dataset.codexLive='';renderReplyContent(content,message,running?.reply===message); bubble.append(heading,content); log.appendChild(bubble);
   }
   $('coach-send').disabled = !!running || !modelReady;
   $('coach-input').placeholder=mode==='work'?'Work with Codex':'Ask Codex';
@@ -237,26 +273,42 @@
   const catalog=modelCatalog(value.folder,mode),effort=mode==='work'?(options.effort||workEffort):'low';
   if (catalog.loading||catalog.error||!catalog.efforts.includes(effort)){toast(catalog.error||'Wait for a supported Codex model and effort before sending.');return {sent:false};}
   chat.messages.push({role:'user',text:show||prompt});const reply={role:'assistant',text:''};chat.messages.push(reply);
-  running={name,mode,value};save(name,value);$('coach-input').value='';renderProjectChat();
-  let lastRender=0, lastMessageItem=null,failed=false,completed=false;
+  running={name,mode,value,reply};save(name,value);$('coach-input').value='';renderProjectChat();
+  let repaint=null,lastMessageItem=null,failed=false,completed=false;
+  const streamedMessages=new Set();
+  const paint=()=>{
+   repaint=null;
+   const log=$('coach-log'),content=log.querySelector('[data-codex-live]');
+   if(!content||selected()?.name!==name||selected()?.mode!==mode)return;
+   const follow=log.scrollHeight-log.clientHeight-log.scrollTop<48;
+   renderReplyContent(content,reply,true);
+   if(follow)log.scrollTop=log.scrollHeight;
+  };
   try {
    const learnedSkills=tasks.filter(item=>typeOf(item)==='skill').map(item=>item.title+' ('+skillLevel(item)+')').join(', ');
    const context='Project: '+name+'\nPreviously learned skills and self-rated levels: '+(learnedSkills||'None recorded yet')+'\n'+projectCtx(task);
    await SessionCompanion.start({workspace:value.folder,prompt:context+'\n\nUser message: '+prompt,threadId:chat.threadId,mode,effort,onEvent:event=>{
+    updateActivity(reply,event);
     if(event.method==='sessiontv/thread')chat.threadId=event.params.threadId;
     if(event.method==='item/agentMessage/delta'){
+     streamedMessages.add(event.params.itemId);
      if(lastMessageItem&&event.params.itemId&&lastMessageItem!==event.params.itemId)reply.text+='\n\n';
      lastMessageItem=event.params.itemId||lastMessageItem;reply.text+=event.params.delta||'';
     }
-    if(event.method==='sessiontv/error')failed=true;
+    if(event.method==='sessiontv/error'||(event.method==='sessiontv/stopped'&&!completed))failed=true;
     if(event.method==='turn/completed'){completed=event.params.turn?.status==='completed';if(!completed)failed=true;}
+    const item=event.params?.item;
+    if(event.method==='item/completed'&&item?.type==='agentMessage'&&!streamedMessages.has(item.id)&&typeof item.text==='string'){
+     reply.text+=(reply.text?'\n\n':'')+item.text;lastMessageItem=item.id;
+    }
     if(event.method==='sessiontv/error'||event.method==='sessiontv/approvalDenied')reply.text+='\n'+(event.params.error||event.params.reason);
     if(event.method==='turn/completed'&&event.params.turn?.status==='failed')reply.text+='\n'+(event.params.turn.error?.message||'The Codex turn failed. You can retry.');
     if(event.method==='sessiontv/thread')save(name,value);
-    if(Date.now()-lastRender>100||event.method==='turn/completed'){lastRender=Date.now();if(selected()?.name===name&&selected()?.mode===mode)renderProjectChat();}
+    if(event.method==='sessiontv/stopped'&&!completed)reply.text+='\n'+(event.params.error||'Codex stopped before finishing.');
+    if(repaint===null)repaint=setTimeout(paint,50);
    }});
   } catch(error) { failed=true;reply.text+=(error.name==='AbortError'?'\nStopped.':'\n'+error.message); }
-  finally { running=null;save(name,value);if(selected()?.name===name)renderProjectChat(); }
+  finally { clearTimeout(repaint);if(!reply.text.trim())reply.text=completed?'Codex finished without a text reply.':'Codex stopped before sending a reply.';running=null;save(name,value);if(selected()?.name===name)renderProjectChat(); }
   return {sent:!failed&&completed,completed:!failed&&completed};
  };
  sendCoach=sendProject;

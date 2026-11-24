@@ -149,3 +149,5 @@ body.tv #work-mid:has(#coach-form[data-composer-section="class"]) #focus.chat-he
 #homework-overview .sheet-head button{flex:none}
 #homework-overview .homework-stats,#homework-overview .homework-toolbar,#homework-overview .homework-list{margin-inline:clamp(16px,calc(var(--tv-vw,1vw) * 5),64px)}
 #homework-overview .homework-list{margin-bottom:18px}
+
+.codex-activity{display:grid;gap:6px;margin:4px 0 10px;font-size:12px;color:var(--muted)}.codex-step{display:grid;gap:3px;border-inline-start:2px solid var(--line);padding-inline-start:9px}.codex-step span{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--f-mono)}.codex-step span:empty{display:none}.codex-working{font-style:italic}
