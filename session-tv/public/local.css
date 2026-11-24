@@ -124,3 +124,6 @@ body.tv-home-active #view-log{visibility:hidden;pointer-events:none}#tv-home .gd
 #tv-settings .tt-card .tt-rows{gap:clamp(7px,calc(var(--tv-vh,1vh) * 1.2 + 3px),14px)!important}
 
 #class-edit .class-edit-actions{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}#class-edit .class-save{background:var(--ink)!important;color:var(--modal)!important;border:2px solid var(--ink);font-weight:700;box-shadow:0 3px 8px #0003;padding:10px 16px}#class-edit .class-save:hover{filter:brightness(.9)}
+
+/* ChatGPT thinking stays configured internally, without composer chrome. */
+#coach-form .composer-study-effort,#chatgpt-chat .chatgpt-options label:has(#chatgpt-effort){display:none!important}
