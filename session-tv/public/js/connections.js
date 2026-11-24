@@ -14,15 +14,15 @@
  function render(host,chat,codex,canvas={}){
   if(!host?.isConnected)return;host.replaceChildren();
   for(const [label,status,connect]of [['ChatGPT',chat,()=>login('chatgpt')],['Codex',codex,()=>login('codex')],['Canvas',canvas,canvasSetup]]){
-   const item=row(label);item.state.textContent=status.connected?'Connected':status.pending?'Finish sign-in in your browser':privateMode()?(status.error||'Not connected'):'Sign in to connect';item.state.classList.toggle('connected',!!status.connected);
-   item.action.hidden=!!status.connected;item.action.disabled=!privateMode();item.action.textContent=label==='Canvas'?'Setup':status.setup?'Setup':status.pending?'Continue sign-in':'Sign in with ChatGPT';item.action.onclick=label==='Canvas'?canvasSetup:status.setup?guide:connect;if(label==='ChatGPT'||label==='Codex')item.action.hidden=true;host.append(item.node);
+   const item=row(label);item.state.textContent=status.reading?'Reading...':status.connected?'Connected':status.pending?'Finish sign-in in your browser':privateMode()?(status.error||'Not connected'):'Sign in to connect';item.state.classList.toggle('connected',!!status.connected);
+   item.action.hidden=!!status.connected||!!status.reading;item.action.disabled=!privateMode();item.action.textContent=label==='Canvas'?'Setup':status.setup?'Setup':status.pending?'Continue sign-in':'Sign in with ChatGPT';item.action.onclick=label==='Canvas'?canvasSetup:status.setup?guide:connect;if(label==='ChatGPT'||label==='Codex')item.action.hidden=true;host.append(item.node);
   }
  }
  async function refresh(){
-  const host=document.getElementById('session-connection-summary');if(!host||busy)return;lastHost=host;
+  const host=document.getElementById('session-connection-summary');if(!host)return;if(privateMode()&&(!host.children.length||!busy))render(host,{reading:true},{reading:true},{reading:true});if(busy)return;lastHost=host;
   if(!privateMode()){render(host,{},{});return}busy=true;lastCheck=Date.now();const version=epoch;
   try{
-   const [computer,chat,canvas]=await Promise.all([SessionCompanion.status(),SessionCompanion.chatGPTStatus().catch(()=>({connected:false})),Promise.resolve().then(()=>SessionCompanion.canvasStatus()).catch(()=>({connected:false,error:'Computer disconnected'}))]);
+   const [computer,chat,canvas]=await Promise.all([SessionCompanion.status().catch(error=>({connected:false,error:error.message||'Computer disconnected'})),SessionCompanion.chatGPTStatus().catch(()=>({connected:false})),Promise.resolve().then(()=>SessionCompanion.canvasStatus()).catch(()=>({connected:false,error:'Computer disconnected'}))]);
    if(version!==epoch||!privateMode())return;
    let codex={connected:!!computer.signedIn,setup:!computer.connected,pending:!!computer.loginPending,error:computer.error};pending=pending||!!computer.loginPending;
    if(pending&&computer.connected){const state=await SessionCompanion.codexLoginStatus().catch(()=>({pending:false}));codex={...codex,...state};pending=!!state.pending;}
