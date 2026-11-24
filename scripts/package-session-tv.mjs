@@ -42,3 +42,4 @@ const html = await readFile(new URL('index.html', output), 'utf8');
 await writeFile(new URL('index.html', output), html.replace(/((?:src|href)="[^"?:]+\.(?:js|css))"/g, '$1?v=' + version + '"'));
 await writeFile(new URL('out/.nojekyll', root), '');
 console.log('Packaged Session TV at out/session-tv/; portfolio custom domain preserved.');
+if (/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA || "")) await writeFile(new URL("release.json", output), JSON.stringify({commit:process.env.GITHUB_SHA}));

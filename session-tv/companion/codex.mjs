@@ -124,7 +124,7 @@ export class CodexBridge extends EventEmitter {
   if(!threadId)await this.request('thread/name/set',{threadId:started.thread.id,name:'Session TV · '+mode[0].toUpperCase()+mode.slice(1)});
   return started.thread.id;
  }
- async start(cwd,prompt,threadId,mode='work',requestedEffort){
+ async start(cwd,prompt,threadId,mode='work',requestedEffort,image){
   this.currentMode=mode;
   const id=await this.prepare(cwd,mode,threadId);
   const catalog=await this.models();
@@ -136,7 +136,7 @@ export class CodexBridge extends EventEmitter {
   this.emit('event',{method:'sessiontv/model',params:{model,effort,displayName:catalog.models.find(value=>value.id===model).displayName}});
   const permissions=mode==='work'?'sessiontv':'sessiontv_'+mode;
   this.emit('event',{method:'sessiontv/thread',params:{threadId:id}});
-  await this.request('turn/start',{threadId:id,input:[{type:'text',text:prompt}],model,effort,permissions,approvalPolicy:'on-request'});
+  await this.request('turn/start',{threadId:id,input:[{type:'text',text:prompt},...(image?[{type:'image',url:image}]:[])],model,effort,permissions,approvalPolicy:'on-request'});
   return id;
  }
  stop(error=new Error('Codex disconnected.')) {

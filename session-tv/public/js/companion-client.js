@@ -24,6 +24,9 @@
   async connectCanvas(token,signal){return (await request('/canvas/connect',{token},signal)).json()},
   async disconnectCanvas(signal){return (await request('/canvas/disconnect',{},signal)).json()},
   async canvasSnapshot(signal){return (await request('/canvas/snapshot',{},signal||AbortSignal.timeout(180000))).json()},
+  async previewPublish(folder){return (await request('/publish/preview',{folder})).json()},
+  async publishProject(folder,review){return (await request('/publish/run',{folder,base:review.base,tree:review.tree},AbortSignal.timeout(180000))).json()},
+  async publishStatus(commit){return (await request('/publish/status',{commit})).json()},
   async answerCodexApproval(id,accept){return (await request('/codex/approval',{id,accept})).json()},
   async codexConnect(){return (await request('/codex/connect')).json()},
   async codexLoginStatus(){return (await request('/codex/login-status')).json()},
@@ -42,10 +45,10 @@
   async pickFolder(){return (await request('/folders/pick',{},AbortSignal.timeout(180000))).json()},
   async openFolder(folder){return (await request('/folders/open',{folder})).json()},
   async prepareProject(folder,projectId){return (await request('/projects/prepare',{folder,projectId},AbortSignal.timeout(180000))).json()},
-  async start({workspace,prompt,threadId,mode='work',effort,onEvent=()=>{}}){
+  async start({workspace,prompt,threadId,mode='work',effort,image,onEvent=()=>{}}){
    restore();if(!pairToken)throw new Error('Pair the local companion first.');if(controller)throw new Error('A coding request is already running. Stop it before starting another.');controller=new AbortController();
    let reader;
-   try{const response=await request('/run',{workspace,prompt,threadId,mode,effort},controller.signal);reader=response.body.getReader();const decoder=new TextDecoder();let text='';while(true){const {done,value}=await reader.read();text+=decoder.decode(value,{stream:!done});let index;while((index=text.indexOf('\n'))>=0){const line=text.slice(0,index);text=text.slice(index+1);if(line)onEvent(JSON.parse(line))}if(done)break}if(text.trim())onEvent(JSON.parse(text))}
+   try{const response=await request('/run',{workspace,prompt,threadId,mode,effort,image},controller.signal);reader=response.body.getReader();const decoder=new TextDecoder();let text='';while(true){const {done,value}=await reader.read();text+=decoder.decode(value,{stream:!done});let index;while((index=text.indexOf('\n'))>=0){const line=text.slice(0,index);text=text.slice(index+1);if(line)onEvent(JSON.parse(line))}if(done)break}if(text.trim())onEvent(JSON.parse(text))}
    finally{reader?.releaseLock();controller=null}
   },
   cancel(){controller?.abort();controller=null},

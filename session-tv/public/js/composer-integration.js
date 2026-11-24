@@ -9,10 +9,12 @@
   if(type==='project'&&SessionProjectChats.busy)return;
   if(['class','skill'].includes(type)&&!globalThis.SessionStudyChats?.state?.ready)return toast('Connect ChatGPT before sending attachments.');
   if(globalThis.SessionStudyChats?.state?.busy&&['class','skill'].includes(type))return;
-  const prompt=String(text||'').trim(),context=files.map(file=>'Attachment: '+file.name+'\n'+file.text).join('\n\n');
+  const prompt=String(text||'').trim(),context=files.filter(file=>!file.image).map(file=>'Attachment: '+file.name+'\n'+file.text).join('\n\n');
   const message=(prompt||'Please review the attached files.')+'\n\n'+context;
   if(message.length>10000||new TextEncoder().encode(message).length>16000)return toast('These files are too large for one message. Attach a smaller excerpt.');
-  const result=await base.call(this,message,show||prompt||'Attached '+files.map(file=>file.name).join(', '));
+  const visible=show||prompt||'Attached '+files.map(file=>file.name).join(', ');
+  const image=files.find(file=>file.image);
+  const result=image&&type==='project'?await SessionProjectChats.sendImage(message,visible,image.image):await base.call(this,message,visible);
   if(result?.sent===false)return result;
   if(JSON.stringify(globalThis.SessionComposer.peekAttachments())===JSON.stringify(files))SessionComposer.consumeAttachments();return result;
  };

@@ -7,12 +7,13 @@ import {CodexBridge} from './codex.mjs';
 import {folderStore} from './folders.mjs';
 import {voiceService} from './voice.mjs';
 import {chatGPTService} from './chatgpt.mjs';
+import {sessionTVPublisher,liveSessionTVCommit} from './publish.mjs';
 import {canvasService} from './canvas.mjs';
 
 const failure=(status,message)=>Object.assign(new Error(message),{status});
 const secret=()=>randomBytes(24).toString('base64url');
 const equal=(a,b)=>typeof a==='string'&&typeof b==='string'&&Buffer.byteLength(a)===Buffer.byteLength(b)&&timingSafeEqual(Buffer.from(a),Buffer.from(b));
-async function readJSON(req){let data='';for await(const chunk of req){data+=chunk;if(Buffer.byteLength(data)>32000)throw failure(413,'Request too large.')}try{return JSON.parse(data)}catch{throw failure(400,'Invalid JSON.')}}
+async function readJSON(req,limit=32000){let data='';for await(const chunk of req){data+=chunk;if(Buffer.byteLength(data)>limit)throw failure(413,'Request too large.')}try{return JSON.parse(data)}catch{throw failure(400,'Invalid JSON.')}}
 export async function canonicalWorkspaces(values){
  const roots=[];for(const value of values){const root=await realpath(value);if(!(await stat(root)).isDirectory()||path.parse(root).root===root)throw new Error('Select a project directory, not a filesystem root.');roots.push(root)}
  if(!roots.length)throw new Error('Select at least one project directory with SESSIONTV_WORKSPACES (JSON array).');return [...new Set(roots)];
@@ -93,6 +94,18 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     paired=true;const token=deviceToken||secret();pairs.set(token,{userId:user.id,expires:now()+1800000});json(res,200,{token,remember:!!deviceToken,expiresIn:deviceToken?null:1800});return;
    }
    await authorize(req);
+   if(route==='/publish/preview'||route==='/publish/run'||route==='/publish/status'){
+    const body=await readJSON(req);
+    if(route==='/publish/status'){json(res,200,{live:await liveSessionTVCommit(body.commit).catch(()=>false)});return;}
+    if(active||operation||codexLogin)throw failure(409,'Wait until the companion is idle before publishing.');
+    operation=true;
+    try{
+     const folder=await folders.authorized(body.folder),publisher=await sessionTVPublisher(folder);
+     if(route==='/publish/preview'){json(res,200,await publisher.snapshot());return;}
+     if(!/^[a-f0-9]{40}$/.test(body.base)||!/^[a-f0-9]{40}$/.test(body.tree))throw failure(400,'Review the publish preview first.');
+     json(res,200,await publisher.publish(body));return;
+    }finally{operation=false;}
+   }
    if(route==='/codex/approval'){
     const body=await readJSON(req);
     if(typeof body.id!=='string'||typeof body.accept!=='boolean')throw failure(400,'Invalid approval decision.');
@@ -183,7 +196,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    }
    if(route!=='/run')throw failure(404,'Unknown endpoint.');
    if(active||operation||codexLogin)throw failure(409,'A coding request is already running.');
-   const body=await readJSON(req);if(typeof body.prompt!=='string'||!body.prompt.trim()||body.prompt.length>16000)throw failure(400,'Enter a coding request (up to 16,000 characters).');
+   const body=await readJSON(req,3*1024*1024);if(body.image!==undefined&&(typeof body.image!=='string'||body.image.length>2.8e6||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(body.image)))throw failure(400,'Attach one PNG, JPEG or WebP image up to 2 MB.');if(typeof body.prompt!=='string'||!body.prompt.trim()||body.prompt.length>16000)throw failure(400,'Enter a coding request (up to 16,000 characters).');
    if(typeof body.workspace!=='string')throw failure(400,'Select an authorized workspace.');
    const cwd=await folders.authorized(body.workspace);
    if(body.mode!==undefined&&!['plan','apply','work'].includes(body.mode))throw failure(400,'Choose Plan, Apply, or Work.');
@@ -200,7 +213,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     bridge.on('stopped',error=>{if(!res.destroyed&&!res.writableEnded){write({method:'sessiontv/stopped',params:{error:error.message}});res.end()}});
     timeout=setTimeout(()=>{write({method:'sessiontv/error',params:{error:'Request reached the 30-minute limit.'}});stop();res.end()},1800000);
     if(body.threadId!==undefined&&(typeof body.threadId!=='string'||body.threadId.length>200))throw failure(400,'Invalid chat reference.');
-    await bridge.start(cwd,body.prompt,body.threadId,body.mode,body.effort);if(active===bridge)activeConfirmed=true;
+    await bridge.start(cwd,body.prompt,body.threadId,body.mode,body.effort,body.image);if(active===bridge)activeConfirmed=true;
    }catch(error){if(res.headersSent){write({method:'sessiontv/error',params:{error:error.message}});res.end()}else throw error;stop()}
   }catch(error){if(!res.headersSent)json(res,error.status||500,{error:error.status?error.message:'Companion request failed. Check local setup.'});else res.end()}
  });

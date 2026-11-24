@@ -259,6 +259,9 @@
    const heading = document.createElement('div'); heading.className='ai-name'; heading.textContent=message.role==='user'?'You':'Codex';
    const content = document.createElement('div');if(running?.reply===message)content.dataset.codexLive='';renderReplyContent(content,message,running?.reply===message); bubble.append(heading,content); log.appendChild(bubble);
   }
+  if(mode==='work'&&privateChat&&globalThis.SessionProjectPublish?.supported(value.folder)){
+   const button=document.createElement('button');button.type='button';button.className='btn ghost';button.textContent='Publish';button.dataset.sessiontvPublish='';button.disabled=!!running;button.onclick=()=>SessionProjectPublish.open(value.folder);$('coach-quick').append(button);
+  }
   $('coach-send').disabled = !!running || !modelReady;
   $('coach-input').placeholder=mode==='work'?'Work with Codex':'Ask Codex';
   let stop = $('project-stop');
@@ -287,6 +290,7 @@
   chat.messages.push({role:'user',text:show||prompt});const reply={role:'assistant',text:''};chat.messages.push(reply);
   running={name,mode,value,reply,approvals:new Map()};save(name,value);$('coach-input').value='';renderProjectChat();
   let repaint=null,lastMessageItem=null,failed=false,completed=false;
+  const publishBase=mode==='work'?await globalThis.SessionProjectPublish?.baseline(value.folder):null;
   const streamedMessages=new Set();
   const paint=()=>{
    repaint=null;
@@ -299,7 +303,7 @@
   try {
    const learnedSkills=tasks.filter(item=>typeOf(item)==='skill').map(item=>item.title+' ('+skillLevel(item)+')').join(', ');
    const context='Project: '+name+'\nPreviously learned skills and self-rated levels: '+(learnedSkills||'None recorded yet')+'\n'+projectCtx(task);
-   await SessionCompanion.start({workspace:value.folder,prompt:context+'\n\nUser message: '+prompt,threadId:chat.threadId,mode,effort,onEvent:event=>{
+   await SessionCompanion.start({workspace:value.folder,prompt:context+'\n\nUser message: '+prompt,threadId:chat.threadId,mode,effort,image:options.image,onEvent:event=>{
     if(event.method==='sessiontv/approval')running.approvals.set(event.params.id,event.params);
     if(event.method==='sessiontv/approvalResolved')running.approvals.delete(event.params.id);
     updateActivity(reply,event);
@@ -323,12 +327,13 @@
    }});
   } catch(error) { failed=true;reply.text+=(error.name==='AbortError'?'\nStopped.':'\n'+error.message); }
   finally { clearTimeout(repaint);if(!reply.text.trim())reply.text=completed?'Codex finished without a text reply.':'Codex stopped before sending a reply.';running=null;save(name,value);if(selected()?.name===name)renderProjectChat(); }
+  if(!failed&&completed&&publishBase)void SessionProjectPublish.afterTurn(value.folder,publishBase);
   return {sent:!failed&&completed,completed:!failed&&completed};
  };
  sendCoach=sendProject;
  addEventListener('pagehide',()=>{if(running)save(running.name,running.value)});
  globalThis.SessionProjectChats = {
-  get busy(){return !!running},async sendTask(name,prompt,effort){const active=selected();if(!active||active.name!==name||active.mode!=='work')return {sent:false,completed:false};return sendProject(prompt,prompt,{effort})},names, entry, channel, open:openManage, create:(name,folder)=>provision(name.trim(),folder),
+  get busy(){return !!running},sendImage(text,show,image){return sendProject(text,show,{image})},async sendTask(name,prompt,effort){const active=selected();if(!active||active.name!==name||active.mode!=='work')return {sent:false,completed:false};return sendProject(prompt,prompt,{effort})},names, entry, channel, open:openManage, create:(name,folder)=>provision(name.trim(),folder),
   timeTotals:()=>Object.fromEntries(names().map(name=>[name,totalTime(name,current?.timeOn)]))
  };
  if(current)renderWork();

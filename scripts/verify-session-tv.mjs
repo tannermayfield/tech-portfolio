@@ -116,7 +116,7 @@ try{
  // Work resets to Medium on reentry, while Plan and Apply keep Light.
  await privatePage.evaluate(async()=>{
   const task=tasks.find(task=>typeOf(task)==='project'),name=task.course;
-  store('sb.projectCodingChats',{[name]:{folder:'test-folder',chats:['plan','apply','work'].map(mode=>({mode,threadId:mode,messages:[]}))}});
+  store('sb.projectCodingChats',{[name]:{folder:'tech-portfolio/session-tv',chats:['plan','apply','work'].map(mode=>({mode,threadId:mode,messages:[]}))}});
   SessionCompanion.models=async()=>({models:[{id:'latest-codex',displayName:'Latest Codex'},{id:'gpt-6-luna',displayName:'GPT-6 Luna',efforts:['low']}],selectedModel:'latest-codex',efforts:['low','medium','high','xhigh']});
   document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());current.projModes={...(current.projModes||{}),[name]:'work'};await tune(task.id,{cut:false});closeSheets();go('work');renderWork();
  });
@@ -135,6 +135,10 @@ try{
  await privatePage.getByRole('button',{name:'Approve once'}).click();assert.deepEqual(await privatePage.evaluate(()=>approvalAnswer),{id:'review-one',accept:true});
  await privatePage.evaluate(()=>{emitCodex({method:'item/completed',params:{item:{id:'cmd',type:'commandExecution',command:'git status',exitCode:0}}});emitCodex({method:'item/completed',params:{item:{id:'final',type:'agentMessage',text:'Work completed'}}});emitCodex({method:'turn/completed',params:{turn:{status:'completed'}}});finishCodex()});
  await privatePage.waitForFunction(()=>!SessionProjectChats.busy&&document.querySelector('#coach-log').textContent.includes('Work completed'));await privatePage.locator('.codex-step').filter({hasText:'Command finished'}).waitFor();
+ await privatePage.evaluate(()=>{SessionCompanion.previewPublish=async()=>({base:'base',tree:'tree',files:['session-tv/public/index.html']});SessionCompanion.publishProject=async(folder,review)=>{window.reviewedPublish={folder,tree:review.tree};return{commit:'abcdef0123456789'}};SessionCompanion.publishStatus=async()=>({live:true})});
+ await privatePage.locator('[data-sessiontv-publish]').click();await privatePage.locator('#sessiontv-publish [data-files]').getByText('session-tv/public/index.html').waitFor();
+ await privatePage.locator('#sessiontv-publish [data-publish]').click();await privatePage.locator('#sessiontv-publish [role=status]').getByText(/SessionTV is live/).waitFor();
+ assert.deepEqual(await privatePage.evaluate(()=>reviewedPublish),{folder:'tech-portfolio/session-tv',tree:'tree'});await privatePage.locator('#sessiontv-publish [data-close]').click();
  await privatePage.locator('#coach-input').fill('Next change');assert.equal(await privatePage.locator('#coach-send').isEnabled(),true);
  await privatePage.evaluate(()=>{openSettings();closeSheets();renderWork()});assert.match(await privatePage.locator('#project-effort-button').textContent(),/Medium/);
  for(const mode of ['plan','apply']){
