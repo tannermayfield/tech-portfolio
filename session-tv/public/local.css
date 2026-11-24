@@ -120,3 +120,5 @@ body.tv-home-active #view-log{visibility:hidden;pointer-events:none}#tv-home .gd
 @media(max-width:850px){.project-table-row{grid-template-columns:minmax(0,1fr) auto}.project-table-row .project-counters{grid-template-columns:repeat(4,minmax(0,calc(15ch + 12px)));max-width:100%}}
 
 #tv-settings .sheet-head #set-x.btn{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}#tv-settings .sheet-head #set-x.btn:hover{background:transparent!important;color:var(--ink)}
+
+#tv-settings .tt-card .tt-rows{gap:clamp(7px,calc(var(--tv-vh,1vh) * 1.2 + 3px),14px)!important}
