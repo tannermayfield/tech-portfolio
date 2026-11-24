@@ -60,7 +60,8 @@ export function chatGPTService({ home, fetchImpl = globalThis.fetch, openBrowser
   async function httpError(response, context) {
     let body; try { body = await response.json(); } catch {}
     const code = SAFE_CODES.has(body?.error?.code || body?.error) ? (body?.error?.code || body.error) : undefined;
-    const error = failure(`${context}${code ? ` (${code})` : ''}.`, response.status, code);
+    const limited=response.status===429||code==='subscription_sharing_usage_limit_exceeded';
+    const error = failure(limited?'ChatGPT usage limit reached. Your account remains connected. Try again when your allowance resets.':`${context}${code ? ` (${code})` : ''}.`, response.status, code);
     const id = response.headers.get('x-request-id') || response.headers.get('openai-request-id');
     if (id && /^[\w-]{1,160}$/.test(id)) error.requestId = id;
     return error;
@@ -220,7 +221,7 @@ export function chatGPTService({ home, fetchImpl = globalThis.fetch, openBrowser
       const data = frame.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n');
       if (!data || data === '[DONE]') return;
       let event; try { event = JSON.parse(data); } catch { throw failure('ChatGPT returned an invalid stream.'); }
-      if (['response.failed', 'response.incomplete', 'error'].includes(event.type)) { const code = event.response?.error?.code || event.error?.code || event.code; throw failure(`ChatGPT response did not complete${SAFE_CODES.has(code) ? ` (${code})` : ''}.`, code?.includes('limit_exceeded') ? 429 : 503, SAFE_CODES.has(code) ? code : undefined); }
+      if (['response.failed', 'response.incomplete', 'error'].includes(event.type)) { const code = event.response?.error?.code || event.error?.code || event.code; throw failure(code?.includes('limit_exceeded')?'ChatGPT usage limit reached. Your account remains connected. Try again when your allowance resets.':`ChatGPT response did not complete${SAFE_CODES.has(code) ? ` (${code})` : ''}.`, code?.includes('limit_exceeded') ? 429 : 503, SAFE_CODES.has(code) ? code : undefined); }
       if (event.type === 'response.output_text.delta' && typeof event.delta === 'string') { text += event.delta; onEvent({ type: event.type, delta: event.delta }); }
       else if (event.type === 'response.completed') { completed = true; onEvent({ type: event.type }); }
     }

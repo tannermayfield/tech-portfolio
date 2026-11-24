@@ -1,7 +1,7 @@
 /* Classes and skills use private, account-scoped ChatGPT study conversations. */
 (() => {
  const KEY='sb.studyChats',ACCOUNT='sb.studyChatAccount',EFFORTS=['medium'];
- let epoch=0,loading=null,provider={ready:false,busy:false,model:'',effort:'medium'},catalog=[],account=null,running=null,notice='';
+ let epoch=0,loading=null,provider={connected:false,ready:false,busy:false,model:'',effort:'medium'},catalog=[],account=null,running=null,notice='';
  const privateUser=()=>globalThis.SessionWorkspace?.mode==='private'&&!SessionWorkspace.readOnly&&!!globalThis.SessionCloud?.user?.id;
  const owner=()=>globalThis.SessionCloud?.user?.id||null;
  const selected=()=>{const task=typeof T==='function'?T(current?.active):null;return task&&['class','skill'].includes(typeOf(task))?task:null;};
@@ -25,7 +25,8 @@
    try{
     const result=await SessionCompanion.chatGPTStatus();
     if(epoch!==requestEpoch||!privateUser()||owner()!==user)return false;
-    if(!result.connected||result.planUsageEnabled===false){provider.ready=false;notice=result.error||'Connect ChatGPT in Session Preferences.';return false;}
+    if(!result.connected||result.planUsageEnabled===false){provider.connected=false;provider.ready=false;notice=result.error||'Connect ChatGPT in Session Preferences.';return false;}
+    provider.connected=true;
     const connection=result.account?.client_id||result.account?.subject||result.account?.email;
     if(typeof connection!=='string'||!connection)throw new Error('ChatGPT did not confirm the connected account. Check Session Preferences.');
     if(recall(ACCOUNT,null)!==connection){store(KEY,{});store(ACCOUNT,connection);catalog=[];}
@@ -49,7 +50,7 @@
   if(!privateUser()){
    const info=document.createElement('div');info.className='msg ai';info.textContent='Sign in to your private session to use AI study chats.';log.append(info);send.disabled=true;return true;
   }
-  const shared=recall('sb.chatgptAccount',null);if(account&&shared!==account){running?.controller.abort();running=null;epoch++;loading=null;catalog=[];account=null;provider={ready:false,busy:false,model:'',effort:'medium'};}
+  const shared=recall('sb.chatgptAccount',null);if(account&&shared!==account){running?.controller.abort();running=null;epoch++;loading=null;catalog=[];account=null;provider={connected:false,ready:false,busy:false,model:'',effort:'medium'};}
   if(provider.ready)applySettings(task);
   const record=running?.task.id===task.id&&valid(running.requestEpoch,running.user,running.connection)?running.record:stored(task),history=record.messages.filter(message=>message&&['user','assistant'].includes(message.role)&&typeof message.content==='string');
   if(!history.length){const intro=document.createElement('div');intro.className='msg ai intro';intro.textContent=typeOf(task)==='class'?'Ask a question about this assignment, work through a concept, or check your understanding.':'Explore this skill, practice with examples, or explain it back for feedback.';log.append(intro);}
@@ -60,7 +61,7 @@
   }
   if(typeof coachTurns!=='undefined')coachTurns[typeof chatKey==='function'?chatKey(task):task.id]=history.map(({role,content})=>({role,content}));
   const message=record.error||notice;
-  if(message||!provider.ready){const info=document.createElement('div');info.className='msg ai study-chat-status';info.setAttribute('role','status');info.textContent=message||(loading?'Connecting ChatGPT…':'Connect ChatGPT in Session Preferences.');if(!provider.ready){const button=document.createElement('button');button.type='button';button.className='btn';button.textContent='Connect ChatGPT';button.onclick=openConnection;info.append(document.createElement('br'),button);}log.append(info);}
+  if(message||!provider.ready){const info=document.createElement('div');info.className='msg ai study-chat-status';info.setAttribute('role','status');info.textContent=message||(loading?'Connecting ChatGPT…':'Connect ChatGPT in Session Preferences.');if(!provider.ready){const button=document.createElement('button');button.type='button';button.className='btn';button.textContent=provider.connected?'Retry':'Connect ChatGPT';button.onclick=provider.connected?()=>refresh(true):openConnection;info.append(document.createElement('br'),button);}log.append(info);}
   let stop=$('study-chat-stop');if(!stop){stop=document.createElement('button');stop.id='study-chat-stop';stop.type='button';stop.className='btn ghost';stop.textContent='Stop';stop.onclick=()=>running?.controller.abort();form.append(stop);}stop.hidden=!running;send.disabled=!provider.ready||!!running;
   log.querySelectorAll('[data-usecode]').forEach(button=>button.onclick=()=>{if(typeof WS!=='undefined'&&WS.ed){WS.ed.set(button.nextElementSibling.textContent);if(typeof wsSave==='function')wsSave();WS.ed.focus();}});
   log.scrollTop=log.scrollHeight;
@@ -112,7 +113,7 @@
  sendCoach=send;
  const baseLog=renderCoachLog;renderCoachLog=function(){if(!renderStudy()){if($('study-chat-stop'))$('study-chat-stop').hidden=true;return baseLog.apply(this,arguments);}emit();};
  const baseWork=renderWork;renderWork=function(){const result=baseWork.apply(this,arguments);if(selected()){renderStudy();emit();}else if($('study-chat-stop'))$('study-chat-stop').hidden=true;return result;};
- function clear(){epoch++;running?.controller.abort();running=null;loading=null;catalog=[];account=null;notice='';provider={ready:false,busy:false,model:'',effort:'medium'};if($('study-chat-stop'))$('study-chat-stop').hidden=true;if(selected()){if($('coach-form'))$('coach-form').hidden=true;if($('coach-send'))$('coach-send').disabled=true;$('coach-log')?.replaceChildren();}emit();}
+ function clear(){epoch++;running?.controller.abort();running=null;loading=null;catalog=[];account=null;notice='';provider={connected:false,ready:false,busy:false,model:'',effort:'medium'};if($('study-chat-stop'))$('study-chat-stop').hidden=true;if(selected()){if($('coach-form'))$('coach-form').hidden=true;if($('coach-send'))$('coach-send').disabled=true;$('coach-log')?.replaceChildren();}emit();}
  addEventListener('sessiontv:auth',clear);
  addEventListener('focus',()=>{if(selected()&&privateUser()&&!running)refresh(true);});
  addEventListener('pagehide',()=>{if(running)save(running.task,running.record,running.requestEpoch,running.user,running.connection);clear();});

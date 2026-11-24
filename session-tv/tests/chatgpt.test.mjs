@@ -77,3 +77,5 @@ test('abandoned refresh lock recovers after a dead owner', async t => {
  const f = await fixture(t); await f.connect(); const path = join(f.home, 'chatgpt/connection.json'); const record = JSON.parse(await readFile(path, 'utf8')); record.expires_at = 1; await writeFile(path, JSON.stringify(record));
  const lock = join(f.home, 'chatgpt/refresh.lock'); await writeFile(lock, '999999999'); const old = new Date(Date.now() - 300000); await utimes(lock, old, old); await f.service.models(); assert.equal(f.refreshes(), 1);
 });
+
+test('usage limits preserve authentication and recover without reconnecting',async t=>{const options={httpFailure:true};const f=await fixture(t,options);await f.connect();await assert.rejects(f.service.run({model:'current',messages:[{role:'user',content:'Hi'}]}),error=>error.status===429&&/remains connected/.test(error.message));assert.equal((await f.service.status()).connected,true);options.httpFailure=false;assert.equal((await f.service.run({model:'current',messages:[{role:'user',content:'Retry'}]})).text,'**Hello**');});
