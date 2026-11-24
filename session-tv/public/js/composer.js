@@ -34,7 +34,7 @@
    const bottom=document.createElement('div');bottom.className='composer-bottom';const left=document.createElement('div');left.className='composer-left';const right=document.createElement('div');right.className='composer-right';bottom.append(left,right);
    const area=document.createElement('div');area.className='composer-attachments';area.hidden=true;const status=document.createElement('span');status.id='composer-status';status.className='sr-only';status.setAttribute('role','status');
    const picker=document.createElement('input');picker.type='file';picker.multiple=true;picker.accept=[...extensions].map(ext=>'.'+ext).join(',');picker.hidden=true;picker.id='composer-files';picker.onchange=()=>{attach(picker.files);picker.value=''};
-   const plus=button('+','Attach text or code files, up to 10 KB total');plus.className='composer-plus';plus.title='Attach text or code files · 10 KB total';plus.onclick=()=>picker.click();
+   const plus=button('+','Attach text or code files, up to 10 KB total');plus.className='composer-plus';plus.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 4v16M4 12h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';plus.title='Attach text or code files · 10 KB total';plus.onclick=()=>picker.click();
    const permission=button('Workspace access');permission.className='composer-access';permission.setAttribute('aria-haspopup','dialog');permission.setAttribute('aria-controls','composer-access-popup');permission.setAttribute('aria-expanded','false');permission.onclick=()=>access(permission);
    left.append(plus,permission);form.append(area,main,bottom,picker,status);
   }
