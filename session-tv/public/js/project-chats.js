@@ -163,17 +163,20 @@
  renderDbView = function(view) {
   baseDatabase(view); if(view !== 'projects')return;
   const list = $('set-body').querySelector('.db-list');
-  list.innerHTML = `<div class="project-table"><div class="project-table-head"><span>Project</span><span>Computer folder</span><span>Sprints completed</span><span>Total time</span><span></span></div></div>`;
+  list.innerHTML = `<div class="project-table"></div>`;
   const table = list.firstElementChild;
   for(const name of names()) {
    const value = entry(name), totals = stats(name), row = document.createElement('div'); row.className = 'project-table-row';
    const label = document.createElement('strong'); label.textContent = name;
    const open = document.createElement('button'); open.className = 'btn ghost'; open.textContent = 'Open folder'; open.disabled = !value.folder;
    open.onclick = () => SessionCompanion.openFolder(value.folder).catch(error=>toast(error.message));
-   const sprints = document.createElement('span'); sprints.textContent = String(totals.sprints); sprints.setAttribute('aria-label','Sprints completed');
+   const pd=projData(name),owners=new Map();for(const sprint of [...(pd.past||[]),pd.sprint].filter(Boolean))for(const item of spItems(sprint))if(item.who)owners.set(item.id,item.who);
+   const completed=tasks.filter(task=>typeOf(task)==='project'&&task.course===name&&task.status==='done');
+   const skills=new Set(completed.flatMap(task=>Array.isArray(task.skills)?task.skills:[]));
+   const counters=document.createElement('div');counters.className='class-counters project-counters';for(const [count,caption] of [[totals.sprints,'Sprints completed'],[completed.filter(task=>owners.get(task.id)==='me').length,'Tasks completed by me'],[skills.size,'Skills applied'],[completed.filter(task=>owners.get(task.id)==='ai').length,'Tasks completed by Codex']]){const counter=document.createElement('span'),number=document.createElement('b'),label=document.createElement('small');number.textContent=count;label.textContent=caption;counter.append(number,label);counters.append(counter);}
    const time = document.createElement('span'); time.textContent = fmtMin(totals.minutes); time.setAttribute('aria-label','Total project time');
    const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Manage'; button.onclick = () => openManage(name);
-   row.append(label,open,sprints,time,button); table.appendChild(row);
+   const identity=document.createElement('div');identity.className='class-identity';identity.append(label,open);row.append(identity,counters,button); table.appendChild(row);
   }
   if(!names().length) { const empty = document.createElement('p'); empty.className='db-empty'; empty.textContent='No projects yet.'; table.appendChild(empty); }
  };
