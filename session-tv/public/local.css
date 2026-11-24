@@ -133,3 +133,5 @@ body.tv #work-mid #focus.chat-head{padding-left:clamp(28px,calc(var(--tv-vw,1vw)
 body.tv #work-mid:has(#coach-form[data-composer-section="class"]) #focus.chat-head,body.tv #work-mid:has(#coach-form[data-composer-section="skill"]) #focus.chat-head{padding-right:clamp(28px,calc(var(--tv-vw,1vw) * 6),64px)!important}
 
 .project-task-table .pp-pill{min-width:62px;white-space:nowrap}.project-task-table li.done .pp-tt{text-decoration:line-through;opacity:.65}#project-task-create{display:flex;gap:8px}#project-task-create input{min-width:0;flex:1}.project-task-table input[type=checkbox]{flex:none}
+
+#tv-settings .tt-range{top:12px;right:16px}
