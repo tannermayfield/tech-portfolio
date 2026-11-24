@@ -365,6 +365,35 @@ test('homework overview separates upcoming, missing and submitted and keeps menu
  }finally{dom.window.close()}
 });
 
+test('homework overview formats due dates as weekday, month, day and time',async()=>{
+ const {dom,w}=await boot();try{
+ const {formatDue}=w.SessionHomework;
+ assert.equal(formatDue({due:'2026-11-26',dueTime:'23:59'}),'Thu, Nov 26 · 11:59 PM');
+ assert.equal(formatDue({due:'2026-11-26',dueTime:'09:05'}),'Thu, Nov 26 · 9:05 AM');
+ assert.equal(formatDue({due:'2026-11-26'}),'Thu, Nov 26');assert.equal(formatDue({due:'2026-11-26',dueTime:''}),'Thu, Nov 26');
+ assert.equal(formatDue({}),'No due date');assert.equal(formatDue({due:''}),'No due date');
+ await w.eval("Promise.all([db.doc('tasks/hw-timed').set({title:'Timed essay',track:'class',course:'WRTG 150',status:'todo',due:'2099-11-26',dueTime:'23:59'}),db.doc('tasks/hw-untimed').set({title:'Untimed essay',track:'class',course:'WRTG 150',status:'todo',due:'2099-11-27'}),db.doc('tasks/hw-none').set({title:'Someday essay',track:'class',course:'WRTG 150',status:'todo'})])");
+ w.SessionHomework.open();const deadline=title=>[...w.document.querySelectorAll('.homework-row')].find(row=>row.querySelector('.homework-title').textContent===title).querySelector('.homework-deadline');
+ assert.match(deadline('Timed essay').textContent,/^[A-Z][a-z]{2}, Nov 26 · 11:59 PM$/);assert.equal(deadline('Timed essay').dateTime,'2099-11-26T23:59');
+ assert.match(deadline('Untimed essay').textContent,/^[A-Z][a-z]{2}, Nov 27$/);assert.equal(deadline('Untimed essay').dateTime,'2099-11-27');
+ assert.equal(deadline('Someday essay').textContent,'No due date');
+ }finally{dom.window.close()}
+});
+
+test('homework overview shows a labeled line icon per assignment type',async()=>{
+ const {dom,w}=await boot();try{
+ const {kindOf}=w.SessionHomework;
+ for(const [task,kind]of [[{kind:'quiz',title:'Midterm exam'},'quiz'],[{kind:'Midterm',title:'Essay'},'exam'],[{kind:'Final',title:'Essay'},'exam'],[{kind:'mystery',title:'Lab 3'},'lab'],[{kind:null,title:'Unit 2 Quiz'},'quiz'],
+  [{title:'Midterm 1'},'exam'],[{title:'Final Exam'},'exam'],[{title:'Final'},'exam'],[{title:'Exams review'},'exam'],[{title:'Weekly Quiz 4'},'quiz'],[{title:'Discussion: Week 3'},'discussion'],[{title:'Reading response: Chapter 5'},'reading'],
+  [{title:'Read chapter 2'},'reading'],[{title:'Final Project'},'project'],[{title:'Group project proposal'},'project'],[{title:'Lab 2: Joins'},'lab'],[{title:'Homework 3'},'assignment'],[{title:'Already graded'},'assignment'],[{},'assignment']])
+  assert.equal(kindOf(task),kind,JSON.stringify(task));
+ await w.eval("Promise.all([db.doc('tasks/hw-kind-exam').set({title:'Midterm 1',track:'class',course:'STAT 121',status:'todo',due:'2099-11-26'}),db.doc('tasks/hw-kind-canvas').set({title:'Weekly check-in',kind:'discussion',track:'class',course:'STAT 121',status:'todo',due:'2099-11-27'}),db.doc('tasks/hw-kind-plain').set({title:'Problem set 4',track:'class',course:'STAT 121',status:'todo',due:'2099-11-28'})])");
+ w.SessionHomework.open();const icon=title=>[...w.document.querySelectorAll('.homework-row')].find(row=>row.querySelector('.homework-title').textContent===title).querySelector('.homework-icon');
+ for(const [title,kind,label]of [['Midterm 1','exam','Exam'],['Weekly check-in','discussion','Discussion'],['Problem set 4','assignment','Assignment']]){const node=icon(title);assert.equal(node.dataset.kind,kind);assert.equal(node.getAttribute('role'),'img');assert.equal(node.getAttribute('aria-label'),label);const svg=node.querySelector('svg');assert.equal(svg.getAttribute('aria-hidden'),'true');assert.equal(svg.getAttribute('viewBox'),'0 0 24 24');assert.ok(!svg.querySelector('use'));assert.ok(svg.children.length>0)}
+ assert.ok(![...w.document.querySelectorAll('.homework-icon')].some(node=>/\p{Extended_Pictographic}|✦/u.test(node.textContent)));
+ }finally{dom.window.close()}
+});
+
 test('class rows rename assignment courses and delete only SessionTV records with Canvas exclusions',async()=>{
  const {dom,w}=await boot();try{
  w.eval("store('sb.classes',{'CS 500':{canvasId:'123',code:'CS 500',name:'Original'}});store('sb.canvasCourses',{'123':'CS 500'});");await w.eval("db.doc('tasks/class-row-test').set({title:'Class task',track:'class',course:'CS 500',status:'todo',canvas:{courseId:'123',submitted:false,missing:false}})");
