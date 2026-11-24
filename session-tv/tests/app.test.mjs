@@ -14,7 +14,7 @@ async function boot(saved={},url='http://127.0.0.1:4173'){
  const dom=new JSDOM(html,{
   url,runScripts:'dangerously',virtualConsole:vc,pretendToBeVisual:true,
   beforeParse(w){
-   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','account','project-chats','add-forms','homework','classes','skill-categories','home','session-preferences','speech','music','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
+   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','account','project-chats','add-forms','homework','classes','skill-categories','home','session-preferences','demo-snapshot','demo-export','speech','music','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
    for(const [k,v]of Object.entries(saved))w.localStorage.setItem(k,v);
    w.fetch=async()=>({ok:true,json:async()=>({aiConfigured:false})});
    w.matchMedia=q=>({matches:q.includes('reduced-motion'),media:q,addEventListener(){},removeEventListener(){}});
