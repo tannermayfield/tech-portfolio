@@ -151,3 +151,6 @@ body.tv #work-mid:has(#coach-form[data-composer-section="class"]) #focus.chat-he
 #homework-overview .homework-list{margin-bottom:18px}
 
 .codex-activity{display:grid;gap:6px;margin:4px 0 10px;font-size:12px;color:var(--muted)}.codex-step{display:grid;gap:3px;border-inline-start:2px solid var(--line);padding-inline-start:9px}.codex-step span{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--f-mono)}.codex-step span:empty{display:none}.codex-working{font-style:italic}
+
+/* Settings → Skills: category chips on top, then the category's skills side by side in one row, each with its tools listed below. */
+#tv-settings .skill-category{grid-column:1/-1;display:flex;gap:12px;align-items:flex-start;overflow-x:auto;padding-bottom:6px}#tv-settings .skill-category[hidden]{display:none!important}#tv-settings .skill-section{flex:1 0 240px;min-width:240px;max-width:360px}#tv-settings .skill-section .class-section-head{flex-wrap:nowrap;align-items:flex-start}#tv-settings .skill-section h4{overflow-wrap:anywhere}#tv-settings .skill-section .db-row{width:100%}

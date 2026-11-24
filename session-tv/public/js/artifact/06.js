@@ -63,8 +63,12 @@ function renderDbView(v){
       const open=l.filter(t=>t.status!=='done').length;
       return `<section class="db-grp class-section"><div class="class-section-head"><h4>${esc(c+(GD_COURSE_NAMES[c]?' · '+GD_COURSE_NAMES[c]:''))}<small>${open} open · ${l.length-open} done</small></h4><button type="button" class="btn" data-add-assignment="${esc(c)}">+ Add assignment</button></div><ul>${l.map(t=>row(t,t.status==='done'?`Done ${d(t.doneAt)}`:(t.due?esc(fmtDue(t)):'No due date'),t.status==='done')).join('')||'<li class="db-empty">No assignments yet.</li>'}</ul></section>`}).join('');}
   else if(v==='skills'){title='Skills';add='Add skill';
+    // Category → one row per skill → that skill's tools (the skill task records) listed below it.
     const sk=live.filter(t=>typeOf(t)==='skill');
-    body=subsOf('skill').map(c=>{const l=sk.filter(t=>catOf(t)===c).sort(byOrder);return group(c,`${l.length} skill${l.length===1?'':'s'}`,l.map(t=>row(t,`${LVL_TAG(skillLevel(t))} · ${esc(agoLabel(t.lastPracticed))}`)).join(''))}).join('');}
+    body=subsOf('skill').map(c=>{const inCat=sk.filter(t=>catOf(t)===c),skills=globalThis.SessionSkills?.skillsIn(c,sk)||SKILL_TAGS[c]||[];
+      const rows=skills.map(s=>{const l=inCat.filter(t=>(t.course||'Other')===s).sort(byOrder);
+        return `<section class="db-grp class-section skill-section"><div class="class-section-head"><h4>${esc(s)}<small>${l.length} tool${l.length===1?'':'s'}</small></h4><button type="button" class="btn" data-add-tool="${esc(s)}" data-tool-category="${esc(c)}">+ Add tool</button></div><ul>${l.map(t=>row(t,`${LVL_TAG(skillLevel(t))} · ${esc(agoLabel(t.lastPracticed))}`)).join('')||'<li class="db-empty">No tools yet.</li>'}</ul></section>`}).join('');
+      return `<div class="skill-category" data-skill-category="${esc(c)}">${rows||'<p class="db-empty">No skills in this category yet. Add one with + Add skill.</p>'}</div>`}).join('');}
   else if(v==='projects'){title='Projects';add='Create project';
     const pj=live.filter(t=>typeOf(t)==='project'),names=[...new Set(pj.map(t=>t.course||'Other'))];
     body=names.map(n=>{const l=pj.filter(t=>(t.course||'Other')===n).sort((a,b)=>(a.status==='done')-(b.status==='done')||byOrder(a,b));const open=l.filter(t=>t.status!=='done').length;
@@ -75,5 +79,6 @@ function renderDbView(v){
   settingsHeader(title,add,()=>SessionAddForms.open(v==='classes'||v==='assignments'?'class':v==='skills'?'skill':'project'));
   $('set-body').innerHTML=`<div class="db-view"><div class="db-list">${body||'<p class="db-empty">Nothing here yet.</p>'}</div></div>`;
   $('set-body').querySelectorAll('[data-add-assignment]').forEach(button=>button.onclick=()=>SessionAddForms.open('assignment',button.dataset.addAssignment));
+  $('set-body').querySelectorAll('[data-add-tool]').forEach(button=>button.onclick=()=>SessionAddForms.open('tool',button.dataset.addTool,button.dataset.toolCategory));
   $('set-body').querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openTask(b.dataset.open));
 }

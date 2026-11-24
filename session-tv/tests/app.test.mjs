@@ -14,7 +14,7 @@ async function boot(saved={},url='http://127.0.0.1:4173'){
  const dom=new JSDOM(html,{
   url,runScripts:'dangerously',virtualConsole:vc,pretendToBeVisual:true,
   beforeParse(w){
-   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','account','project-chats','add-forms','homework','classes','home','session-preferences','speech','music','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
+   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','account','project-chats','add-forms','homework','classes','skill-categories','home','session-preferences','speech','music','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
    for(const [k,v]of Object.entries(saved))w.localStorage.setItem(k,v);
    w.fetch=async()=>({ok:true,json:async()=>({aiConfigured:false})});
    w.matchMedia=q=>({matches:q.includes('reduced-motion'),media:q,addEventListener(){},removeEventListener(){}});
@@ -230,9 +230,38 @@ test('class, assignment, and skill creation use separate forms and save their re
   w.document.querySelector('#create-assignment [name=title]').value='My assignment';submit('assignment');
   await until(()=>w.eval("tasks.some(t=>t.title==='My assignment'&&t.course==='CS 500')"));
   w.SessionAddForms.open('skill');
-  w.document.querySelector('#create-skill [name=course]').value='Programming';
-  w.document.querySelector('#create-skill [name=title]').value='My skill';submit('skill');
-  await until(()=>w.eval("tasks.some(t=>t.title==='My skill'&&typeOf(t)==='skill')"));
+  const skillForm=w.document.querySelector('#create-skill form');
+  assert.deepEqual([...skillForm.querySelectorAll('[name]')].map(el=>el.name),['title','category']);
+  assert.deepEqual([...skillForm.querySelectorAll('[name=category] option')].slice(1).map(o=>o.value),Array.from(w.eval('Object.keys(SKILL_TAGS)')));
+  skillForm.querySelector('[name=category]').value='Data';
+  skillForm.querySelector('[name=title]').value='My skill';submit('skill');
+  await until(()=>!w.document.getElementById('create-skill').open);
+  assert.ok(w.eval("SKILL_TAGS.Data.includes('My skill')"));
+  assert.equal(w.eval("tasks.some(t=>t.title==='My skill')"),false);
+  w.SessionAddForms.open('tool','My skill','Data');
+  assert.equal(w.document.querySelector('#create-tool [name=course]').closest('label').hidden,true);
+  w.document.querySelector('#create-tool [name=title]').value='CTEs';submit('tool');
+  await until(()=>w.eval("tasks.some(t=>t.title==='CTEs'&&typeOf(t)==='skill')"));
+  const tool=w.eval("tasks.find(t=>t.title==='CTEs')");assert.equal(tool.course,'My skill');assert.equal(tool.cat,'Data');
+ } finally {dom.window.close()}
+});
+
+test('skill settings show category chips, then each skill in a row with its tools below',async()=>{
+ const {dom,w}=await boot();
+ try {
+  w.SessionWorkspace={...w.SessionWorkspace,mode:'private'};
+  await w.eval("db.collection('tasks').add({track:'develop',title:'CTEs',course:'SQL',cat:'Data',level:2,status:'todo',order:1})");
+  await until(()=>w.eval("tasks.some(t=>t.title==='CTEs')"));
+  w.eval("openSettings();TV.dbView='skills';renderSettings()");
+  const body=w.document.getElementById('set-body');
+  assert.deepEqual([...body.querySelectorAll('.settings-skill-filters [data-category]')].map(b=>b.textContent),Array.from(w.eval('Object.keys(SKILL_TAGS)')));
+  const data=body.querySelector('[data-skill-category="Data"]');assert.equal(data.hidden,false);
+  assert.deepEqual([...data.querySelectorAll('.skill-section h4')].map(h=>h.firstChild.textContent).slice(0,2),['SQL','Databases']);
+  const sql=data.querySelector('.skill-section');assert.match(sql.querySelector('ul').textContent,/CTEs/);assert.match(sql.querySelector('small').textContent,/1 tool$/);
+  body.querySelector('[data-category="AI"]').click();
+  assert.equal(data.hidden,true);assert.equal(body.querySelector('[data-skill-category="AI"]').hidden,false);
+  w.document.getElementById('db-add').click();
+  assert.equal(w.document.querySelector('#create-skill [name=category]').value,'AI');
  } finally {dom.window.close()}
 });
 
@@ -300,7 +329,7 @@ test('class-scoped assignments inherit class and persist combined deadline and n
  w.eval("store('sb.classes',{'CS 500':{}})");w.document.getElementById('create-assignment').close();w.SessionAddForms.open('assignment','CS 500');
  assert.equal(form.querySelector('[name=course]').closest('label').hidden,true);
  form.querySelector('[name=title]').value='Linked assignment';form.querySelector('[name=dueAt]').value='2026-12-03T14:30';
- w.document.querySelector('[data-new-assignment-skill]').click();const skill=w.document.querySelector('#create-skill form');skill.querySelector('[name=title]').value='New assignment skill';skill.querySelector('[name=course]').value='Data';skill.dispatchEvent(new w.Event('submit',{cancelable:true}));
+ w.document.querySelector('[data-new-assignment-skill]').click();const skill=w.document.querySelector('#create-skill form');skill.querySelector('[name=title]').value='New assignment skill';skill.querySelector('[name=category]').value='Data';skill.dispatchEvent(new w.Event('submit',{cancelable:true}));
  await until(()=>!w.document.getElementById('create-skill').open);assert.equal(w.document.getElementById('create-assignment').open,true);assert.match(w.document.getElementById('assignment-skill-summary').textContent,/New assignment skill/);
  form.dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>!w.document.getElementById('create-assignment').open);
  const record=w.eval("tasks.find(task=>task.title==='Linked assignment')");assert.equal(record.course,'CS 500');assert.equal(record.due,'2026-12-03');assert.equal(record.dueTime,'14:30');assert.deepEqual(Array.from(record.skills),['New assignment skill']);
