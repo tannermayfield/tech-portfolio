@@ -9,23 +9,24 @@
  setup.querySelector('[data-copy]').onclick=async()=>{try{await navigator.clipboard.writeText(SessionCloud.user.id);document.getElementById('setup-message').textContent='User ID copied.'}catch{document.getElementById('setup-message').textContent='Select and copy the user ID above.'}};
  document.getElementById('setup-pair').onsubmit=async event=>{event.preventDefault();const message=document.getElementById('setup-message'),button=event.submitter;button.disabled=true;try{await SessionCompanion.pair(document.getElementById('setup-code').value);document.getElementById('setup-code').value='';message.textContent='Computer paired. You can now sign in to Codex from the Session Preferences card.';await refresh()}catch(error){message.textContent=error.message}finally{button.disabled=false}};
  setup.querySelector('[data-check]').onclick=async()=>{const status=await SessionCompanion.status();document.getElementById('setup-message').textContent=status.signedIn?'Codex connected.':status.connected?'Computer connected. Sign in to Codex from the Session Preferences card.':status.error||'Computer not connected.';refresh()};
+ function canvasSetup(){if(!privateMode())return;SessionTVLocal.openSetup('preferences');document.querySelector('[data-session-tab="session-canvas"]')?.click()}
  function row(label){const node=document.createElement('div');node.className='connection-row';const name=document.createElement('strong');name.textContent=label;const state=document.createElement('span');state.className='connection-state';const action=document.createElement('button');action.className='btn';action.type='button';node.append(name,state,action);return {node,state,action}}
- function render(host,chat,codex){
+ function render(host,chat,codex,canvas={}){
   if(!host?.isConnected)return;host.replaceChildren();
-  for(const [label,status,connect]of [['ChatGPT',chat,()=>login('chatgpt')],['Codex',codex,()=>login('codex')]]){
+  for(const [label,status,connect]of [['ChatGPT',chat,()=>login('chatgpt')],['Codex',codex,()=>login('codex')],['Canvas',canvas,canvasSetup]]){
    const item=row(label);item.state.textContent=status.connected?'Connected':status.pending?'Finish sign-in in your browser':privateMode()?(status.error||'Not connected'):'Sign in to connect';item.state.classList.toggle('connected',!!status.connected);
-   item.action.hidden=!!status.connected;item.action.disabled=!privateMode();item.action.textContent=status.setup?'Setup':status.pending?'Continue sign-in':'Sign in with ChatGPT';item.action.onclick=status.setup?guide:connect;host.append(item.node);
+   item.action.hidden=!!status.connected;item.action.disabled=!privateMode();item.action.textContent=label==='Canvas'?'Setup':status.setup?'Setup':status.pending?'Continue sign-in':'Sign in with ChatGPT';item.action.onclick=label==='Canvas'?canvasSetup:status.setup?guide:connect;host.append(item.node);
   }
  }
  async function refresh(){
   const host=document.getElementById('session-connection-summary');if(!host||busy)return;lastHost=host;
   if(!privateMode()){render(host,{},{});return}busy=true;lastCheck=Date.now();const version=epoch;
   try{
-   const [computer,chat]=await Promise.all([SessionCompanion.status(),SessionCompanion.chatGPTStatus().catch(()=>({connected:false}))]);
+   const [computer,chat,canvas]=await Promise.all([SessionCompanion.status(),SessionCompanion.chatGPTStatus().catch(()=>({connected:false})),SessionCompanion.canvasStatus().catch(()=>({connected:false,error:'Computer disconnected'}))]);
    if(version!==epoch||!privateMode())return;
    let codex={connected:!!computer.signedIn,setup:!computer.connected,pending:!!computer.loginPending};pending=pending||!!computer.loginPending;
    if(pending&&computer.connected){const state=await SessionCompanion.codexLoginStatus().catch(()=>({pending:false}));codex={...codex,...state};pending=!!state.pending;}
-   if(version===epoch&&privateMode())render(host,chat,codex);
+   if(version===epoch&&privateMode())render(host,chat,codex,canvas);
   }finally{busy=false;if(lastHost!==document.getElementById('session-connection-summary'))refresh()}
  }
  async function login(kind){
