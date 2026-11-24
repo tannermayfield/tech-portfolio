@@ -135,3 +135,5 @@ body.tv #work-mid:has(#coach-form[data-composer-section="class"]) #focus.chat-he
 .project-task-table .pp-pill{min-width:62px;white-space:nowrap}.project-task-table li.done .pp-tt{text-decoration:line-through;opacity:.65}#project-task-create{display:flex;gap:8px}#project-task-create input{min-width:0;flex:1}.project-task-table input[type=checkbox]{flex:none}
 
 #tv-settings .tt-range{top:12px;right:16px}
+
+.gd-day.today small{font-size:inherit;line-height:inherit;font-weight:inherit;opacity:1}
