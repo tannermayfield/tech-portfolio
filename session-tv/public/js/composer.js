@@ -36,8 +36,7 @@
  }
  const approvalOptions=[
   {value:'user',label:'Ask for approval',description:'Review each eligible permission request yourself.'},
-  {value:'auto_review',label:'Approve for me',description:'Let Codex review eligible permission requests.'},
-  {value:'full',label:'Full access',description:'Unavailable in SessionTV.'}
+  {value:'auto_review',label:'Approve for me',description:'Let Codex review eligible permission requests.'}
  ];
  const approvalKey=()=> 'sb.codexApproval:'+String(state().task?.course||'');
  function approvalMode(){return typeof recall==='function'&&recall(approvalKey(),'user')==='auto_review'?'auto_review':'user'}
@@ -47,7 +46,7 @@
   const panel=document.createElement('div');accessPopup=panel;panel.className='composer-access-popup composer-approval-picker';panel.id='composer-access-popup';panel.setAttribute('aria-label','Codex approval mode');panel.setAttribute('role','group');panel.setAttribute('popover','auto');
   for(const option of approvalOptions){
    const selected=option.value===approvalMode(),choice=button('',option.label);
-   choice.setAttribute('aria-pressed',String(selected));choice.disabled=option.value==='full';
+   choice.setAttribute('aria-pressed',String(selected));
    const title=document.createElement('strong');title.textContent=option.label;
    const detail=document.createElement('small');detail.textContent=option.description;
    const mark=document.createElement('span');mark.textContent=selected?'✓':'';mark.setAttribute('aria-hidden','true');
