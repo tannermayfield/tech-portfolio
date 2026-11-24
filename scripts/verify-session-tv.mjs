@@ -98,6 +98,20 @@ try{
   await privatePage.locator('#chatgpt-chat').screenshot({path:'test-results/session-tv-chatgpt-'+width+'.png'});
  }
  await privatePage.locator('#chatgpt-chat [data-close]').click();
+ // Study chats use subscription ChatGPT in the main compact composer.
+ await privatePage.setViewportSize({width:1280,height:628});
+ await privatePage.evaluate(()=>{SessionCompanion.chatGPTStart=async({model,effort,messages,onEvent})=>{globalThis.studyRequest={model,effort,messages};onEvent({type:'response.output_text.delta',delta:'**Study** reply'});onEvent({type:'response.completed'})}});
+ for(const kind of ['class','skill']){
+  await privatePage.evaluate(async kind=>{document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());const task=tasks.find(task=>typeOf(task)===kind);await tune(task.id,{cut:false});closeSheets();go('work');await SessionStudyChats.refresh();renderWork()},kind);
+  await privatePage.waitForFunction(()=>SessionStudyChats.state.ready);
+  assert.equal(await privatePage.locator('#coach-form').evaluate(form=>form.classList.contains('composer-work')),false);
+  assert.equal(await privatePage.locator('.composer-study-effort').inputValue(),'medium');
+  assert.equal(await privatePage.locator('#coach-send').getAttribute('aria-label'),'Voice mode coming soon');
+  await privatePage.locator('#coach-input').fill('Explain this concept');await privatePage.locator('#coach-send').click();
+  await privatePage.waitForFunction(()=>document.querySelector('#coach-log strong')?.textContent==='Study');
+  assert.equal(await privatePage.evaluate(()=>studyRequest.effort),'medium');assert.equal(await privatePage.evaluate(()=>studyRequest.model),'account-model');
+  await privatePage.locator('#coach-form').screenshot({path:'test-results/composer-'+kind+'.png'});
+ }
  // Work resets to Medium on reentry, while Plan and Apply keep Light.
  await privatePage.evaluate(async()=>{
   const task=tasks.find(task=>typeOf(task)==='project'),name=task.course;
@@ -107,11 +121,18 @@ try{
  });
  await privatePage.waitForFunction(()=>document.getElementById('project-effort-button')&&!document.getElementById('project-effort-button').disabled);
  assert.match(await privatePage.locator('#project-effort-button').textContent(),/Medium/);
- assert.equal(await privatePage.locator('#coach-form .project-model-controls + .speech-controls').count(),1);assert.equal(await privatePage.locator('.project-chat-heading').count(),0);assert.equal(await privatePage.locator('#coach-log [data-chatgpt-open]').count(),0);await privatePage.locator('#project-effort-button').click();assert.equal(await privatePage.locator('#project-effort-popup').isVisible(),true);await privatePage.evaluate(()=>{renderWork();renderWork()});assert.equal(await privatePage.locator('#project-effort-popup').isVisible(),true);await privatePage.locator('.effort-ticks button').filter({hasText:'Extra high'}).click();assert.equal(await privatePage.locator('#project-reasoning').getAttribute('aria-valuetext'),'Extra high');await privatePage.locator('#project-effort-popup').screenshot({path:'test-results/effort-popup.png'});await privatePage.locator('#coach-input').click();assert.equal(await privatePage.locator('#project-effort-popup').count(),0);assert.match(await privatePage.locator('#project-effort-button').textContent(),/Extra high/);
+ assert.equal(await privatePage.locator('#coach-form').evaluate(form=>form.classList.contains('composer-work')),true);
+ await privatePage.locator('#coach-input').fill('Build this feature');assert.equal(await privatePage.locator('#coach-send').isEnabled(),true);
+ await privatePage.locator('#coach-form').screenshot({path:'test-results/composer-work.png'});
+
+ assert.equal(await privatePage.locator('#coach-form .project-model-controls + .speech-controls').count(),1);assert.equal(await privatePage.locator('.project-chat-heading').count(),0);assert.equal(await privatePage.locator('#coach-log [data-chatgpt-open]').count(),0);await privatePage.locator('#project-effort-button').click();assert.equal(await privatePage.locator('#project-effort-popup').isVisible(),true);await privatePage.evaluate(()=>{renderWork();renderWork()});assert.equal(await privatePage.locator('#project-effort-popup').isVisible(),true);await privatePage.locator('.effort-ticks button').filter({hasText:'Extra high'}).click();assert.equal(await privatePage.locator('#project-reasoning').getAttribute('aria-valuetext'),'Extra high');await privatePage.locator('#project-effort-popup').screenshot({path:'test-results/effort-popup.png'});await privatePage.locator('#coach-input').click({position:{x:10,y:10}});assert.equal(await privatePage.locator('#project-effort-popup').count(),0);assert.match(await privatePage.locator('#project-effort-button').textContent(),/Extra high/);
+ await privatePage.evaluate(()=>{SessionCompanion.start=async({onEvent})=>{onEvent({method:'item/agentMessage/delta',params:{itemId:'reply',delta:'Work completed'}});onEvent({method:'turn/completed',params:{turn:{status:'completed'}}})}});
+ await privatePage.locator('#coach-send').click();await privatePage.waitForFunction(()=>!SessionProjectChats.busy&&document.querySelector('#coach-log').textContent.includes('Work completed'));
+ await privatePage.locator('#coach-input').fill('Next change');assert.equal(await privatePage.locator('#coach-send').isEnabled(),true);
  await privatePage.evaluate(()=>{openSettings();closeSheets();renderWork()});assert.match(await privatePage.locator('#project-effort-button').textContent(),/Medium/);
  for(const mode of ['plan','apply']){
   await privatePage.evaluate(mode=>{const task=tasks.find(task=>typeOf(task)==='project');current.projModes[task.course]=mode;renderWork()},mode);
-  assert.equal(await privatePage.locator('#project-reasoning').count(),0);assert.equal(await privatePage.locator('.project-chat-heading').count(),0);assert.equal(await privatePage.locator('[data-speech=speaker]').count(),0);
+  await privatePage.waitForFunction(()=>document.querySelector('.composer-fixed-effort')?.textContent==='Light');await privatePage.locator('#coach-form').screenshot({path:'test-results/composer-'+mode+'.png'});assert.equal(await privatePage.locator('#project-reasoning').count(),0);assert.equal(await privatePage.locator('.project-chat-heading').count(),0);assert.equal(await privatePage.locator('[data-speech=speaker]').count(),0);
  }
  await privatePage.evaluate(()=>{document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());openSettings();TV.dbView='classes';renderSettings()});await privatePage.locator('.class-settings-row > .btn').first().click();assert.equal(await privatePage.locator('#class-edit').isVisible(),true);for(const width of [1280,390]){await privatePage.setViewportSize({width,height:width===390?844:628});await privatePage.waitForFunction(()=>{const r=document.getElementById('class-edit').getBoundingClientRect();return r.x>=0&&r.right<=innerWidth+1});const box=await privatePage.locator('#class-edit').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width+1);await privatePage.locator('#class-edit').screenshot({path:'test-results/class-edit-'+width+'.png'})}await privatePage.locator('#class-delete-button').click();assert.equal(await privatePage.locator('#class-delete-confirm').isVisible(),true);assert.match(await privatePage.locator('#class-delete-confirm').textContent(),/permanent/);await privatePage.locator('#class-delete-confirm [data-cancel]').click();assert.equal(await privatePage.locator('#class-edit').isVisible(),true);await privatePage.locator('#class-edit [data-close]').click();
  await privateContext.close();

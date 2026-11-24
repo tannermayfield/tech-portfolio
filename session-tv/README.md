@@ -20,7 +20,9 @@ See [cloud setup](docs/CLOUD.md) and [simple next steps](docs/NEXT-STEPS.md). En
 
 Settings → Session Preferences → AI Connection manages the local Codex companion and optional ChatGPT plan-backed general chat. ChatGPT authorization and inference run on your computer using the official local-app OAuth flow; the website receives no OpenAI credentials. Continue with ChatGPT requires your own browser consent. Use included plan usage and leave credit use disabled in ChatGPT Settings → Usage; there is no API-key or paid fallback. See [AI setup](docs/AI.md).
 
-Project Plan and Apply use GPT-6 Luna at Light effort. Work uses that model and opens at Medium, with Light, Medium, High and Extra high offered when supported. Every turn sends the selected model and effort explicitly.
+Project Plan and Apply use GPT-6 Luna at Light effort. Work uses the latest supported Codex model and opens at Medium, with Light, Medium, High and Extra high offered when supported. Every turn sends the selected model and effort explicitly. Classes and Skills use their own ChatGPT study conversations through the existing subscription connection, fixed to the first model in the live account catalog at Medium. Their conversations are kept separate per assignment or skill.
+
+Work has a two-row composer; study, Plan and Apply use compact composers. The plus button accepts readable text/code attachments (10 KB total). The microphone dictates text for review. The blue waveform reserves future Voicebox character mode and is disabled until that feature is connected; typing replaces it with Send, and a running response offers Stop. Workspace access explains the actual restricted Codex permissions rather than promising automatic elevated approvals.
 
 The old `server.mjs` Claude API proxy remains for compatibility with the original explicit local API-key setup/tests. The new frontend never calls it, including when an environment key is present. It is not shipped to GitHub Pages. No ChatGPT/Claude tokens belong in browser storage or project configuration.
 

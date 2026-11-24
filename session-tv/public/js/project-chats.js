@@ -33,7 +33,7 @@
   const catalog=modelCatalog(folder,mode), controls=document.createElement('div');controls.className='project-model-controls';
   if(effortPopup&&heading.querySelector('#project-effort-button')){heading.querySelector('#project-effort-button').disabled=!!running;effortPopup.querySelector('input').disabled=!!running;positionEffort();const requested=mode==='work'?workEffort:'low';return !catalog.loading&&!catalog.error&&catalog.efforts.includes(requested)}
   heading.querySelector('.project-model-controls')?.remove();
-  const speech=heading.querySelector('.speech-controls');if(speech)heading.insertBefore(controls,speech);else $('coach-input').insertAdjacentElement('afterend',controls);
+  const speech=heading.querySelector('.speech-controls');if(speech)speech.parentNode.insertBefore(controls,speech);else $('coach-input').insertAdjacentElement('afterend',controls);
   if(catalog.loading||catalog.error){const state=document.createElement('span');state.textContent=catalog.error||'Connecting Codex…';state.setAttribute('role','status');controls.append(state)}
   if (catalog.error) {
    const retry=document.createElement('button');retry.type='button';retry.className='btn ghost';retry.textContent='Retry';retry.disabled=!!running;
@@ -57,6 +57,7 @@
    };
 
   }
+  if(mode!=='work'&&!catalog.loading&&!catalog.error){const fixed=document.createElement('span');fixed.className='composer-fixed-effort';fixed.textContent='Light';fixed.title='GPT-6 Luna · fixed Light thinking';controls.append(fixed);}
   const requested=mode==='work'?workEffort:'low';
   if (!catalog.loading && !catalog.error && !catalog.efforts.includes(requested)) {
    const warning=document.createElement('span');warning.className='project-model-warning';warning.textContent=effortLabels[requested]+' is unavailable for this Codex model.';controls.appendChild(warning);
@@ -185,12 +186,13 @@
   const privateChat=SessionWorkspace.mode==='private';
   $('coach-wrap').setAttribute('aria-label','Codex project chat');
   $('coach-input').setAttribute('aria-label','Message to Codex');
-  $('coach-input').placeholder='Message Codex · '+labels[mode];
+  $('coach-input').placeholder=mode==='work'?'Work with Codex':'Ask Codex';
   const log = $('coach-log');
   $('coach-wrap').hidden = false; $('coach-quick').innerHTML = '';
   $('coach-form').hidden = SessionWorkspace.mode !== 'private' || !chat?.threadId;
   log.replaceChildren();
   const modelReady=privateChat&&chat?.threadId ? renderModelControls($('coach-form'),value.folder,mode) : false;
+  $('coach-form').dataset.providerReady=String(!!modelReady);
   $('coach-send').disabled=!!running||!modelReady;
   if(!chat?.threadId) {
    const notice = document.createElement('div'); notice.className = 'msg ai'; notice.textContent = 'Prepare this project’s starter chats in Settings → My Database → Projects → Manage.'; log.appendChild(notice); return true;
@@ -206,7 +208,7 @@
    const content = document.createElement('div'); content.innerHTML=fmtMsg(message.text || message.content || '',message.role!=='user'); bubble.append(heading,content); log.appendChild(bubble);
   }
   $('coach-send').disabled = !!running || !modelReady;
-  $('coach-input').placeholder = 'Message Codex · ' + labels[mode];
+  $('coach-input').placeholder=mode==='work'?'Work with Codex':'Ask Codex';
   let stop = $('project-stop');
   if(!stop) { stop=document.createElement('button');stop.id='project-stop';stop.type='button';stop.className='btn ghost';stop.textContent='Stop';$('coach-form').appendChild(stop);stop.onclick=()=>SessionCompanion.cancel(); }
   stop.hidden = !running;
@@ -224,15 +226,15 @@
  const baseSend = sendCoach;
  sendCoach = async function(text, show) {
   const active = selected(); if(!active)return baseSend(text,show);
-  const prompt=String(text||'').trim(); if(!prompt || running)return;
-  if(SessionWorkspace.mode!=='private')return toast('Sign in to use project chats.');
+  const prompt=String(text||'').trim(); if(!prompt || running)return {sent:false};
+  if(SessionWorkspace.mode!=='private'){toast('Sign in to use project chats.');return {sent:false};}
   const {name,mode,task}=active, value=entry(name), chat=value.chats.find(chat=>chat.mode===mode);
-  if(!chat?.threadId)return toast('Prepare the project’s starter chats in Manage first.');
+  if(!chat?.threadId){toast('Prepare the project’s starter chats in Manage first.');return {sent:false};}
   const catalog=modelCatalog(value.folder,mode),effort=mode==='work'?workEffort:'low';
-  if (catalog.loading||catalog.error||!catalog.efforts.includes(effort)) return toast(catalog.error||'Wait for a supported Codex model and effort before sending.');
+  if (catalog.loading||catalog.error||!catalog.efforts.includes(effort)){toast(catalog.error||'Wait for a supported Codex model and effort before sending.');return {sent:false};}
   chat.messages.push({role:'user',text:show||prompt});const reply={role:'assistant',text:''};chat.messages.push(reply);
   running={name,mode,value};save(name,value);$('coach-input').value='';renderProjectChat();
-  let lastRender=0, lastMessageItem=null;
+  let lastRender=0, lastMessageItem=null,failed=false;
   try {
    const learnedSkills=tasks.filter(item=>typeOf(item)==='skill').map(item=>item.title+' ('+skillLevel(item)+')').join(', ');
    const context='Project: '+name+'\nPreviously learned skills and self-rated levels: '+(learnedSkills||'None recorded yet')+'\n'+projectCtx(task);
@@ -242,17 +244,19 @@
      if(lastMessageItem&&event.params.itemId&&lastMessageItem!==event.params.itemId)reply.text+='\n\n';
      lastMessageItem=event.params.itemId||lastMessageItem;reply.text+=event.params.delta||'';
     }
+    if(event.method==='sessiontv/error')failed=true;
     if(event.method==='sessiontv/error'||event.method==='sessiontv/approvalDenied')reply.text+='\n'+(event.params.error||event.params.reason);
     if(event.method==='turn/completed'&&event.params.turn?.status==='failed')reply.text+='\n'+(event.params.turn.error?.message||'The Codex turn failed. You can retry.');
     if(event.method==='sessiontv/thread')save(name,value);
     if(Date.now()-lastRender>100||event.method==='turn/completed'){lastRender=Date.now();if(selected()?.name===name&&selected()?.mode===mode)renderProjectChat();}
    }});
-  } catch(error) { reply.text+=(error.name==='AbortError'?'\nStopped.':'\n'+error.message); }
+  } catch(error) { failed=true;reply.text+=(error.name==='AbortError'?'\nStopped.':'\n'+error.message); }
   finally { running=null;save(name,value);if(selected()?.name===name)renderProjectChat(); }
+  return {sent:!failed};
  };
  addEventListener('pagehide',()=>{if(running)save(running.name,running.value)});
  globalThis.SessionProjectChats = {
-  names, entry, channel, open:openManage, create:(name,folder)=>provision(name.trim(),folder),
+  get busy(){return !!running},names, entry, channel, open:openManage, create:(name,folder)=>provision(name.trim(),folder),
   timeTotals:()=>Object.fromEntries(names().map(name=>[name,totalTime(name,current?.timeOn)]))
  };
  if(current)renderWork();
