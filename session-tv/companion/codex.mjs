@@ -24,7 +24,7 @@ export class CodexBridge extends EventEmitter {
    '-c','approval_policy="on-request"','-c','approvals_reviewer='+JSON.stringify(this.reviewer),'-c','model_provider="openai"','-c','forced_login_method="chatgpt"',
    '-c','shell_environment_policy.inherit="none"',
    ...(process.platform==='win32'?['-c','shell_environment_policy.set='+toml(windowsShellEnvironment)]:[]),
-   '-c','features.multi_agent=false','-c','mcp_servers='+toml(publishTool?{sessiontv_release:{url:publishTool.url,bearer_token_env_var:'SESSIONTV_RELEASE_TOKEN',tool_timeout_sec:150}}:{})];
+   '-c','features.multi_agent=false','-c','mcp_servers='+toml(publishTool?{sessiontv_release:{url:publishTool.url,bearer_token_env_var:'SESSIONTV_RELEASE_TOKEN',tool_timeout_sec:150,enabled_tools:['publish_sessiontv'],tools:{publish_sessiontv:{approval_mode:'approve'}}}}:{})];
   const env={...process.env,CODEX_HOME:home};
   for(const key of Object.keys(env))if(/API_KEY|ACCESS_TOKEN|SESSIONTV_|SUPABASE_|ANTHROPIC|AWS_|OPENAI_/i.test(key))delete env[key];
   if(publishTool)env.SESSIONTV_RELEASE_TOKEN=publishTool.token;
@@ -148,6 +148,7 @@ export class CodexBridge extends EventEmitter {
  }
 }
 function toml(value){
+ if(Array.isArray(value))return '['+value.map(toml).join(',')+']';
  if(value&&typeof value==='object')return '{'+Object.entries(value).map(([key,v])=>JSON.stringify(key)+'='+toml(v)).join(',')+'}';
  return JSON.stringify(value);
 }

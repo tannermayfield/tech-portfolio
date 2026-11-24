@@ -214,13 +214,18 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    const bridge=active=bridgeFactory({executable,home,cwd,reviewChanges:body.mode==='work',reviewer:body.mode==='work'?body.reviewer:'user',publishTool:toolConnection});
    if(toolConnection)connectedPublisher=toolConnection;
    activeConfirmed=false;
-   let timeout,settling=false,publisher,baseline,readinessError,release,publishInFlight;
+   let timeout,settling=false,publisher,baseline,readinessError,release,publishInFlight,reportedNoChanges=false;
    const stop=()=>{
     clearTimeout(timeout);bridge.stop();
     if(active===bridge){active=null;activeConfirmed=false;}
     if(connectedPublisher===toolConnection)connectedPublisher=null;
    };
-   res.on('close',()=>{if(!settling)stop()});
+   res.on('close',()=>{
+    if(settling)return;
+    const pending=publishInFlight;
+    if(pending){operation=true;void pending.catch(()=>{}).finally(()=>{operation=false;});}
+    stop();
+   });
    const write=event=>{if(!res.destroyed)res.write(JSON.stringify(event)+'\n')};
    const publishStatus=(message,commit)=>write({method:'sessiontv/publish',params:{message,commit}});
    async function publishChanges(waitForLive){
@@ -229,12 +234,13 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     publishInFlight=(async()=>{
      const review=await publisher.snapshot();
      if(review.base!==baseline.base)throw failure(409,'The repository changed during this turn.');
+     if(active!==bridge)throw failure(409,'The Work turn ended before publishing started.');
      if(review.tree){
       publishStatus('Publishing SessionTV…');
       release=await publisher.publish(review);baseline={base:release.commit};
       publishStatus('Pushed '+release.commit.slice(0,7)+'. Waiting for GitHub Pages…',release.commit);
      }
-     if(!release){publishStatus('No SessionTV file changes to publish.');return {status:'no_changes'};}
+     if(!release){if(!reportedNoChanges){publishStatus('No SessionTV file changes to publish.');reportedNoChanges=true;}return {status:'no_changes'};}
      if(waitForLive){
       const deadline=Date.now()+75000;
       do{
