@@ -6,3 +6,10 @@
 #coach-form .composer-input-row textarea:focus{outline:none!important}#coach-form:focus-within{border-color:var(--muted)}
 
 #coach-form .composer-fixed-effort{color:var(--muted);padding:6px;font-size:12px;white-space:nowrap}
+
+/* Keep compact ChatGPT controls on one centered row. */
+#coach-form[data-composer-section="class"],#coach-form[data-composer-section="skill"]{align-items:center}
+#coach-form[data-composer-section="class"] .composer-input-row,#coach-form[data-composer-section="skill"] .composer-input-row,#coach-form[data-composer-section="class"] .composer-left,#coach-form[data-composer-section="skill"] .composer-left,#coach-form[data-composer-section="class"] .composer-right,#coach-form[data-composer-section="skill"] .composer-right{grid-row:1;align-self:center}
+#coach-form[data-composer-section="class"] textarea,#coach-form[data-composer-section="skill"] textarea{display:block;line-height:22px;padding:6px 2px;margin:0;box-sizing:border-box}
+#coach-form:has(.composer-attachments:not([hidden])) .composer-input-row,#coach-form:has(.composer-attachments:not([hidden])) .composer-left,#coach-form:has(.composer-attachments:not([hidden])) .composer-right{grid-row:2}
+#chatgpt-form{align-items:center}#chatgpt-form .speech-controls,#chatgpt-form button{align-self:center}
