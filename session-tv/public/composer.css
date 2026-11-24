@@ -23,3 +23,5 @@
 #coach-form.session-composer:has(.composer-attachments:not([hidden])) .composer-input-row,#coach-form.session-composer:has(.composer-attachments:not([hidden])) .composer-left,#coach-form.session-composer:has(.composer-attachments:not([hidden])) .composer-right{grid-row:2}
 #wc-form{padding-top:4px;padding-bottom:4px;align-items:center}#wc-form textarea{min-height:26px;padding-top:3px;padding-bottom:3px}
 #chatgpt-form textarea{min-height:34px;height:34px;padding:6px 10px;box-sizing:border-box}
+
+#coach-form .composer-fixed-effort{display:none!important}
