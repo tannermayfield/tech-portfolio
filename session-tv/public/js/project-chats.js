@@ -228,17 +228,17 @@
  const baseOpenGuide=openGuide;openGuide=function(){closeEffort();chatContext='';return baseOpenGuide.apply(this,arguments)};
  const baseOpenSettings=openSettings;openSettings=function(){closeEffort();chatContext='';return baseOpenSettings.apply(this,arguments)};
  const baseSend = sendCoach;
- sendCoach = async function(text, show) {
+ const sendProject = async function(text, show, options={}) {
   const active = selected(); if(!active)return baseSend(text,show);
   const prompt=String(text||'').trim(); if(!prompt || running)return {sent:false};
   if(SessionWorkspace.mode!=='private'){toast('Sign in to use project chats.');return {sent:false};}
   const {name,mode,task}=active, value=entry(name), chat=value.chats.find(chat=>chat.mode===mode);
   if(!chat?.threadId){toast('Prepare the project’s starter chats in Manage first.');return {sent:false};}
-  const catalog=modelCatalog(value.folder,mode),effort=mode==='work'?workEffort:'low';
+  const catalog=modelCatalog(value.folder,mode),effort=mode==='work'?(options.effort||workEffort):'low';
   if (catalog.loading||catalog.error||!catalog.efforts.includes(effort)){toast(catalog.error||'Wait for a supported Codex model and effort before sending.');return {sent:false};}
   chat.messages.push({role:'user',text:show||prompt});const reply={role:'assistant',text:''};chat.messages.push(reply);
   running={name,mode,value};save(name,value);$('coach-input').value='';renderProjectChat();
-  let lastRender=0, lastMessageItem=null,failed=false;
+  let lastRender=0, lastMessageItem=null,failed=false,completed=false;
   try {
    const learnedSkills=tasks.filter(item=>typeOf(item)==='skill').map(item=>item.title+' ('+skillLevel(item)+')').join(', ');
    const context='Project: '+name+'\nPreviously learned skills and self-rated levels: '+(learnedSkills||'None recorded yet')+'\n'+projectCtx(task);
@@ -249,6 +249,7 @@
      lastMessageItem=event.params.itemId||lastMessageItem;reply.text+=event.params.delta||'';
     }
     if(event.method==='sessiontv/error')failed=true;
+    if(event.method==='turn/completed'){completed=event.params.turn?.status==='completed';if(!completed)failed=true;}
     if(event.method==='sessiontv/error'||event.method==='sessiontv/approvalDenied')reply.text+='\n'+(event.params.error||event.params.reason);
     if(event.method==='turn/completed'&&event.params.turn?.status==='failed')reply.text+='\n'+(event.params.turn.error?.message||'The Codex turn failed. You can retry.');
     if(event.method==='sessiontv/thread')save(name,value);
@@ -256,11 +257,12 @@
    }});
   } catch(error) { failed=true;reply.text+=(error.name==='AbortError'?'\nStopped.':'\n'+error.message); }
   finally { running=null;save(name,value);if(selected()?.name===name)renderProjectChat(); }
-  return {sent:!failed};
+  return {sent:!failed&&completed,completed:!failed&&completed};
  };
+ sendCoach=sendProject;
  addEventListener('pagehide',()=>{if(running)save(running.name,running.value)});
  globalThis.SessionProjectChats = {
-  get busy(){return !!running},names, entry, channel, open:openManage, create:(name,folder)=>provision(name.trim(),folder),
+  get busy(){return !!running},async sendTask(name,prompt,effort){const active=selected();if(!active||active.name!==name||active.mode!=='work')return {sent:false,completed:false};return sendProject(prompt,prompt,{effort})},names, entry, channel, open:openManage, create:(name,folder)=>provision(name.trim(),folder),
   timeTotals:()=>Object.fromEntries(names().map(name=>[name,totalTime(name,current?.timeOn)]))
  };
  if(current)renderWork();
