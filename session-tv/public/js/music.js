@@ -161,12 +161,9 @@
  }
  radio.querySelector('[data-radio-close]').onclick = () => radio.close();
  radio.querySelector('[data-radio-stop]').onclick = stop;
- openPlaylist = () => {};
- renderSong = renderPlayer;
- const baseWork = renderWork;
- renderWork = function() { const result = baseWork.apply(this,arguments); syncSection(); return result; };
- const baseGuide = renderGuide;
- renderGuide = function() { const result = baseGuide.apply(this,arguments); syncSection(); return result; };
+ SessionTV.hooks.after('song:render', renderPlayer);
+ SessionTV.hooks.after('work:render', syncSection);
+ SessionTV.hooks.after('guide:render', syncSection);
  // Block the original simulated transport handler on the cabinet music plate.
  document.getElementById('song-note')?.addEventListener('click',event => {
   if (event.target.closest('[data-sn]')) { event.preventDefault(); event.stopImmediatePropagation(); openRadio(); }

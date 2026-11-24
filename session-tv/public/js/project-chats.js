@@ -64,7 +64,7 @@
   }
   return !catalog.loading&&!catalog.error&&catalog.efforts.includes(requested);
  }
- const stored = () => recall('sb.projectCodingChats', {});
+ const stored = () => recall('sb.projectCodingChats');
  function names() {
   return [...new Set([...Object.values(PROJ.data).map(project => project.name), ...tasks.filter(task => typeOf(task) === 'project').map(task => task.course), ...Object.keys(stored())])].filter(Boolean).sort();
  }
@@ -159,9 +159,8 @@
   try { if(!folder) folder = (await SessionCompanion.pickFolder()).folder; if(folder)await updateManaged(folder); }
   catch(error) { $('pm-status').textContent = error.message; }
  };
- const baseDatabase = renderDbView;
- renderDbView = function(view) {
-  baseDatabase(view); if(view !== 'projects')return;
+ SessionTV.hooks.after('dbView:render', view => {
+  if(view !== 'projects')return;
   const list = $('set-body').querySelector('.db-list');
   list.innerHTML = `<div class="project-table"></div>`;
   const table = list.firstElementChild;
@@ -180,7 +179,7 @@
    const identity=document.createElement('div');identity.className='class-identity';identity.append(label,open);row.append(identity,counters,button); table.appendChild(row);
   }
   if(!names().length) { const empty = document.createElement('p'); empty.className='db-empty'; empty.textContent='No projects yet.'; table.appendChild(empty); }
- };
+ });
  const expandedCommands=new WeakMap();
  function renderReplyContent(content, message, working) {
   content.replaceChildren();
@@ -278,15 +277,14 @@
   log.scrollTop=log.scrollHeight;
   return true;
  }
- const baseLog = renderCoachLog;
- renderCoachLog = function() { if(!renderProjectChat())baseLog(); };
- const baseWork = renderWork;
- renderWork = function() { baseWork(); if(selected())renderProjectChat();else {chatContext='';document.querySelector('#coach-form .project-model-controls')?.remove();if($('project-stop'))$('project-stop').hidden=true;} };
- const baseOpenGuide=openGuide;openGuide=function(){closeEffort();chatContext='';return baseOpenGuide.apply(this,arguments)};
- const baseOpenSettings=openSettings;openSettings=function(){closeEffort();chatContext='';return baseOpenSettings.apply(this,arguments)};
- const baseSend = sendCoach;
- const sendProject = async function(text, show, options={}) {
-  const active = selected(); if(!active)return baseSend(text,show);
+ SessionTV.hooks.wrap('coach:render', next => { if(!renderProjectChat())return next(); });
+ SessionTV.hooks.after('work:render', () => { if(selected())renderProjectChat();else {chatContext='';document.querySelector('#coach-form .project-model-controls')?.remove();if($('project-stop'))$('project-stop').hidden=true;} });
+ const leaveChat=()=>{closeEffort();chatContext=''};
+ SessionTV.hooks.before('guide:open', leaveChat);
+ SessionTV.hooks.before('settings:open', leaveChat);
+ // fallback: the next coach:send layer, when this was reached through sendCoach
+ const sendProject = async function(text, show, options={}, fallback=null) {
+  const active = selected(); if(!active)return fallback?fallback(text,show):undefined;
   const prompt=String(text||'').trim(); if(!prompt || running)return {sent:false};
   if(SessionWorkspace.mode!=='private'){toast('Sign in to use project chats.');return {sent:false};}
   const {name,mode,task}=active, value=entry(name), chat=value.chats.find(chat=>chat.mode===mode);
@@ -338,7 +336,7 @@
   finally { clearTimeout(repaint);if(!reply.text.trim())reply.text=completed?'Codex finished without a text reply.':'Codex stopped before sending a reply.';running=null;save(name,value);if(selected()?.name===name)renderProjectChat(); }
   return {sent:!failed&&completed,completed:!failed&&completed};
  };
- sendCoach=sendProject;
+ SessionTV.hooks.wrap('coach:send', (next, text, show, options) => sendProject(text, show, options, next));
  addEventListener('pagehide',()=>{if(running)save(running.name,running.value)});
  globalThis.SessionProjectChats = {
   get busy(){return !!running},sendImage(text,show,image){return sendProject(text,show,{image})},async sendTask(name,prompt,effort){const active=selected();if(!active||active.name!==name||active.mode!=='work')return {sent:false,completed:false};return sendProject(prompt,prompt,{effort})},names, entry, channel, open:openManage, create:(name,folder)=>provision(name.trim(),folder),

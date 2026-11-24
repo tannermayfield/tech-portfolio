@@ -81,9 +81,9 @@
   while(previous.length&&size({model:provider.model,effort:provider.effort,messages:[reference,...previous,last]})>28000){previous.splice(0,previous[1]?.role==='assistant'?2:1);while(previous[0]?.role==='assistant')previous.shift();}
   const messages=[reference,...previous,last];if(size({model:provider.model,effort:provider.effort,messages})>30000)throw new Error('Please shorten this message before sending.');return messages;
  }
- const baseSend=sendCoach;
- async function send(text,show){
-  const task=selected();if(!task)return baseSend(text,show);
+ // class and skill channels chat through ChatGPT; anything else continues to the next coach:send layer
+ async function send(next,text,show){
+  const task=selected();if(!task)return next(text,show);
   const prompt=String(text||'').trim();if(!prompt||running)return {sent:false};
   if(!privateUser()){toast('Sign in to use AI study chats.');return {sent:false};}
   if(prompt.length>16000||size(prompt)>20000){toast('Please shorten this message before sending.');return {sent:false};}
@@ -110,9 +110,9 @@
   }catch(error){if(valid(requestEpoch,user,connection)){record.error=controller.signal.aborted||error.name==='AbortError'?'Stopped. Your partial reply was kept.':error.message||'ChatGPT could not complete this response. Try again.';}return {sent:true,completed:false,text:reply.content};}
   finally{if(running?.controller===controller)running=null;if(valid(requestEpoch,user,connection)){keep();refreshView(task.id);}else emit();}
  }
- sendCoach=send;
- const baseLog=renderCoachLog;renderCoachLog=function(){if(!renderStudy()){if($('study-chat-stop'))$('study-chat-stop').hidden=true;return baseLog.apply(this,arguments);}emit();};
- const baseWork=renderWork;renderWork=function(){const result=baseWork.apply(this,arguments);if(selected()){renderStudy();emit();}else if($('study-chat-stop'))$('study-chat-stop').hidden=true;return result;};
+ SessionTV.hooks.wrap('coach:send',send);
+ SessionTV.hooks.wrap('coach:render',next=>{if(!renderStudy()){if($('study-chat-stop'))$('study-chat-stop').hidden=true;return next();}emit();});
+ SessionTV.hooks.after('work:render',()=>{if(selected()){renderStudy();emit();}else if($('study-chat-stop'))$('study-chat-stop').hidden=true;});
  function clear(){epoch++;running?.controller.abort();running=null;loading=null;catalog=[];account=null;notice='';provider={connected:false,ready:false,busy:false,model:'',effort:'medium'};if($('study-chat-stop'))$('study-chat-stop').hidden=true;if(selected()){if($('coach-form'))$('coach-form').hidden=true;if($('coach-send'))$('coach-send').disabled=true;$('coach-log')?.replaceChildren();}emit();}
  addEventListener('sessiontv:auth',clear);
  addEventListener('focus',()=>{if(selected()&&privateUser()&&!running)refresh(true);});

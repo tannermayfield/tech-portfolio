@@ -1,11 +1,10 @@
 /* Private section identity and integration settings. */
 (() => {
  const sections=[['class','Classes','Class tutor'],['skill','Skills','Skills coach'],['project','Projects','Project partner']];
- const defaultPick=pickTheme;
- pickTheme=function(section){
-  const selected=recall('sb.sectionThemes',{})[section];
-  return (THEMES[section]||[]).find(theme=>theme.id===selected)||defaultPick(section);
- };
+ SessionTV.hooks.wrap('theme:pick',(next,section)=>{
+  const selected=recall('sb.sectionThemes')[section];
+  return (THEMES[section]||[]).find(theme=>theme.id===selected)||next(section);
+ });
  let selectedTab='session-sections';
  function selectTab(id){
   selectedTab=id;
@@ -17,20 +16,20 @@
  }
  function renderSections(){
   const container=document.getElementById('session-sections');container.replaceChildren();
-  const themes=recall('sb.sectionThemes',{}),characters=recall('sb.sectionCharacters',{});
+  const themes=recall('sb.sectionThemes'),characters=recall('sb.sectionCharacters');
   for(const [key,label,character] of sections){
    const section=document.createElement('section');section.className='section-identity';
    const heading=document.createElement('h3');heading.textContent=label;
    const nameLabel=document.createElement('label');nameLabel.textContent='Character name';
    const name=document.createElement('input');name.value=characters[key]||character;name.maxLength=60;name.setAttribute('aria-label',label+' character name');
-   name.onchange=()=>{const values=recall('sb.sectionCharacters',{});values[key]=name.value.trim()||character;name.value=values[key];store('sb.sectionCharacters',values)};
+   name.onchange=()=>{const values=recall('sb.sectionCharacters');values[key]=name.value.trim()||character;name.value=values[key];store('sb.sectionCharacters',values)};
    nameLabel.appendChild(name);
    const themeLabel=document.createElement('label');themeLabel.textContent='Background theme';
    const select=document.createElement('select');select.setAttribute('aria-label',label+' background theme');select.add(new Option('Rotate themes',''));
    for(const theme of THEMES[key])select.add(new Option(theme.name,theme.id));
    select.value=themes[key]||'';
    select.onchange=()=>{
-    const values=recall('sb.sectionThemes',{});values[key]=select.value;store('sb.sectionThemes',values);
+    const values=recall('sb.sectionThemes');values[key]=select.value;store('sb.sectionThemes',values);
     if(current?.mood===key){current.themeId=pickTheme(key).id;saveState();renderWork();renderSong()}
    };
    themeLabel.appendChild(select);section.append(heading,nameLabel,themeLabel);container.appendChild(section);
