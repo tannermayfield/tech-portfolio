@@ -15,6 +15,13 @@ test('Canvas imports idempotently, preserves local notes and updates deadlines/s
  records.set(id,{...first,notes:'Keep my notes',skills:['SQL'],goal:'Practice',seconds:123});const base=w.SessionCompanion.canvasSnapshot;w.SessionCompanion.canvasSnapshot=async()=>{const value=await base();value.assignments[0].dueAt='2026-12-01T12:00:00Z';value.assignments[0].submission={submitted:true,missing:false,workflowState:'submitted'};return value};await w.SessionCanvas.sync();assert.equal(records.size,1);assert.equal(records.get(id).notes,'Keep my notes');assert.deepEqual(records.get(id).skills,['SQL']);assert.equal(records.get(id).seconds,123);assert.equal(records.get(id).status,'done');assert.equal(records.get(id).canvas.missing,false);assert.ok(data.get('sb.canvasLastSync'));assert.equal(calls(),2);
  }finally{dom.window.close()}
 });
+test('Canvas imports store an assignment kind from quiz, discussion and exam metadata',async()=>{
+ const {dom,w,records}=boot();try{await w.SessionCanvas.status();const base=w.SessionCompanion.canvasSnapshot;w.SessionCompanion.canvasSnapshot=async()=>{const value=await base(),a=value.assignments[0];value.assignments=[
+  {...a,id:30,title:'Chapter check',is_quiz_assignment:true},{...a,id:31,title:'Midterm Exam',submission_types:['online_quiz']},{...a,id:32,title:'Week 3 forum',submission_types:['discussion_topic']},
+  {...a,id:33,title:'Unit review',submissionTypes:['online_quiz']},{...a,id:34,title:'Final Exam'},{...a,id:35,title:'Pop quiz'},{...a,id:36,title:'Final project',submission_types:['online_upload']},{...a,id:37,title:'Build a query'}];return value};
+ await w.SessionCanvas.sync();const kind=id=>records.get('canvas-10-'+id).kind;
+ assert.equal(kind(30),'quiz');assert.equal(kind(31),'exam');assert.equal(kind(32),'discussion');assert.equal(kind(33),'quiz');assert.equal(kind(34),'exam');assert.equal(kind(35),'quiz');assert.equal(kind(36),null);assert.equal(kind(37),null)}finally{dom.window.close()}
+});
 test('duplicate sync is coalesced and late snapshot after sign-out writes nothing',async()=>{
  const {dom,w,records}=boot();try{await w.SessionCanvas.status();let resolve,count=0;w.SessionCompanion.canvasSnapshot=()=>{count++;return new Promise(r=>resolve=r)};const a=w.SessionCanvas.sync(),b=w.SessionCanvas.sync();assert.equal(a,b);await until(()=>count===1);assert.equal(count,1);w.SessionWorkspace.mode='demo';w.dispatchEvent(new w.Event('sessiontv:auth'));resolve({account:{id:1},courses:[{id:1,name:'Class'}],assignments:[{id:2,courseId:1,title:'Late'}]});await a;assert.equal(records.size,0)}finally{dom.window.close()}
 });

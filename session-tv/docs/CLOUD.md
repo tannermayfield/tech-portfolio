@@ -9,7 +9,7 @@ The hosted application defaults to fictional browser-local demo data. Signing in
 ## Provisioning (account access required)
 
 1. Create a free Supabase project in a suitable region. Keep the database password and service-role/secret keys outside this repository.
-2. Apply `supabase/migrations/202611080001_session_tv.sql` with the Supabase SQL editor, or link the Supabase CLI to the project and run `supabase db push`.
+2. Apply `supabase/migrations/202611080001_session_tv.sql` with the Supabase SQL editor, or link the Supabase CLI to the project and run `supabase db push`. Then apply `202611090001_username_login.sql` and `202611240001_write_fixes.sql` in filename order (`supabase db push` applies all pending files). The write-fixes migration normalizes course names, merges existing duplicate courses per owner (keeping the oldest row and repointing assignments to it), adds a case-insensitive unique course index, keeps sprint ids stable across project saves, and redefines `sessiontv_manage_class` to use the new index. Export the workspace before applying it to an existing project.
 3. Enable email authentication. Under Authentication → Email Templates → Magic Link, use the one-time-code template: `Your Session TV sign-in code is {{ .Token }}`. The application explicitly requests and verifies an email OTP; it does not depend on redirects or a callback route. Use the current code length configured by Supabase. Configure Site URL as `https://tannermayfield.dev/session-tv/` and add that URL to the redirect allowlist for future magic-link support. Configure production email delivery as needed; the built-in sender has restrictions and is intended for testing.
 4. Put **only** the Supabase project URL and publishable key (or legacy `anon` key) into the portfolio GitHub Actions repository variables used by the build. Locally configure `window.SessionTVConfig.supabaseUrl` and `.supabasePublishableKey` in `public/js/config.js`. Never place a service-role key, database password, AI access token, or API key there.
 5. Build and deploy the portfolio. Open My Workspace, request an email code, and enter it. Test sign-out, another browser, and a second account before importing personal information.
@@ -26,10 +26,10 @@ The migration creates these owner-scoped PostgreSQL tables:
 
 | Table | Purpose |
 | --- | --- |
-| `stv_courses` | Class names extracted from assignment records |
+| `stv_courses` | Class names extracted from assignment records; trimmed, internal whitespace collapsed, unique per owner ignoring case |
 | `stv_tasks` | Assignments, skills/progress, project tasks, deadlines and ordering |
 | `stv_projects` | Project records and sprint history |
-| `stv_sprints`, `stv_sprint_tasks` | Sprint milestones and task memberships |
+| `stv_sprints`, `stv_sprint_tasks` | Sprint milestones and task memberships; synced in place by ordinal and task so unchanged rows keep their ids |
 | `stv_sessions` | Completed study sessions, time totals, teach-backs and feedback |
 | `stv_workspace_state` | Current study session, allocation, task selection and active chat state |
 | `stv_settings` | Playlist URLs and existing application settings |
@@ -53,7 +53,7 @@ Export the cloud workspace after import and compare counts and important records
 
 Run `npm test` for the browser client tests. The cloud tests exercise empty configuration, email OTP requests, authenticated RPCs, rejection without local commit, and backup validation with simulated HTTP responses.
 
-Run `psql <local-supabase-url> -v ON_ERROR_STOP=1 -f supabase/tests/rls.sql` against an expendable local Supabase test project after applying the migration. It verifies two-user isolation, forged ownership rejection, anonymous RPC denial, sprint/task relationships, conversation extraction, verified import, duplicate import and conflict rollback; all fixtures roll back. The migration and this SQL test were also executed successfully using PGlite PostgreSQL with a minimal test Auth schema. This validates PostgreSQL behavior, not production Supabase account settings, email delivery, real-device authentication, or remote connectivity; those require the configured project.
+Run `psql <local-supabase-url> -v ON_ERROR_STOP=1 -f supabase/tests/rls.sql` against an expendable local Supabase test project after applying the migration. It verifies two-user isolation, forged ownership rejection, anonymous RPC denial, sprint/task relationships, conversation extraction, verified import, duplicate import and conflict rollback; all fixtures roll back. Also run `supabase/tests/usernames.sql` and `supabase/tests/write_fixes.sql`; the latter verifies that case/whitespace course and project-name variants map to one row, that repeated project writes keep sprint and membership ids, and that removed sprint items and sprints are deleted. The migrations and these SQL tests were also executed successfully using PGlite PostgreSQL with a minimal test Auth schema. To repeat that without Supabase, install `@electric-sql/pglite` outside the repository, create the `anon`, `authenticated` and `service_role` roles, an `auth.users(id uuid primary key, email text)` table and an `auth.uid()` function returning `(current_setting('request.jwt.claims',true)::jsonb->>'sub')::uuid`, grant usage on `auth` and `public` to those roles, then execute each migration and test file in filename order. This validates PostgreSQL behavior, not production Supabase account settings, email delivery, real-device authentication, or remote connectivity; those require the configured project.
 
 ## Cost and limits
 

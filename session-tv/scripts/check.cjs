@@ -8,4 +8,8 @@ for(const [,file]of html.matchAll(/(?:src|href)="([^"#]+)"/g)){
  if(/^(?:https?:|data:)/.test(file))continue;
  if(!fs.existsSync(path.join(root,'public',file)))throw new Error('Missing asset: '+file);
 }
-console.log('Syntax and local asset references passed ('+files.length+' scripts).');
+// every script in the manifest boot.js loads must exist
+const vm=require('node:vm'),context={};vm.createContext(context);context.globalThis=context;
+vm.runInContext(fs.readFileSync(path.join(root,'public/js/manifest.js'),'utf8'),context);
+for(const name of context.SessionTVManifest)if(!fs.existsSync(path.join(root,'public/js',name)))throw new Error('Missing manifest script: '+name);
+console.log('Syntax, local asset and manifest references passed ('+files.length+' scripts, '+context.SessionTVManifest.length+' in the manifest).');

@@ -4,7 +4,7 @@ The existing vanilla JavaScript TV workspace is preserved: channel knobs, class 
 
 ## Run
 
-Use Node 24.15+ (or Node 22.22.2+) and run `npm ci`, then `npm start`. The original `http://127.0.0.1:4173/` origin retains the original local workspace for safe backup/export. `localhost` is a separate browser origin. Hosted `/session-tv/` always starts in the isolated fictional demo unless signed in.
+Use Node 24.15+ (or Node 22.22.2+) and run `npm ci`, then `npm start`. `server.mjs` only serves the static app in `public/` on port 4173 (set `PORT` in `.env` to change it); it has no API routes. The original `http://127.0.0.1:4173/` origin retains the original local workspace for safe backup/export. `localhost` is a separate browser origin. Hosted `/session-tv/` always starts in the isolated fictional demo unless signed in.
 
 The portfolio includes a deployable snapshot of this source in `tech-portfolio/session-tv`. After editing this standalone folder, run `node tech-portfolio/scripts/sync-session-tv.mjs` from Projects, then build/test the portfolio. Only `public` is published. Credentials, backups, tests and companion files are excluded from the Pages artifact.
 
@@ -24,10 +24,14 @@ Project Plan and Apply use GPT-6 Luna at Light effort. Work uses the latest supp
 
 Work has a two-row composer; study, Plan and Apply use compact composers. The plus button accepts readable text/code attachments (10 KB total). The microphone dictates text for review. The blue waveform reserves future Voicebox character mode and is disabled until that feature is connected; typing replaces it with Send, and a running response offers Stop. Workspace access explains the actual restricted Codex permissions rather than promising automatic elevated approvals.
 
-The old `server.mjs` Claude API proxy remains for compatibility with the original explicit local API-key setup/tests. The new frontend never calls it, including when an environment key is present. It is not shipped to GitHub Pages. No ChatGPT/Claude tokens belong in browser storage or project configuration.
+No ChatGPT or other AI tokens belong in browser storage or project configuration.
+
+## Code layout
+
+`public/js/manifest.js` lists, in order, every script `boot.js` loads; the tests load the same list. Screen code lives in `public/js/core/` (one module per screen, each function defined once). Feature files in `public/js/` add behavior through the extension points in `core/hooks.js`, and every `sb.*` preference key is listed with its default in `core/preferences.js`. See [AGENTS.md](AGENTS.md).
 
 ## Checks
 
-`npm run check` validates JavaScript syntax and static references. `npm test` covers original app behavior, storage isolation, cloud client/auth/import, companion authorization and protocol restrictions. PostgreSQL integration fixtures are in `supabase/tests/rls.sql`; they were executed against PGlite as documented in `docs/CLOUD.md`. The portfolio additionally runs type checking, production export and browser tests against the combined static output.
+`npm run check` validates JavaScript syntax, static references and the script manifest. `npm test` covers original app behavior, storage isolation, cloud client/auth/import, companion authorization and protocol restrictions. PostgreSQL integration fixtures are in `supabase/tests/rls.sql`; they were executed against PGlite as documented in `docs/CLOUD.md`. The portfolio additionally runs type checking, production export and browser tests against the combined static output.
 
 External editor/runtime CDN downloads still require internet access. The app and data features work without a companion. Supabase free-tier limits and email delivery constraints must be monitored; no paid service was activated.

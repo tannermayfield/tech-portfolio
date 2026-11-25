@@ -1,11 +1,7 @@
 /* Workspace and AI controls; preserve the original TV interface. */
 (() => {
- let noticeTimer;
  let setupView='login';
- toast=message=>{const el=$('toast');el.textContent=message;el.hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>el.hidden=true,6500)};
- addEventListener('sessiontv:error',event=>toast(event.detail));
- const baseSettings=renderSettings;
- renderSettings=function(){baseSettings();if(TV.dbView)return;$('local-open').onclick=async()=>{if(SessionWorkspace.mode==='private'){try{await SessionCloud.signOut()}catch(error){toast(error.message)}}else openLocalSetup()};if($('account-settings-open'))$('account-settings-open').onclick=()=>SessionAccount.open();$('session-preferences-open').onclick=()=>openLocalSetup('preferences');$('preferences-open').onclick=openPreferences};
+ SessionTV.hooks.after('settings:render',()=>{if(TV.dbView)return;$('local-open').onclick=async()=>{if(SessionWorkspace.mode==='private'){try{await SessionCloud.signOut()}catch(error){toast(error.message)}}else openLocalSetup()};if($('account-settings-open'))$('account-settings-open').onclick=()=>SessionAccount.open();$('session-preferences-open').onclick=()=>openLocalSetup('preferences');$('preferences-open').onclick=openPreferences});
  const dialog=document.createElement('dialog');dialog.id='local-setup';dialog.className='confirm-dlg';dialog.setAttribute('aria-labelledby','local-heading');
  dialog.innerHTML=`<div class="local-panel"><div class="row spread"><h2 id="local-heading">Session Login</h2><button class="btn ghost" id="local-close" autofocus>Close</button></div>
  <p id="workspace-status" class="small"></p>
@@ -25,7 +21,7 @@
  const group=(label,name,options)=>`<section class="preference-row"><h3>${label}</h3><div class="seg" role="group" aria-label="${label}">${options.map(([value,text])=>`<button type="button" data-pref="${name}" data-value="${value}" aria-pressed="false">${text}</button>`).join('')}</div></section>`;
  preferences.innerHTML=`<div class="local-panel"><div class="row spread"><h2 id="preferences-heading">Appearance</h2><button class="btn ghost" id="preferences-close" autofocus>Close</button></div>${group('Light / Dark Mode','scheme',[['auto','Auto'],['light','Light'],['dark','Dark']])}${group('TV Screen Effect','screenEffect',[['on','On'],['off','Off']])}${group('Channel Cutscenes','cut',[['4','On'],['0','Off']])}</div>`;
  document.body.appendChild(preferences);
- TV.screenEffect=recall('sb.screenEffect',true)!==false;
+ TV.screenEffect=recall('sb.screenEffect')!==false;
  function syncPreferences(){document.body.dataset.screenEffect=TV.screenEffect?'on':'off';preferences.querySelectorAll('[data-pref]').forEach(button=>{const value=button.dataset.pref==='scheme'?TV.scheme:button.dataset.pref==='screenEffect'?(TV.screenEffect?'on':'off'):String(TV.cutLen);button.setAttribute('aria-pressed',String(button.dataset.value===value))})}
  function openPreferences(){syncPreferences();preferences.showModal()}
  $('preferences-close').onclick=()=>preferences.close();
@@ -46,7 +42,8 @@
  const isBoardKey=key=>key===SessionStore.KEY||key.startsWith('sb.');
  function backup(){wsSave();const values={};const storage=SessionWorkspace.storage;for(let i=0;i<storage.length;i++){const key=storage.key(i);if(isBoardKey(key))values[key]=storage.getItem(key)}return {format:'session-tv-backup',version:1,createdAt:new Date().toISOString(),values}}
  function validateBackup(file){if(file?.format!=='session-tv-backup'||file.version!==1||!file.values||typeof file.values!=='object'||Array.isArray(file.values))throw Error('Choose a Session TV backup.');for(const [key,value]of Object.entries(file.values))if(!isBoardKey(key)||typeof value!=='string')throw Error('Invalid backup data.');if(!Object.hasOwn(file.values,SessionStore.KEY))throw Error('This backup has no database.');SessionStore.validate(JSON.parse(file.values[SessionStore.KEY]));return file.values}
- const originalCoachLog=renderCoachLog;renderCoachLog=function(){if(current){const saved=recall('sb.localChats',null);if(saved?.startedAt===current.startedAt&&!Object.keys(coachTurns).length)coachTurns=saved.turns||{};store('sb.localChats',{startedAt:current.startedAt,turns:coachTurns})}return originalCoachLog()};
+ // keep the Work chat across reloads of the same session
+ SessionTV.hooks.before('coach:render',()=>{if(current){const saved=recall('sb.localChats');if(saved?.startedAt===current.startedAt&&!Object.keys(coachTurns).length)coachTurns=saved.turns||{};store('sb.localChats',{startedAt:current.startedAt,turns:coachTurns})}});
  addEventListener('pagehide',()=>{if(SessionWorkspace.mode==='private'&&!SessionCloud.user)return;wsSave();if(current){accumulate();saveState();store('sb.localChats',{startedAt:current.startedAt,turns:coachTurns})}});
  window.SessionTVLocal={backup,validateBackup,openSetup:openLocalSetup};update();
 })();

@@ -25,6 +25,7 @@
   async disconnectCanvas(signal){return (await request('/canvas/disconnect',{},signal)).json()},
   async canvasSnapshot(signal){return (await request('/canvas/snapshot',{},signal||AbortSignal.timeout(180000))).json()},
   async publishStatus(commit){return (await request('/publish/status',{commit})).json()},
+  async publishDemo(snapshot){return (await request('/demo/publish',{snapshot},AbortSignal.timeout(180000))).json()},
   async answerCodexApproval(id,accept){return (await request('/codex/approval',{id,accept})).json()},
   async codexConnect(){return (await request('/codex/connect')).json()},
   async codexLoginStatus(){return (await request('/codex/login-status')).json()},

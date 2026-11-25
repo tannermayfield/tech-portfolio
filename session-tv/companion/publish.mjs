@@ -39,19 +39,19 @@ export async function sessionTVPublisher(folder,{remote=productionRemote}={}){
    return {base,tree,files};
   }finally{await rm(temporary,{recursive:true,force:true})}
  }
- async function publish(review){
+ async function publish(review,{message='Update SessionTV'}={}){
   const current=await snapshot();
   if(!current.tree||current.tree!==review.tree||current.base!==review.base)throw fail('The files changed after review. Reopen the publish preview.');
   const upstream=(await repo(['ls-remote',remote,branch])).trim().split(/\s+/)[0];
   if(upstream!==current.base)throw fail('Local main differs from GitHub. Sync the repository before publishing.');
   // Commit the reviewed tree exactly. Push uses an explicit ref and never forces updates.
-  const commit=(await repo(['commit-tree',current.tree,'-p',current.base,'-m','Update SessionTV'])).trim();
+  const commit=(await repo(['commit-tree',current.tree,'-p',current.base,'-m',String(message).slice(0,200)])).trim();
   await repo(['push',remote,commit+':'+branch]);
   await repo(['update-ref',branch,commit,current.base]);
   await repo(['--literal-pathspecs','reset',commit,'--',...current.files]);
   return {commit,url:live};
  }
- return {snapshot,publish};
+ return {root,snapshot,publish};
 }
 
 export async function liveSessionTVCommit(commit){

@@ -6,8 +6,8 @@
  let files=[],context='',scheduled=false,accessPopup=null;
  const privateUser=()=>globalThis.SessionWorkspace?.mode==='private';
  function state(){
-  const task=typeof current!=='undefined'&&typeof T==='function'?T(current.active):null;
-  const section=typeof current!=='undefined'?current.mood:'class';
+  const task=typeof current!=='undefined'&&typeof T==='function'?T(current?.active):null;
+  const section=typeof current!=='undefined'&&current?current.mood:'class';
   const mode=section==='project'&&task&&typeof projMode==='function'?projMode(task):'study';
   return {section,mode,task,key:[section,task?.id||'',mode].join('|')};
  }
