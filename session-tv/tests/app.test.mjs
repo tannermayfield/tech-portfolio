@@ -137,7 +137,59 @@ test('SQL executes on the airline sample data and editor drafts persist',async()
 });
 test('public preview keeps sign-in usable and blocks record editing in the DOM',async()=>{const {dom,w,errors}=await boot({},'https://tannermayfield.dev/session-tv/');try{assert.equal(w.SessionWorkspace.readOnly,true);assert.equal(w.document.body.dataset.readonly,'true');assert.equal(w.eval('tasks.length'),7);await assert.rejects(w.eval("db.doc('tasks/demo-cs').update({title:'Forbidden'})"),/read-only/);w.SessionAddForms.open('assignment');assert.equal(w.document.getElementById('create-assignment').open,false);w.document.querySelector('#create-assignment form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));assert.equal(w.eval('tasks.length'),7);assert.equal(w.document.getElementById('workspace-email').disabled,false);assert.equal(w.document.getElementById('workspace-data'),null);assert.deepEqual(errors,[])}finally{dom.window.close()}});
 
-test('appearance preferences persist without changing workspace data',async()=>{const {dom,w,errors}=await boot();try{assert.equal(w.document.getElementById('workspace-banner'),null);w.document.getElementById('btn-set').click();const titles=[...w.document.querySelectorAll('#set-body .set-card>h3')].map(x=>x.textContent);assert.deepEqual(titles.slice(0,3),['Session Login','Appearance','Exit SessionTV']);assert.equal(w.document.getElementById('session-exit').href,'https://tannermayfield.dev/#projects');w.document.getElementById('preferences-open').click();assert.equal(w.document.getElementById('appearance-preferences').open,true);w.document.querySelector('[data-pref="scheme"][data-value="dark"]').click();w.document.querySelector('[data-pref="screenEffect"][data-value="off"]').click();w.document.querySelector('[data-pref="cut"][data-value="0"]').click();assert.equal(w.document.body.dataset.scheme,'dark');assert.equal(w.document.body.dataset.screenEffect,'off');assert.equal(w.eval('TV.cutLen'),0);const saved=w.SessionTVLocal.backup().values;const reload=await boot(saved);try{assert.equal(reload.w.document.body.dataset.scheme,'dark');assert.equal(reload.w.document.body.dataset.screenEffect,'off');assert.equal(reload.w.eval('TV.cutLen'),0);assert.equal(reload.w.eval('tasks.length'),0)}finally{reload.dom.window.close()}assert.deepEqual(errors,[])}finally{dom.window.close()}});
+test('appearance preferences persist without changing workspace data',async()=>{const {dom,w,errors}=await boot();try{assert.equal(w.document.getElementById('workspace-banner'),null);w.document.getElementById('btn-set').click();const titles=[...w.document.querySelectorAll('#set-body .set-card>h3')].map(x=>x.textContent);assert.deepEqual(titles.slice(0,4),['Session Login','Preferences','Exit SessionTV','Connections']);assert.equal(titles.includes('Appearance'),false);assert.equal(w.document.getElementById('session-preferences-open'),null);assert.ok(w.document.getElementById('session-connection-summary'));assert.equal(w.document.getElementById('session-exit').href,'https://tannermayfield.dev/#projects');
+ assert.equal(w.document.body.dataset.screenStatic,'on');assert.equal(w.document.body.dataset.screenColor,'bw');
+ w.document.getElementById('preferences-open').click();assert.equal(w.document.getElementById('preferences').open,true);assert.equal(w.document.getElementById('pref-tab-appearance').getAttribute('aria-selected'),'true');
+ for(const key of ['sections','voices','music','canvas','ai'])assert.equal(w.document.getElementById('pref-tab-'+key).hidden,true,key+' needs a private workspace');
+ w.document.querySelector('[data-pref="scheme"][data-value="dark"]').click();w.document.querySelector('[data-pref="screenStatic"][data-value="off"]').click();w.document.querySelector('[data-pref="cut"][data-value="0"]').click();
+ assert.equal(w.document.body.dataset.scheme,'dark');assert.equal(w.document.body.dataset.screenStatic,'off');assert.equal(w.document.body.dataset.screenColor,'bw','static and color are independent');assert.equal(w.eval('TV.cutLen'),0);
+ w.document.querySelector('[data-pref="screenColor"][data-value="color"]').click();assert.equal(w.document.body.dataset.screenColor,'color');assert.equal(w.document.querySelector('[data-pref="screenColor"][data-value="color"]').getAttribute('aria-pressed'),'true');
+ const saved=w.SessionTVLocal.backup().values;const reload=await boot(saved);try{assert.equal(reload.w.document.body.dataset.scheme,'dark');assert.equal(reload.w.document.body.dataset.screenStatic,'off');assert.equal(reload.w.document.body.dataset.screenColor,'color');assert.equal(reload.w.eval('TV.cutLen'),0);assert.equal(reload.w.eval('tasks.length'),0)}finally{reload.dom.window.close()}assert.deepEqual(errors,[])}finally{dom.window.close()}});
+
+test('the old TV Screen Effect setting migrates to separate static and color settings',async()=>{
+ for(const [old,staticValue,color]of [['false','off','color'],['true','on','bw']]){
+  const {dom,w,errors}=await boot({'sb.screenEffect':old});
+  try{assert.equal(w.document.body.dataset.screenStatic,staticValue);assert.equal(w.document.body.dataset.screenColor,color);assert.equal(w.recall('sb.screenStatic'),staticValue==='on');assert.equal(w.recall('sb.screenColor'),color);assert.deepEqual(errors,[])}finally{dom.window.close()}
+ }
+ const {dom,w}=await boot({'sb.screenEffect':'false','sb.screenStatic':'true','sb.screenColor':'"bw"'});
+ try{assert.equal(w.document.body.dataset.screenStatic,'on','new settings win over the old one');assert.equal(w.document.body.dataset.screenColor,'bw')}finally{dom.window.close()}
+});
+
+test('Preferences is one tabbed popup with arrow-key tabs, private tabs and a coach tab',async()=>{
+ const {dom,w,errors}=await boot();
+ try{
+  w.SessionWorkspace={...w.SessionWorkspace,mode:'private'};
+  w.document.getElementById('btn-set').click();w.document.getElementById('preferences-open').click();
+  const dialog=w.document.getElementById('preferences'),list=dialog.querySelector('[role=tablist]'),tabs=[...list.querySelectorAll('[role=tab]')];
+  assert.equal(dialog.open,true);assert.equal(dialog.getAttribute('aria-labelledby'),'preferences-heading');assert.equal(list.getAttribute('aria-orientation'),'vertical');
+  assert.deepEqual(tabs.map(tab=>tab.textContent),['Appearance','Sections','Voices','Apple Music','Canvas','AI Connections','Coach']);
+  for(const tab of tabs){const panel=w.document.getElementById(tab.getAttribute('aria-controls'));assert.equal(panel.getAttribute('role'),'tabpanel');assert.equal(panel.getAttribute('aria-labelledby'),tab.id)}
+  assert.deepEqual(tabs.map(tab=>tab.tabIndex),[0,-1,-1,-1,-1,-1,-1]);
+  const key=(tab,name)=>tab.dispatchEvent(new w.KeyboardEvent('keydown',{key:name,bubbles:true,cancelable:true}));
+  key(tabs[0],'ArrowDown');assert.equal(tabs[1].getAttribute('aria-selected'),'true');assert.equal(w.document.activeElement,tabs[1]);assert.equal(w.document.getElementById('pref-panel-sections').hidden,false);assert.equal(w.document.getElementById('pref-panel-appearance').hidden,true);
+  key(tabs[1],'End');assert.equal(tabs[6].getAttribute('aria-selected'),'true');
+  assert.equal(w.document.getElementById('pref-panel-coach').textContent.includes('Coach profile is not available.'),true);
+  key(tabs[6],'ArrowDown');assert.equal(tabs[0].getAttribute('aria-selected'),'true','arrows wrap around');
+  key(tabs[0],'ArrowUp');assert.equal(tabs[6].getAttribute('aria-selected'),'true');
+  w.SessionCoachProfile={render(panel){panel.textContent='Coach profile ready'}};key(tabs[6],'Home');tabs[6].click();
+  assert.equal(w.document.getElementById('pref-panel-coach').textContent.includes('Coach profile ready'),true);
+  // other features still reach a tab by its id
+  w.SessionTVLocal.openSetup('preferences');w.document.getElementById('pref-tab-canvas').click();assert.equal(w.document.getElementById('pref-panel-canvas').hidden,false);
+  w.SessionPreferences.open('ai');assert.equal(w.document.getElementById('pref-tab-ai').getAttribute('aria-selected'),'true');assert.ok(w.document.querySelector('#pref-panel-ai [data-connection-summary]'));
+  w.document.getElementById('preferences-close').click();assert.equal(dialog.open,false);
+  assert.deepEqual(errors,[]);
+ }finally{dom.window.close()}
+});
+
+test('Session Login offers only email and password or Google',async()=>{
+ const {dom,w}=await boot();
+ try{
+  w.SessionTVLocal.openSetup('login');const dialog=w.document.getElementById('local-setup');assert.equal(dialog.open,true);
+  assert.deepEqual([...dialog.querySelectorAll('input')].map(input=>input.type),['email','password']);
+  assert.equal(w.document.getElementById('workspace-google').textContent,'Continue with Google');
+  assert.doesNotMatch(dialog.textContent,/username/i);
+ }finally{dom.window.close()}
+});
 
 test('linked projects prepare three chats, appear in the menu, and chat only in the work screen',async()=>{
  const {dom,w,errors}=await boot();
@@ -277,16 +329,17 @@ test('section preferences keep identity, Voicebox voices and Apple Music in sepa
  try {
   w.SessionWorkspace={...w.SessionWorkspace,mode:'private'};
   w.document.getElementById('btn-set').click();
-  w.document.getElementById('session-preferences-open').click();
-  assert.equal(w.document.getElementById('local-heading').textContent,'Session Preferences');
+  w.document.getElementById('preferences-open').click();
+  assert.equal(w.document.getElementById('preferences').open,true);
+  w.document.getElementById('pref-tab-sections').click();
   assert.equal(w.document.querySelectorAll('.section-identity').length,3);
   const name=w.document.querySelector('[aria-label="Classes character name"]');name.value='My tutor';name.dispatchEvent(new w.Event('change'));
   assert.equal(w.recall('sb.sectionCharacters',{}).class,'My tutor');
   const theme=w.document.querySelector('[aria-label="Classes background theme"]');theme.value=theme.options[1].value;theme.dispatchEvent(new w.Event('change'));
   assert.equal(w.pickTheme('class').id,theme.value);
   w.document.getElementById('pref-tab-voices').click();
-  assert.equal(w.document.getElementById('session-sections').hidden,true);
-  assert.equal(w.document.getElementById('session-voices').hidden,false);
+  assert.equal(w.document.getElementById('pref-panel-sections').hidden,true);
+  assert.equal(w.document.getElementById('pref-panel-voices').hidden,false);
   assert.equal(w.document.querySelectorAll('.voice-section').length,3);
   w.document.getElementById('pref-tab-music').click();
   assert.equal(w.document.querySelectorAll('.music-section').length,3);

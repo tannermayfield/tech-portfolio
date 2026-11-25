@@ -1,3 +1,68 @@
-#session-preferences-section{margin-top:12px}.session-preference-tabs{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:14px}.session-preference-tabs [aria-selected="true"]{background:var(--ink)!important;color:var(--surface)!important;text-shadow:none!important}.section-identity{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;padding:14px 0;border-bottom:1px solid var(--line)}.section-identity h3{grid-column:1/-1}.section-identity label{display:flex;flex-direction:column;gap:6px;font-size:12px}.section-identity input,.section-identity select{width:100%;box-sizing:border-box}#local-setup:has(#session-preferences-section:not([hidden])){width:min(700px,calc(var(--crt-w,100vw) - 32px))}#local-setup #session-music{border:0;padding:0}#local-setup #ai-connections{margin:0}#local-setup .local-panel{max-height:min(600px,calc(var(--crt-h,100vh) - 32px));box-sizing:border-box}@media(max-width:550px){.section-identity{grid-template-columns:1fr}.session-preference-tabs .btn{flex:1 1 40%}}
+/* ---------- Picture tube: screen static and color are separate Preferences (js/session-preferences.js) ---------- */
+/* Static off: no snow, rolling bars or interference lines, and no scanlines; the glass vignette and reflections stay. */
+body[data-screen-static="off"] #tv-noise{display:none!important}
+body[data-screen-static="off"] .crt-fx{background:radial-gradient(ellipse 120% 95% at 50% 50%,rgba(0,0,0,0) 62%,rgba(0,0,0,.22) 82%,rgba(0,0,0,.6) 100%)!important}
+/* The tube is black and white by default (styles.css); Color removes the grayscale filter. */
+body[data-screen-color="color"] .crt{filter:none}
 
-#session-preferences-section input:not([type=checkbox]),#session-preferences-section select{background:var(--modal,#fff);color:var(--ink,#171717);border-color:var(--muted,#777)}#session-preferences-section .section-identity h3{margin:0}#session-preferences-section .voice-section label{margin:0}
+/* ---------- Preferences popup: a channel list of tabs beside the selected panel ---------- */
+#preferences{--dlg-w:820px;padding:0}
+#preferences[open]{display:block;height:min(580px,calc(var(--crt-h,calc(var(--tv-vh,1vh) * 100)) - 28px));overflow:hidden}
+#preferences .prefs{display:flex;flex-direction:column;height:100%;min-height:0}
+.prefs-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 18px 10px 22px;border-bottom:2px solid var(--frame,var(--line));background:var(--strip,transparent)}
+#preferences .prefs-head h2{margin:0;font-size:26px!important;line-height:1}
+.prefs-body{flex:1;min-height:0;display:grid;grid-template-columns:184px minmax(0,1fr)}
+.prefs-tabs{display:flex;flex-direction:column;gap:4px;padding:14px 10px;border-right:1px solid var(--line);overflow-y:auto;scrollbar-width:none}
+.prefs-tabs [role="tab"]{display:flex;align-items:center;gap:9px;width:100%;box-sizing:border-box;padding:7px 10px 6px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);
+  font:400 19px/1.05 var(--f-osd,ui-monospace,monospace);letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer}
+.prefs-tabs [role="tab"]::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.25}
+.prefs-tabs [role="tab"]:hover{background:var(--sunk);color:var(--ink)}
+.prefs-tabs [role="tab"][aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:var(--modal,var(--bg))}
+.prefs-tabs [role="tab"][aria-selected="true"]::before{opacity:1}
+.prefs-tabs [role="tab"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.prefs-tabs [role="tab"][hidden]{display:none}
+.prefs-panels{min-height:0;overflow-y:auto;padding:16px 24px 24px;scrollbar-width:thin}
+.prefs-panel[hidden]{display:none}
+.prefs-panel:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:6px}
+.prefs-panel-head{padding-bottom:12px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+#preferences .prefs-panel-head h3{margin:0 0 4px;line-height:1.05}
+#preferences .prefs-panel-head p{margin:0;font-size:13px;line-height:1.45;color:var(--muted)}
+/* section headings inside a panel, including the ones Canvas, ChatGPT and Apple Music draw */
+#preferences .prefs-panel h4{margin:0 0 8px;font:400 18px/1.1 var(--f-osd,ui-monospace,monospace);letter-spacing:.05em;text-transform:uppercase;color:var(--hd,var(--ink));text-shadow:var(--hd-glow,none)}
+#preferences .music-preferences>h3{display:none}
+#preferences p{line-height:1.5}
+.prefs-row{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px 0;border-bottom:1px solid var(--line)}
+#preferences .prefs-row h4{margin:0 0 3px}
+#preferences .prefs-row p{margin:0;font-size:12.5px;line-height:1.4;color:var(--muted)}
+.prefs-row .seg{flex:none;display:inline-flex}
+.prefs-row .seg button{box-sizing:border-box;min-width:74px;display:flex;align-items:center;justify-content:center;padding:8px 12px;text-align:center;white-space:nowrap}
+.prefs-group{padding:16px 0;border-bottom:1px solid var(--line)}
+.prefs-group:last-child{border-bottom:0}
+.prefs-note{margin:14px 0 0;font-size:13px;color:var(--muted)}
+.prefs-status{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.prefs-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#preferences .prefs-actions input{flex:1 1 180px;width:auto;margin:0}
+#preferences label{display:block;margin:10px 0;font-size:13px}
+#preferences input:not([type="checkbox"]),#preferences select,#preferences textarea{display:block;box-sizing:border-box;width:100%;max-width:100%;margin:5px 0;padding:8px;font:inherit;font-size:13px;background:var(--modal,#fff);color:var(--ink,#171717);border:1px solid var(--muted,#777);border-radius:6px}
+#preferences .prefs-panel>div>.btn,#preferences .prefs-group>.btn,#preferences #session-canvas>.btn,#preferences #chatgpt-connection>.btn{margin:6px 8px 0 0}
+#preferences #chatgpt-connection a,#preferences #session-canvas a{color:inherit;text-decoration:underline}
+#preferences [data-connection-summary]{margin:0}
+/* Sections tab */
+#preferences .section-identity{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;padding:14px 0;border-bottom:1px solid var(--line)}
+#preferences .section-identity:last-child{border-bottom:0}
+#preferences .section-identity h4{grid-column:1/-1;margin:0}
+#preferences .section-identity label{display:flex;flex-direction:column;gap:2px;margin:0;font-size:12px;color:var(--muted)}
+#preferences .voice-section label{margin:0}
+@media (max-width:760px){
+ .prefs-body{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+ .prefs-tabs{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:8px 10px}
+ .prefs-tabs [role="tab"]{width:auto;flex:none;font-size:16px}
+ .prefs-row{flex-direction:column;align-items:flex-start;gap:10px}
+}
+
+/* ---------- Session Login: email and password, or Google ---------- */
+#local-setup #workspace-status{margin:10px 0 0;color:var(--muted)}
+#local-setup #workspace-signin,#local-setup #workspace-google{width:100%;min-height:40px;justify-content:center}
+#local-setup .login-or{display:flex;align-items:center;gap:12px;margin:0 0 14px;font:400 16px/1 var(--f-osd,ui-monospace,monospace);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#local-setup .login-or::before,#local-setup .login-or::after{content:"";flex:1;border-top:1px solid var(--line)}
+#local-setup #workspace-signout{margin-top:14px}

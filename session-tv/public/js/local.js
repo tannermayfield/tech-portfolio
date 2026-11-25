@@ -1,44 +1,36 @@
-/* Workspace and AI controls; preserve the original TV interface. */
+/* Session Login (email and password, or Google), backups and Work chat persistence; preserve the original TV interface.
+   Preferences live in session-preferences.js; openSetup('preferences') opens them. */
 (() => {
- let setupView='login';
- SessionTV.hooks.after('settings:render',()=>{if(TV.dbView)return;$('local-open').onclick=async()=>{if(SessionWorkspace.mode==='private'){try{await SessionCloud.signOut()}catch(error){toast(error.message)}}else openLocalSetup()};if($('account-settings-open'))$('account-settings-open').onclick=()=>SessionAccount.open();$('session-preferences-open').onclick=()=>openLocalSetup('preferences');$('preferences-open').onclick=openPreferences});
+ SessionTV.hooks.after('settings:render',()=>{if(TV.dbView)return;$('local-open').onclick=async()=>{if(SessionWorkspace.mode==='private'){try{await SessionCloud.signOut()}catch(error){toast(error.message)}}else openLocalSetup('login')};if($('account-settings-open'))$('account-settings-open').onclick=()=>SessionAccount.open()});
  const dialog=document.createElement('dialog');dialog.id='local-setup';dialog.className='confirm-dlg';dialog.setAttribute('aria-labelledby','local-heading');
- dialog.innerHTML=`<div class="local-panel"><div class="row spread"><h2 id="local-heading">Session Login</h2><button class="btn ghost" id="local-close" autofocus>Close</button></div>
+ dialog.innerHTML=`<div class="local-panel"><div class="row spread"><h2 id="local-heading">Session Login</h2><button class="btn ghost" id="local-close" type="button">Close</button></div>
  <p id="workspace-status" class="small"></p>
  <section id="workspace-auth"><form id="workspace-login">
- <label for="workspace-email" id="workspace-identifier-label">Email address</label><input id="workspace-email" name="email" type="email" required autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com">
+ <label for="workspace-email">Email address</label><input id="workspace-email" name="email" type="email" required autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com">
  <label for="workspace-password">Password</label><div class="password-field"><input id="workspace-password" name="password" type="password" required autocomplete="current-password" placeholder="Your password"><button class="btn ghost" id="workspace-show-password" type="button" aria-controls="workspace-password" aria-pressed="false">Show</button></div>
- <div class="local-actions"><button class="btn primary" id="workspace-signin" type="submit">Sign In</button></div>
-<button class="btn" id="workspace-google" type="button">Sign in with Google</button></form></section>
- <button class="btn" id="workspace-signout" hidden>Sign out</button>
- <section id="session-preferences-section" hidden><nav class="session-preference-tabs" role="tablist" aria-label="Session preferences"><button class="btn" role="tab" id="pref-tab-sections" aria-controls="session-sections" data-session-tab="session-sections">Sections</button><button class="btn" role="tab" id="pref-tab-voices" aria-controls="session-voices" data-session-tab="session-voices">Voices</button><button class="btn" role="tab" id="pref-tab-music" aria-controls="session-music" data-session-tab="session-music">Apple Music</button><button class="btn" role="tab" id="pref-tab-canvas" aria-controls="session-canvas" data-session-tab="session-canvas">Canvas</button><button class="btn" role="tab" id="pref-tab-ai" aria-controls="session-ai" data-session-tab="session-ai">AI Connection</button></nav><div id="session-sections" role="tabpanel" aria-labelledby="pref-tab-sections"></div><div id="session-voices" role="tabpanel" aria-labelledby="pref-tab-voices" hidden></div><div id="session-music" role="tabpanel" aria-labelledby="pref-tab-music" hidden></div><div id="session-canvas" role="tabpanel" aria-labelledby="pref-tab-canvas" hidden></div><div id="session-ai" role="tabpanel" aria-labelledby="pref-tab-ai" hidden><details id="ai-connections"><summary>Codex connection</summary><p class="small muted" id="local-ai-status" hidden></p>
- <h3>Codex & Local AI Companion</h3><p class="small muted" id="companion-status">Computer disconnected</p>
- <div id="companion-controls" hidden><label>Pairing code <input id="companion-code" autocomplete="off" type="password"></label><button class="btn" id="companion-pair">Pair companion</button><button class="btn" id="companion-check">Check status</button><div hidden><label>Authorized workspace <select id="companion-workspace"></select></label><label>Coding request <textarea id="companion-prompt" rows="3" placeholder="Describe the project change"></textarea></label><button class="btn" id="companion-start">Start Codex session</button><pre id="companion-log" aria-live="polite"></pre></div></div>
- </details><section id="chatgpt-connection"></section></div></section>
+ <div class="local-actions"><button class="btn primary" id="workspace-signin" type="submit">Sign In</button></div></form>
+ <p class="login-or" aria-hidden="true"><span>or</span></p>
+ <button class="btn" id="workspace-google" type="button">Continue with Google</button></section>
+ <button class="btn" id="workspace-signout" type="button" hidden>Sign out</button>
  <p class="small" id="local-message" role="status"></p></div>`;
  document.body.appendChild(dialog);
- const preferences=document.createElement('dialog');preferences.id='appearance-preferences';preferences.className='confirm-dlg';preferences.setAttribute('aria-labelledby','preferences-heading');
- const group=(label,name,options)=>`<section class="preference-row"><h3>${label}</h3><div class="seg" role="group" aria-label="${label}">${options.map(([value,text])=>`<button type="button" data-pref="${name}" data-value="${value}" aria-pressed="false">${text}</button>`).join('')}</div></section>`;
- preferences.innerHTML=`<div class="local-panel"><div class="row spread"><h2 id="preferences-heading">Appearance</h2><button class="btn ghost" id="preferences-close" autofocus>Close</button></div>${group('Light / Dark Mode','scheme',[['auto','Auto'],['light','Light'],['dark','Dark']])}${group('TV Screen Effect','screenEffect',[['on','On'],['off','Off']])}${group('Channel Cutscenes','cut',[['4','On'],['0','Off']])}</div>`;
- document.body.appendChild(preferences);
- TV.screenEffect=recall('sb.screenEffect')!==false;
- function syncPreferences(){document.body.dataset.screenEffect=TV.screenEffect?'on':'off';preferences.querySelectorAll('[data-pref]').forEach(button=>{const value=button.dataset.pref==='scheme'?TV.scheme:button.dataset.pref==='screenEffect'?(TV.screenEffect?'on':'off'):String(TV.cutLen);button.setAttribute('aria-pressed',String(button.dataset.value===value))})}
- function openPreferences(){syncPreferences();preferences.showModal()}
- $('preferences-close').onclick=()=>preferences.close();
- preferences.addEventListener('click',event=>{const button=event.target.closest('[data-pref]');if(!button)return;const name=button.dataset.pref,value=button.dataset.value;if(name==='scheme'){TV.scheme=value;store('sb.scheme',value);applyScheme()}else if(name==='screenEffect'){TV.screenEffect=value==='on';store('sb.screenEffect',TV.screenEffect)}else if(name==='cut'){TV.cutLen=Number(value);store('sb.cutLen',TV.cutLen)}syncPreferences()});
- syncPreferences();
- function update(){const mode=SessionWorkspace.mode,privateMode=mode==='private';$('workspace-status').textContent=privateMode?'Private account active. Records are saved to Supabase.':mode==='demo'?'Browse courses, assignments, skills and projects. Editing and AI are disabled.':'Sign in to use Supabase, then add your records in My Database.';$('workspace-auth').hidden=privateMode;$('workspace-signout').hidden=true;$('companion-controls').hidden=!privateMode;$('workspace-status').hidden=true;$('ai-connections').hidden=!privateMode||setupView!=='preferences';$('session-preferences-section').hidden=!privateMode||setupView!=='preferences';if($('local-open')){$('local-open').textContent=privateMode?'Logout':'Login to Session';$('local-open').dataset.sessionAction=privateMode?'logout':'login';}}
- async function openLocalSetup(view=SessionWorkspace.mode==='private'?'preferences':'login'){setupView=view==='preferences'?'preferences':'login';$('local-heading').textContent=setupView==='preferences'?'Session Preferences':'Session Login';update();$('local-message').textContent='';if(setupView==='preferences')globalThis.SessionPreferences?.mount();dialog.showModal();if(SessionCloud.user){$('companion-status').textContent='Checking computer connection…';status().catch(error=>{$('companion-status').textContent=error.message});}}
+ function update(){
+  const privateMode=SessionWorkspace.mode==='private';
+  $('workspace-status').textContent=privateMode?'You are signed in. Records are saved to your private workspace.':'Sign in with your email and password, or continue with Google.';
+  $('workspace-auth').hidden=privateMode;$('workspace-signout').hidden=!privateMode;
+  if($('local-open')){$('local-open').textContent=privateMode?'Logout':'Login to Session';$('local-open').dataset.sessionAction=privateMode?'logout':'login';}
+ }
+ function openLocalSetup(view=SessionWorkspace.mode==='private'?'preferences':'login',tab){
+  if(view==='preferences'&&globalThis.SessionPreferences){SessionPreferences.open(tab);return}
+  update();$('local-message').textContent='';dialog.showModal();if(SessionWorkspace.mode!=='private')$('workspace-email').focus();
+ }
  function fail(error){$('local-message').textContent=error.message}
  $('workspace-show-password').onclick=()=>{const input=$('workspace-password'),visible=input.type==='password';input.type=visible?'text':'password';$('workspace-show-password').textContent=visible?'Hide':'Show';$('workspace-show-password').setAttribute('aria-pressed',String(visible))};
  $('workspace-login').onsubmit=async e=>{e.preventDefault();const button=$('workspace-signin');button.disabled=true;button.textContent='Signing in...';$('local-message').textContent='';try{await SessionCloud.signInWithPassword($('workspace-email').value,$('workspace-password').value)}catch(error){fail(error)}finally{$('workspace-password').value='';button.disabled=false;button.textContent='Sign In'}};
  $('workspace-google').onclick=async()=>{try{await SessionCloud.signInWithGoogle()}catch(error){fail(error)}};
  $('workspace-signout').onclick=async()=>{try{await SessionCloud.signOut()}catch(error){fail(error)}};
- $('local-close').onclick=()=>dialog.close(); async function status(){const value=await SessionCompanion.status();$('companion-status').textContent=value.error||(!value.connected?'Computer disconnected':value.busy?'Codex is working':value.signedIn?'Computer connected · Codex ready':'Computer connected · Sign in to Codex');const list=value.workspaces||[];$('companion-workspace').replaceChildren(...list.map(w=>{const o=document.createElement('option');o.value=typeof w==='string'?w:w.id||w.path;o.textContent=typeof w==='string'?w:w.name||w.path||w.id;return o}));return value}
- $('companion-pair').onclick=async()=>{try{await SessionCompanion.pair($('companion-code').value);$('companion-code').value='';await status()}catch(error){fail(error)}};
- $('ai-connections').addEventListener('toggle',()=>{if($('ai-connections').open&&SessionCloud.user)status().catch(error=>{$('companion-status').textContent=error.message})});
- $('companion-check').onclick=async()=>{try{await status()}catch(error){$('companion-status').textContent='Disconnected: '+error.message}};
- $('companion-start').onclick=async()=>{const button=$('companion-start');button.disabled=true;$('companion-log').textContent='';try{await SessionCompanion.start({workspace:$('companion-workspace').value,prompt:$('companion-prompt').value,onEvent:event=>{$('companion-log').textContent+=JSON.stringify(event)+'\n'}})}catch(error){fail(error)}finally{button.disabled=false}};
+ $('local-close').onclick=()=>dialog.close();
+ dialog.addEventListener('close',()=>{$('workspace-password').value=''});
  const isBoardKey=key=>key===SessionStore.KEY||key.startsWith('sb.');
  function backup(){wsSave();const values={};const storage=SessionWorkspace.storage;for(let i=0;i<storage.length;i++){const key=storage.key(i);if(isBoardKey(key))values[key]=storage.getItem(key)}return {format:'session-tv-backup',version:1,createdAt:new Date().toISOString(),values}}
  function validateBackup(file){if(file?.format!=='session-tv-backup'||file.version!==1||!file.values||typeof file.values!=='object'||Array.isArray(file.values))throw Error('Choose a Session TV backup.');for(const [key,value]of Object.entries(file.values))if(!isBoardKey(key)||typeof value!=='string')throw Error('Invalid backup data.');if(!Object.hasOwn(file.values,SessionStore.KEY))throw Error('This backup has no database.');SessionStore.validate(JSON.parse(file.values[SessionStore.KEY]));return file.values}
