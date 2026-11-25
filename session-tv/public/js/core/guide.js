@@ -53,6 +53,7 @@ function skShort(t){const c=catOf(t)||'';const q=c.replace(/[.*+?^${}()|[\]\\]/g
 function gdFilt(){const subs=subsOf('skill');if(!subs.includes(TV.gFilter)){const a=T(current&&current.cur&&current.cur.skill);TV.gFilter=a&&subs.includes(catOf(a))?catOf(a):subs[0]}return TV.gFilter}
 function gdSkills(){const all=allChannels('skill'),f=gdFilt();return all.filter(t=>catOf(t)===f)}
 function gdProjects(){return subsOf('project').filter(p=>p!=='All')}
+function gdProjLine(p){const n=listFor('project',p).filter(task=>!task.projectChannel).length;return n?`${n} open task${n===1?'':'s'}`:'Plan · Apply · Work'}
 
 function gdInfoHTML(k){
   const sel=TV.gSel[k];
@@ -139,9 +140,9 @@ function renderGuide(){return SessionTV.hooks.run('guide:render',arguments,()=>{
     const filt=k==='skill'?`<div class="gd-filt" role="group" aria-label="Category">${(gdFilt(),subsOf('skill')).map(c=>`<button type="button" data-filt="${esc(c)}" aria-pressed="${TV.gFilter===c}">${esc(c)}</button>`).join('')}</div>`:'';
     const pills=opts.length?opts.map(o=>k==='skill'
       ?`<button type="button" class="gd-pill${o.id===TV.gSel.skill?' sel':''}" data-gid="${esc(o.id)}"${gdAgain(o.id===TV.gSel.skill)}><span class="pn">${esc(skShort(o))}</span><i class="lv">${lvlTag(o)}</i></button>`
-      :`<button type="button" class="gd-pill${o===TV.gSel.project?' sel':''}" data-gid="${esc(o)}"${gdAgain(o===TV.gSel.project)}><span class="pn">${esc(o)}</span></button>`).join('')
+      :`<button type="button" class="gd-pill gd-proj${o===TV.gSel.project?' sel':''}" data-gid="${esc(o)}"${gdAgain(o===TV.gSel.project)}><span class="pn">${esc(o)}</span><small class="ps">${gdProjLine(o)}</small></button>`).join('')
       :`<p class="gd-none">Nothing on demand here yet.</p>`;
-    body=`<div class="gd-menu">${filt}<div class="gd-pills" id="gd-pills">${pills}</div><div class="gd-more" id="gd-more"></div></div>`;
+    body=`<div class="gd-menu">${filt}<div class="gd-pills${k==='project'?' gd-projs':''}" id="gd-pills">${pills}</div><div class="gd-more" id="gd-more"></div></div>`;
     hint=k==='skill'?'Pick a skill to open its chat with AI coach':'Pick a project, then plan the work with AI coach';
   }
   g.innerHTML=`<button type="button" class="gd-x" id="gd-x">EXIT ✕</button>
