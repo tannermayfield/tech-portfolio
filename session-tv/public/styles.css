@@ -817,6 +817,14 @@ body.tv[data-scheme="light"] #tv-guide{--g-bg:#BDBDB9;--g-top:linear-gradient(18
 .gd-pill .pn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gd-pill .lv{flex:none;font-family:var(--f-osd);font-style:normal;font-size:16px;font-weight:400;padding:0 6px;border-radius:4px;border:1px solid currentColor;opacity:.75}
 .gd-pill.sel{background:var(--g-sel);color:var(--g-sel-ink);border-color:var(--g-sel)}
+/* Projects: a handful of bigger entries. The fixed two equal columns above left a single project as a
+   half-width pill in the top-left corner; here the columns are sized to the entries and the whole block
+   centers in the screen, so one project or many sit well */
+.gd-pills.gd-projs{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),380px));justify-content:center;align-content:safe center;gap:12px 24px;padding:8px 6px 12px}
+.gd-pill.gd-proj{flex-direction:column;gap:2px;min-height:62px;padding:8px 28px}
+.gd-pill.gd-proj .pn{max-width:100%;font-size:19px}
+.gd-pill.gd-proj .ps{font-family:var(--f-osd);font-size:17px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;color:var(--g-muted)}
+.gd-pill.gd-proj.sel .ps{color:var(--g-sel-ink);opacity:.75}
 .gd-more{flex:none;text-align:center;font-family:var(--f-osd);font-size:20px;line-height:1;color:var(--g-muted);height:16px}
 .gd-x{position:absolute;right:clamp(26px,calc(var(--tv-vw,1vw) * 3.4),46px);top:clamp(24px,calc(var(--tv-vw,1vw) * 3),40px);z-index:2;font-family:var(--f-osd);font-size:18px;letter-spacing:.08em;padding:2px 10px;border-radius:5px;border:1px solid var(--g-muted);background:rgba(0,0,0,.35);color:#fff;cursor:pointer}
 .gd-x:hover{background:#fff;color:#000}
