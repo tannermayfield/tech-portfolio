@@ -86,10 +86,13 @@ function gdBindInfo(k){
 }
 function gdPickPip(k){const list=THEMES[k]||THEMES.class,cur=TV.pipPick;let n=list[Math.floor(Math.random()*list.length)];if(list.length>1)while(n.id===cur)n=list[Math.floor(Math.random()*list.length)];TV.pipPick=n.id;const s=document.querySelector('#tv-guide .gd-pip span');if(s)s.textContent=`CH ${gdPipCh(k)} · ${n.name}`}
 function gdPipCh(k){return (k==='class'&&courseCh(T(TV.gSel[k])))||CH_BASE[k]}
+/* the tooltip on the item a first click selected: a second click on it opens it (every menu) */
+const GD_AGAIN='Click again to open';
+const gdAgain=on=>on?` title="${GD_AGAIN}"`:'';
 function gdSetSel(k,v,rerender){
   const chg=k==='class'&&TV.gSel[k]!==v;
   TV.gSel[k]=v;if(chg)gdPickPip(k);
-  document.querySelectorAll('#tv-guide [data-gid]').forEach(b=>b.classList.toggle('sel',b.dataset.gid===v));
+  document.querySelectorAll('#tv-guide [data-gid]').forEach(b=>{const on=b.dataset.gid===v;b.classList.toggle('sel',on);if(on)b.title=GD_AGAIN;else b.removeAttribute('title')});
   const box=$('gd-info-sel');if(box){box.innerHTML=gdInfoHTML(k);gdBindInfo(k)}
   const ck=$('gd-clock');if(ck)ck.textContent=gdClock();
 }
@@ -127,7 +130,7 @@ function renderGuide(){return SessionTV.hooks.run('guide:render',arguments,()=>{
         <div class="gd-vp"><div class="gd-track" style="${tr}">${days.map((d,j)=>{const all=gdCellItems(c,d),wide=TV.gWide.has(d),items=all.length>2&&!wide?all.slice(0,2):all;
           const more=all.length>2?(wide?`<button type="button" class="gd-more-btn" data-less="${d}" aria-label="Show fewer">&lt;</button>`:`<button type="button" class="gd-more-btn" data-more="${d}" aria-label="Show ${all.length-2} more">+${all.length-2}</button>`):'';
           return `<div class="gd-cell${d===today?' today':''}" style="${cwOf(j)}">${items.length?items.map(t=>{const late=t.status!=='done'&&dueAt(t)&&dueAt(t)<new Date();
-            return `<button type="button" class="gd-prog${t.id===TV.gSel.class?' sel':''}${t.status==='done'?' done':''}${late?' late':''}" data-gid="${esc(t.id)}" title="${esc(t.title)}"><span class="pt">${esc(t.title)}</span><small>${d==='none'?'ANYTIME':gdShortTime(t.dueTime)}</small></button>`}).join('')+more:'<span class="gd-empty"></span>'}</div>`}).join('')}</div></div>
+            return `<button type="button" class="gd-prog${t.id===TV.gSel.class?' sel':''}${t.status==='done'?' done':''}${late?' late':''}" data-gid="${esc(t.id)}"${gdAgain(t.id===TV.gSel.class)}><span class="pt">${esc(t.title)}</span><small>${d==='none'?'ANYTIME':gdShortTime(t.dueTime)}</small></button>`}).join('')+more:'<span class="gd-empty"></span>'}</div>`}).join('')}</div></div>
         <div class="gd-end"></div></div>`).join('')}
     </div>`;
     hint='Slide ◀ ▶ through the days · click a show twice to tune in';
@@ -135,8 +138,8 @@ function renderGuide(){return SessionTV.hooks.run('guide:render',arguments,()=>{
     const opts=k==='skill'?gdSkills():gdProjects();
     const filt=k==='skill'?`<div class="gd-filt" role="group" aria-label="Category">${(gdFilt(),subsOf('skill')).map(c=>`<button type="button" data-filt="${esc(c)}" aria-pressed="${TV.gFilter===c}">${esc(c)}</button>`).join('')}</div>`:'';
     const pills=opts.length?opts.map(o=>k==='skill'
-      ?`<button type="button" class="gd-pill${o.id===TV.gSel.skill?' sel':''}" data-gid="${esc(o.id)}" title="${esc(o.title)}"><span class="pn">${esc(skShort(o))}</span><i class="lv">${lvlTag(o)}</i></button>`
-      :`<button type="button" class="gd-pill${o===TV.gSel.project?' sel':''}" data-gid="${esc(o)}"><span class="pn">${esc(o)}</span></button>`).join('')
+      ?`<button type="button" class="gd-pill${o.id===TV.gSel.skill?' sel':''}" data-gid="${esc(o.id)}"${gdAgain(o.id===TV.gSel.skill)}><span class="pn">${esc(skShort(o))}</span><i class="lv">${lvlTag(o)}</i></button>`
+      :`<button type="button" class="gd-pill${o===TV.gSel.project?' sel':''}" data-gid="${esc(o)}"${gdAgain(o===TV.gSel.project)}><span class="pn">${esc(o)}</span></button>`).join('')
       :`<p class="gd-none">Nothing on demand here yet.</p>`;
     body=`<div class="gd-menu">${filt}<div class="gd-pills" id="gd-pills">${pills}</div><div class="gd-more" id="gd-more"></div></div>`;
     hint=k==='skill'?'Pick a skill to open its chat with AI coach':'Pick a project, then plan the work with AI coach';
