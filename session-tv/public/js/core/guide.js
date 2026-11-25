@@ -15,7 +15,17 @@ $('guide-x').onclick=()=>closeSheets();
 
 /* ---------- the Menu: a cable-style listings grid for Class, an on-demand option menu for Skills and Projects ---------- */
 TV.gSel=TV.gSel||{};TV.gOff=null;TV.gFilter='All';TV.gHover=null;
-const GD_COURSE_NAMES={'IS 401':'Product Management','IS 402':'Database','IS 404':'Infrastructure','IS 403':'Javascript'};
+/* class names come from the user's own classes (Settings → My Database → Classes), never a built-in list.
+   GD_COURSE_NAMES stays defined (empty) only because classes.js and settings.js still read it; use courseLabel instead. */
+const GD_COURSE_NAMES=Object.freeze({});
+/* a class's code and name: "CS 101 — Computing" → {code:'CS 101',name:'Computing'}; name is '' when only the code is known */
+function courseFields(key){
+  const k=String(key||''),f=globalThis.SessionClasses?.fields?SessionClasses.fields(k):{},parts=k.split(' — ');
+  const code=String(f.code||parts[0]).trim(),name=String(f.name||parts.slice(1).join(' — ')).trim();
+  return {code,name:name&&name!==code&&name!==k?name:''};
+}
+/* how a class reads in lists: "CS 101 · Computing", or just the code when it has no separate name */
+function courseLabel(key){const {code,name}=courseFields(key);return name?code+' · '+name:code}
 const gdYmd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const gdVis=()=>{const w=$('crt').getBoundingClientRect().width;return w<600?2:w<1000?3:4};
 function gdClock(){
@@ -113,7 +123,7 @@ function renderGuide(){return SessionTV.hooks.run('guide:render',arguments,()=>{
       <div class="gd-row gd-hdr"><div class="gd-ch"><button type="button" data-slide="-1" aria-label="Earlier days">◀</button><button type="button" data-today>Today</button></div>
         <div class="gd-vp"><div class="gd-track" style="${tr}">${days.map((d,j)=>`<div class="gd-day${d===today?' today':''}" style="${cwOf(j)}">${dayLbl(d)}</div>`).join('')}</div></div>
         <div class="gd-end"><button type="button" data-slide="1" aria-label="Later days">▶</button></div></div>
-      ${courses.map((c,i)=>`<div class="gd-row"><div class="gd-ch"><b>${esc(globalThis.SessionClasses?.fields(c).code||c)}</b><small>${esc(globalThis.SessionClasses?.fields(c).name||GD_COURSE_NAMES[c]||('CH '+(101+i)))}</small></div>
+      ${courses.map((c,i)=>`<div class="gd-row"><div class="gd-ch"><b>${esc(courseFields(c).code||c)}</b><small>${esc(courseFields(c).name||('CH '+(101+i)))}</small></div>
         <div class="gd-vp"><div class="gd-track" style="${tr}">${days.map((d,j)=>{const all=gdCellItems(c,d),wide=TV.gWide.has(d),items=all.length>2&&!wide?all.slice(0,2):all;
           const more=all.length>2?(wide?`<button type="button" class="gd-more-btn" data-less="${d}" aria-label="Show fewer">&lt;</button>`:`<button type="button" class="gd-more-btn" data-more="${d}" aria-label="Show ${all.length-2} more">+${all.length-2}</button>`):'';
           return `<div class="gd-cell${d===today?' today':''}" style="${cwOf(j)}">${items.length?items.map(t=>{const late=t.status!=='done'&&dueAt(t)&&dueAt(t)<new Date();

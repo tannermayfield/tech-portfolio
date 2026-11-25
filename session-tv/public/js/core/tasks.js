@@ -44,6 +44,8 @@ function openTask(id,edit){
   if(!$('task-dlg').open)$('task-dlg').showModal();
   (edit?$('td-t'):t.canvas?$('td-close'):$('td-sub')).focus();
 }
+// the Course suggestions are the user's own classes, not a built-in list
+function fillCourseList(){const dl=$('td-courses');if(dl)dl.innerHTML=gdCourses().map(c=>`<option value="${esc(c)}">${esc(courseLabel(c))}</option>`).join('')}
 // after a failed save, redraw the details popup if it is showing that assignment
 function reopenTask(id){if($('task-dlg').open&&tdId===id)openTask(id,!$('td-form').hidden)}
 $('task-dlg').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.close()});
