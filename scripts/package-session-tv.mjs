@@ -17,7 +17,12 @@ const config = {
   supabaseUrl: process.env.SESSION_TV_SUPABASE_URL || defaults.supabaseUrl || '',
   supabasePublishableKey: process.env.SESSION_TV_SUPABASE_PUBLISHABLE_KEY || defaults.supabasePublishableKey || '',
   companionUrl: 'http://127.0.0.1:4319',
+  // The owner's Supabase user UUID shows owner-only actions such as Publish to demo. Never an email address.
+  ownerId: process.env.SESSION_TV_OWNER_ID || defaults.ownerId || '',
 };
+if (config.ownerId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(config.ownerId)) {
+  throw new Error('SESSION_TV_OWNER_ID must be the Supabase user UUID of the owner.');
+}
 if (config.supabaseUrl && !/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl)) {
   throw new Error('SESSION_TV_SUPABASE_URL must be the public HTTPS Supabase project URL.');
 }

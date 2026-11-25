@@ -39,7 +39,7 @@
    pending=kind==='codex';if(popup){popup.opener=null;popup.location.href=url.href}else{const host=document.getElementById('session-connection-summary'),a=document.createElement('a');a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Open '+(kind==='codex'?'Codex':'ChatGPT')+' sign-in';host.append(a);return}refresh();
   }catch(error){popup?.close();toast(error.message)}
  }
- const base=renderSettings;renderSettings=function(){base.apply(this,arguments);refresh()};
+ SessionTV.hooks.after('settings:render',()=>refresh());
  addEventListener('focus',()=>refresh());addEventListener('sessiontv:auth',()=>{epoch++;pending=false;setup.close();refresh()});
  setInterval(()=>{const host=document.getElementById('session-connection-summary');if(host?.getClientRects().length&&(pending||Date.now()-lastCheck>=20000))refresh()},5000);
  globalThis.SessionConnections={refresh,setup:guide};refresh();

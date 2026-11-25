@@ -2,13 +2,14 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {JSDOM} from 'jsdom';
-const source=readFileSync(new URL('../public/js/music.js',import.meta.url),'utf8');
+const source=readFileSync(new URL('../public/js/music.js',import.meta.url),'utf8'),hooks=readFileSync(new URL('../public/js/core/hooks.js',import.meta.url),'utf8');
 const playlist=kind=>({url:'https://music.apple.com/us/playlist/'+kind+'/pl.'+kind});
 function boot(mode='private',config={playlists:{class:playlist('class'),skill:playlist('skill'),project:playlist('project')}}){
  const dom=new JSDOM('<div id="song-note"></div><div id="settings"></div>',{url:'https://example.com',runScripts:'outside-only'}),w=dom.window;
  const values={'sb.music':{player:'embed',...config}};w.SessionWorkspace={mode};w.TV={mode:'task'};w.current={mood:'class'};
  w.recall=(key,fallback)=>values[key]??fallback;w.store=(key,value)=>values[key]=value;
- w.renderWork=()=>{};w.renderGuide=()=>{};w.renderSong=()=>{};w.openPlaylist=()=>{};w.playlistUrl=()=>'';w.toast=()=>{};
+ w.eval(hooks);const hook=name=>()=>w.SessionTV.hooks.run(name,[],()=>{});
+ w.renderWork=hook('work:render');w.renderGuide=hook('guide:render');w.renderSong=hook('song:render');w.playlistUrl=()=>'';w.toast=()=>{};
  w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};
  w.eval(source);return {dom,w,values,music:w.SessionMusic};
 }

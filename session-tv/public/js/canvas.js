@@ -11,6 +11,14 @@
  function safeURL(value){try{const u=new URL(value);return u.origin===school&&!u.username&&!u.password?u.href:''}catch{return ''}}
  function description(value){const doc=new DOMParser().parseFromString(String(value||''),'text/html');doc.querySelectorAll('script,style,iframe,object').forEach(node=>node.remove());doc.querySelectorAll('br').forEach(node=>node.replaceWith('\n'));doc.querySelectorAll('p,div,li,h1,h2,h3,h4,blockquote,tr').forEach(node=>node.append('\n'));return (doc.body.textContent||'').replace(/\n{3,}/g,'\n\n').trim()}
  function dates(value){const d=new Date(value);if(!value||!Number.isFinite(d.getTime()))return {due:'',dueTime:''};const pad=v=>String(v).padStart(2,'0');return {due:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),dueTime:pad(d.getHours())+':'+pad(d.getMinutes())}}
+ // Assignment type from Canvas metadata (raw API or camelCase snapshot fields), then quiz/exam wording; null lets the overview fall back to title keywords.
+ function kind(assignment){
+  const types=[].concat(assignment.submissionTypes??assignment.submission_types??[]).map(type=>String(type).toLowerCase()),title=String(assignment.title||assignment.name||'');
+  const exam=/\b(exam|midterm)s?\b/i.test(title)||(/\bfinals?\b/i.test(title)&&!/\b(projects?|labs?|papers?|reports?|presentations?)\b/i.test(title));
+  if(assignment.isQuizAssignment===true||assignment.is_quiz_assignment===true||assignment.quizId||assignment.quiz_id||types.includes('online_quiz'))return exam?'exam':'quiz';
+  if(types.includes('discussion_topic')||assignment.discussionTopic||assignment.discussion_topic)return 'discussion';
+  if(exam)return 'exam';if(/\bquiz(?:zes)?\b/i.test(title))return 'quiz';return null;
+ }
  function render(){
   if(!container||!privateUser())return;container.replaceChildren();
   const title=document.createElement('h4');title.textContent='BYU Canvas';container.append(title);
@@ -48,7 +56,7 @@
     for(const assignment of snapshot.assignments){
      if(!current(e)||abort.signal.aborted)return;const id=String(assignment.id),courseId=String(assignment.courseId);if(!/^[0-9]+$/.test(id)||!map[courseId]||excluded.has(courseId))continue;
      const key='canvas-'+courseId+'-'+id,existing=typeof T==='function'?T(key):tasks.find(task=>task.id===key),submission=assignment.submission||{};
-     const patch={track:'class',title:String(assignment.title||'Canvas assignment'),description:description(assignment.description),course:map[courseId],...dates(assignment.dueAt),points:assignment.points??null,status:submission.submitted?'done':'todo',canvas:{assignmentId:id,courseId,accountId:account,url:safeURL(assignment.url),dueAt:assignment.dueAt||null,missing:!!submission.missing,submitted:!!submission.submitted,submittedAt:submission.submittedAt||null,workflowState:String(submission.workflowState||'')}};
+     const patch={track:'class',title:String(assignment.title||'Canvas assignment'),description:description(assignment.description),course:map[courseId],...dates(assignment.dueAt),points:assignment.points??null,kind:kind(assignment),status:submission.submitted?'done':'todo',canvas:{assignmentId:id,courseId,accountId:account,url:safeURL(assignment.url),dueAt:assignment.dueAt||null,missing:!!submission.missing,submitted:!!submission.submitted,submittedAt:submission.submittedAt||null,workflowState:String(submission.workflowState||'')}};
      if(Object.keys(patch).some(field=>JSON.stringify(existing?.[field])!==JSON.stringify(patch[field]))){if(!current(e)||abort.signal.aborted)return;const doc=db.doc('tasks/'+key);if(existing)await doc.update(patch);else await doc.set(patch)}
     }
     if(!current(e))return;for(const [key,value] of [['sb.classes',classes],['sb.canvasCourses',map],['sb.canvasAccount',account],['sb.canvasAvailableCourses',snapshot.courses.map(course=>String(course.id))]]){if(!current(e))return;if(JSON.stringify(recall(key,null))!==JSON.stringify(value))store(key,value)}store('sb.canvasLastSync',new Date().toISOString());message='Canvas is up to date.';if(typeof renderGuide==='function'&&typeof TV!=='undefined'&&TV.mode==='guide')renderGuide();

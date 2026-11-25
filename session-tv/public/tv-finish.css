@@ -119,8 +119,7 @@ body.tv .knob::before {
 body.tv .knob::after {
   background: linear-gradient(90deg, #b9aa88, #ece1c6 50%, #c1b08e);
 }
-body.tv .rbtn i,
-body.tv .sn-ctl button {
+body.tv .rbtn i{
   background:
     radial-gradient(ellipse at 35% 22%, #bca07c47, transparent 54%),
     linear-gradient(145deg, #70583f, var(--bake-a) 58%, var(--bake-b));

@@ -37,8 +37,8 @@
   }
   if(writable())ppDragInit(body.querySelector('ol'),order=>{const shown=new Set(order),all=rows.map(row=>row.task.id);let index=0;projSave(name,{taskOrder:all.map(id=>shown.has(id)?order[index++]:id)})});
  }
- for(const [key,mode]of [['ppSprint','plan'],['ppSkills','apply'],['ppTeach','work']]){const base=globalThis[key];globalThis[key]=function(task,name){base(task,name);enhance(name,mode)}}
- const guide=openGuide;openGuide=function(){pause();return guide.apply(this,arguments)};const settings=openSettings;openSettings=function(){pause();return settings.apply(this,arguments)};
+ SessionTV.hooks.after('project:panel',(task,name,mode)=>enhance(name,mode));
+ SessionTV.hooks.before('guide:open',pause);SessionTV.hooks.before('settings:open',pause);
  addEventListener('pagehide',pause);addEventListener('sessiontv:auth',()=>{pause();prompt.close();skills.close();editing=null});
  globalThis.SessionTaskControls={run,pause,get running(){return !!queue}};
 })();

@@ -20,8 +20,9 @@ begin
   delete from public.stv_tasks where user_id=owner and kind='assignment' and payload->>'course'=old_course;get diagnostics affected=row_count;
   classes=classes-old_course;
  else
-  insert into public.stv_courses(user_id,name) values(owner,target) on conflict(user_id,name) do nothing;
-  select id into cid from public.stv_courses where user_id=owner and name=target;
+  -- Requires migrations/202611240001_write_fixes.sql (normalized, case-insensitive course index).
+  insert into public.stv_courses(user_id,name) values(owner,public.stv_normalize_name(target))
+  on conflict(user_id,(lower(public.stv_normalize_name(name)))) do update set name=excluded.name returning id into cid;
   update public.stv_tasks set payload=jsonb_set(payload,'{course}',to_jsonb(target)),course_id=cid where user_id=owner and kind='assignment' and payload->>'course'=old_course;get diagnostics affected=row_count;
   classes=(classes-old_course)||jsonb_build_object(target,course_value);
   for item in select key from jsonb_each_text(mapping) where value=old_course loop mapping=jsonb_set(mapping,array[item.key],to_jsonb(target));end loop;
