@@ -59,7 +59,7 @@ function gdInfoHTML(k){
   if(k==='class'){const t=T(sel);if(!t)return `<div class="gd-sel"><div class="gd-t">Nothing listed</div></div><div class="gd-desc">Add an assignment and it shows up here on its due date.</div><div class="gd-det-row"><button type="button" class="btn gd-det" data-act="homework">Homework Overview</button></div>`;
     const d=dueFor(t),done=t.status==='done';
     return `<div class="gd-sel"><div class="gd-t">${esc(t.title)}</div></div>
-      <div class="gd-desc">${esc(d.text)}${done?' · submitted':''}${t.goal?` — by the end, explain ${esc(t.goal)}.`:''}</div>
+      <div class="gd-desc">${esc(d.text)}${done?' · submitted':''}</div>
       <div class="gd-det-row"><button type="button" class="btn gd-det" data-act="homework">Homework Overview</button></div>
       <div class="gd-acts">${done?'':`<button type="button" class="btn primary" data-act="tune">Tune in ▸</button>`}${t.canvas?'':`<button type="button" class="btn" data-act="sub">${done?'Mark not submitted':'Mark submitted'}</button>`}</div>`}
   if(k==='skill'){const t=T(sel);if(!t)return `<div class="gd-sel"><div class="gd-t">No skills here</div></div><div class="gd-desc">Pick another category, or add a skill from Settings.</div>`;
