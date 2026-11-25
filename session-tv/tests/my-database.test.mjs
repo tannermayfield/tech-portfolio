@@ -63,3 +63,58 @@ test('one class form adds classes with a separate code and optional name from ev
   assert.deepEqual(errors,[]);
  }finally{dom.window.close()}
 });
+
+test('project skills come from completed Apply tasks and feed the menu and Settings → Projects',async()=>{
+ const {dom,w,errors}=await boot();try{
+  await w.eval(`Promise.all([
+   db.doc('tasks/sk-sql').set({track:'skill',title:'SQL joins',course:'SQL',cat:'Data',status:'todo'}),
+   db.doc('tasks/sk-py').set({track:'skill',title:'Pandas',course:'Python',cat:'Data',status:'todo'}),
+   db.doc('tasks/ps-me-done').set({track:'project',title:'Write queries',course:'Skill project',status:'done',order:1,skills:['sk-sql','sk-py']}),
+   db.doc('tasks/ps-me-done2').set({track:'project',title:'More queries',course:'Skill project',status:'done',order:2,skills:['sk-sql']}),
+   db.doc('tasks/ps-me-open').set({track:'project',title:'Draft report',course:'Skill project',status:'todo',order:3,skills:['Open skill']}),
+   db.doc('tasks/ps-ai-done').set({track:'project',title:'Codex chore',course:'Skill project',status:'done',order:4,skills:['Codex skill']}),
+   db.doc('tasks/ps-legacy').set({track:'project',title:'Old owner',course:'Skill project',status:'done',order:5,skills:['Legacy title']})
+  ])`);
+  // ps-legacy is owned through retired planning data, which is still read for task ownership
+  w.eval("PROJ.data[pslug('Skill project')]={name:'Skill project',taskAssignments:{'ps-me-done':'me','ps-me-done2':'me','ps-me-open':'me','ps-ai-done':'ai'},sprint:{items:[{id:'ps-legacy',who:'me'}]}}");
+  assert.deepEqual(Array.from(w.eval("projectSkills('Skill project')")),['SQL joins','Legacy title','Pandas']);
+  // the Projects menu info panel reads the same list
+  w.eval("TV.gSel.project='Skill project'");assert.match(w.eval("gdInfoHTML('project')"),/gd-pskills">Skills applied: SQL joins, Legacy title, Pandas</);
+  // Settings → Projects shows exactly three counters, and Open folder looks and acts enabled
+  w.SessionWorkspace.setPrivate('test-owner');
+  w.eval("TV.mode='settings';TV.dbView='projects';renderSettings()");
+  const row=()=>[...w.document.querySelectorAll('.project-table-row')].find(row=>row.textContent.includes('Skill project'));
+  assert.deepEqual([...row().querySelectorAll('.project-counters>span')].map(span=>span.querySelector('small').textContent+'='+span.querySelector('b').textContent),['Skills Applied=3','My Tasks Completed=3','Codex Tasks Completed=1']);
+  const open=row().querySelector('.project-open-folder');assert.equal(open.disabled,false);assert.equal(open.classList.contains('ghost'),false);
+  const toast=()=>w.document.getElementById('toast').textContent;
+  open.click();await until(()=>/No computer folder is linked/.test(toast()));
+  w.eval("store('sb.projectCodingChats',{...recall('sb.projectCodingChats'),'Skill project':{folder:'C:/Projects/skills',chats:[]}})");
+  w.SessionCompanion.openFolder=async()=>{throw new Error('Failed to fetch')};w.eval('renderSettings()');
+  row().querySelector('.project-open-folder').click();await until(()=>/companion is running and paired/.test(toast()));
+  let opened='';w.SessionCompanion.openFolder=async folder=>{opened=folder;return {opened:true}};
+  row().querySelector('.project-open-folder').click();await until(()=>!!opened);assert.equal(opened,'C:/Projects/skills');
+  assert.doesNotMatch(w.document.getElementById('set-body').textContent,/sprint/i);
+  assert.deepEqual(errors,[]);
+ }finally{dom.window.close()}
+});
+
+test('Apply tasks can be marked done and given skills, and project copy never says sprint',async()=>{
+ const {dom,w}=await boot();try{
+  await w.eval("Promise.all([db.doc('tasks/ap-one').set({track:'project',title:'Build page',course:'Apply project',status:'todo',order:1}),db.doc('tasks/ap-skill').set({track:'skill',title:'CSS grid',course:'CSS',cat:'Software',status:'todo'})])");
+  w.eval("current.active='ap-one';current.mood='project';current.projModes={...(current.projModes||{}),'Apply project':'apply'};TV.mode='task';PROJ.data[pslug('Apply project')]={name:'Apply project',taskAssignments:{'ap-one':'me'}};projectPanel(T('ap-one'),'Apply project','apply')");
+  w.document.querySelector('[aria-label="Skills for Build page"]').click();w.document.querySelector('#task-skill-picker [aria-label="Select CSS grid"]').click();w.document.querySelector('#task-skill-picker [data-save]').click();
+  await until(()=>w.eval("T('ap-one').skills?.includes('ap-skill')"));
+  assert.deepEqual(Array.from(w.eval("projectSkills('Apply project')")),[],'open tasks do not count yet');
+  w.eval("projectPanel(T('ap-one'),'Apply project','apply')");w.document.querySelector('[aria-label="Mark done: Build page"]').click();
+  await until(()=>w.eval("T('ap-one').status")==='done');
+  assert.deepEqual(Array.from(w.eval("projectSkills('Apply project')")),['CSS grid']);
+  w.eval("projectPanel(T('ap-one'),'Apply project','apply')");assert.equal(w.document.querySelector('[aria-label="Mark not done: Build page"]').textContent,'Done ✓');
+  for(const mode of ['plan','apply','work']){
+   w.eval(`current.projModes['Apply project']='${mode}';projectPanel(T('ap-one'),'Apply project','${mode}')`);
+   assert.doesNotMatch(w.document.getElementById('pp').textContent,/sprint/i);
+   assert.doesNotMatch(w.eval("projectIntro(T('ap-one'))+projectCtx(T('ap-one'))"),/sprint|scrum/i);
+  }
+  assert.doesNotMatch(Object.values(w.eval('COACH_RULES')).join(' '),/sprint|scrum/i);
+  assert.doesNotMatch(w.document.getElementById('pp-title').textContent,/sprint/i);
+ }finally{dom.window.close()}
+});

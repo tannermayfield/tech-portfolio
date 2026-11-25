@@ -1,18 +1,18 @@
 /* ---------- projects: the project chat (Plan · Apply · Work) and its side panel task board ---------- */
 function projectTasks(name){return tasks.filter(x=>typeOf(x)==='project'&&(x.course||'Other')===name).sort(byOrder)}
 function projectIntro(t){
-  const name=t.course||'Project',all=projectTasks(name),open=all.filter(x=>x.status!=='done'),ps=((settings&&settings.projectSkills)||{})[name]||[];
-  return `<div class="msg ai intro"><div class="ai-name">${CLAUDE_MARK} AI coach</div>This is your <b>${esc(name)}</b> chat. Everything about this project happens here. ${({plan:'<b>Plan</b> mode: we plan with Scrum. The current sprint is on the right; no building.',apply:'<b>Apply</b> mode: you build it with the skill you pick on the right; I only give hints and small suggestions.',work:'<b>Work</b> mode: I do the building here, and explain and teach it on the right as I go, then quiz you.'})[projMode(t)]}${ps.length?`<br><br>Skills it builds: ${esc(ps.join(', '))}.`:''}<br><br>${open.length?`Next up: <b>${esc(open[0].title)}</b>. `:''}${all.length-open.length} of ${all.length} tasks done.${sample?' Tell me what you want to work on, ask for help, or explain what you built and I\'ll push back.':'<br><br><span class="muted">AI coaching is optional. See Settings → AI Connections for connection status.</span>'}</div>`;
+  const name=t.course||'Project',all=projectTasks(name),open=all.filter(x=>x.status!=='done'),ps=projectSkills(name);
+  return `<div class="msg ai intro"><div class="ai-name">${CLAUDE_MARK} AI coach</div>This is your <b>${esc(name)}</b> chat. Everything about this project happens here. ${({plan:'<b>Plan</b> mode: we list the project\'s tasks and assign each one to you or Codex on the right; no building.',apply:'<b>Apply</b> mode: you build your tasks yourself and attach the skills you use on the right; I only give hints and small suggestions.',work:'<b>Work</b> mode: I do the building here, and explain and teach it on the right as I go, then quiz you.'})[projMode(t)]}${ps.length?`<br><br>Skills applied: ${esc(ps.join(', '))}.`:''}<br><br>${open.length?`Next up: <b>${esc(open[0].title)}</b>. `:''}${all.length-open.length} of ${all.length} tasks done.${sample?' Tell me what you want to work on, ask for help, or explain what you built and I\'ll push back.':'<br><br><span class="muted">AI coaching is optional. See Settings → AI Connections for connection status.</span>'}</div>`;
 }
 function projectCtx(t){
-  const name=t.course||'Project',all=projectTasks(name),open=all.filter(x=>x.status!=='done'),done=all.filter(x=>x.status==='done'),ps=((settings&&settings.projectSkills)||{})[name]||[];
-  return `\nCurrent project: ${name}. This is the single chat for the whole project; help with whatever part he brings up.${ps.length?`\nSkills this project builds (most-used first): ${ps.join(', ')}.`:''}\nOpen tasks in order:\n${open.slice(0,12).map((x,i)=>`${i+1}. [id ${x.id}] ${x.title}${x.goal?` (goal: explain ${x.goal})`:''}`).join('\n')||'none'}${done.length?`\nAlready done: ${done.map(x=>x.title).join('; ')}`:''}${projExtraCtx(t)}`;
+  const name=t.course||'Project',all=projectTasks(name),open=all.filter(x=>x.status!=='done'),done=all.filter(x=>x.status==='done'),ps=projectSkills(name);
+  return `\nCurrent project: ${name}. This is the single chat for the whole project; help with whatever part he brings up.${ps.length?`\nSkills he has applied in finished Apply tasks (most-used first): ${ps.join(', ')}.`:''}\nOpen tasks in order:\n${open.slice(0,12).map((x,i)=>`${i+1}. [id ${x.id}] ${x.title}${x.goal?` (goal: explain ${x.goal})`:''}`).join('\n')||'none'}${done.length?`\nAlready done: ${done.map(x=>x.title).join('; ')}`:''}${projExtraCtx(t)}`;
 }
 
 /* project chat modes: Plan · Learn · Work */
 const PROJ_MODES=[['plan','Plan'],['apply','Apply'],['work','Work']];
 Object.assign(COACH_RULES,{
-  proj_plan:'Help organize and assign project tasks to Me or Codex. There are no sprint dates, goals, points, estimates, or sprint ceremonies. Do not implement files.',
+  proj_plan:'Help organize the project into a simple ordered task list and assign each task to Me or Codex. Do not add dates, points or estimates. Do not implement files.',
   proj_apply:'MODE: APPLY. He is building this himself to practice what he is learning in class and in his skills. Do NOT write his project code, configs, queries or content. Give only hints, nudges, questions, small conceptual explanations and minor suggestions, starting with the smallest useful hint. Tiny generic syntax examples are fine. Ask what he has tried and have him explain his choices. Point out which of his skills or class topics apply.',
   proj_work:'MODE: WORK. You do most of the work: write and edit the code, queries, configs or content for the project directly, in full, in the main reply. Put your teaching in a separate block that the app shows in a side panel: wrap it exactly as <teach>...</teach>. Inside it, explain what you did and why, the key lines and decisions, and the concepts behind them, in plain language. Keep the main reply focused on the work itself. When you finish a chunk of work, quiz him with 1-3 short questions about what you just did (why this approach, what a line does, what would break if...) and check his answers before moving on.'
 });
@@ -70,7 +70,7 @@ function ppRender(t){
 function ppSyncHead(){const f=$('focus'),h=document.querySelector('#pp .pp-head');if(!f||!h||$('pp').hidden)return;h.style.height='';h.style.minHeight='';requestAnimationFrame(()=>{const fh=f.getBoundingClientRect().height,hh=h.getBoundingClientRect().height;const H=Math.max(fh,hh);h.style.height=H+'px';if(hh<fh)return;f.style.minHeight=H+'px'})}
 addEventListener('resize',()=>ppSyncHead());
 
-// sprints were retired; older project records still list their sprint items, which may carry an owner
+// older project records keep their task owners in retired planning data (pd.sprint / pd.past); read-only
 function spItems(sp){return (sp&&sp.items||[]).map(x=>typeof x==='string'?{id:x,pts:0}:x).filter(x=>x&&x.id)}
 
 /* task board: each task is assigned to Me, Codex or nobody, in a saved order.
@@ -78,6 +78,15 @@ function spItems(sp){return (sp&&sp.items||[]).map(x=>typeof x==='string'?{id:x,
 function projectPanel(task,name,mode){return SessionTV.hooks.run('project:panel',arguments,projectBoard)}
 function boardItems(name){const pd=projData(name),owners=new Map();for(const sprint of [...(pd.past||[]),pd.sprint].filter(Boolean))for(const item of spItems(sprint))if(item.who)owners.set(item.id,item.who);const order=pd.taskOrder||[];return projectTasks(name).filter(task=>task.status!=='archived').map(task=>({task,who:Object.hasOwn(pd.taskAssignments||{},task.id)?pd.taskAssignments[task.id]:owners.get(task.id)||''})).sort((a,b)=>{const x=order.indexOf(a.task.id),y=order.indexOf(b.task.id);return (x<0?1e9:x)-(y<0?1e9:y)||byOrder(a.task,b.task)})}
 function boardAssign(name,id){if(SessionWorkspace.readOnly)return;const row=boardItems(name).find(row=>row.task.id===id);if(!row)return;const next={'':'me',me:'ai',ai:''};return projSave(name,{taskAssignments:{...(projData(name).taskAssignments||{}),[id]:next[row.who]||''}})}
+// a task's skills are saved as skill record ids (older tasks may hold skill titles)
+function projSkillTitle(value){const skill=T(value);if(skill)return typeOf(skill)==='skill'?String(skill.title||'').trim():'';return String(value||'').trim()}
+/* A project's skills: every skill attached to its completed Apply tasks (the tasks assigned to Me), most-used first.
+   The Projects menu and Settings → Projects both read this. */
+function projectSkills(name){
+ const counts=new Map();
+ for(const {task,who} of boardItems(name)){if(who!=='me'||task.status!=='done')continue;for(const title of new Set((Array.isArray(task.skills)?task.skills:[]).map(projSkillTitle)))if(title)counts.set(title,(counts.get(title)||0)+1)}
+ return [...counts].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([title])=>title);
+}
 function projectBoard(task,name,mode){
  const body=$('pp-body'),context=name+'|'+mode,draft=body.dataset.backlogContext===context?$('pp-new')?.value||'':'';body.dataset.backlogContext=context;body.classList.remove('pp-fit');const rows=boardItems(name).filter(row=>mode==='plan'||row.who===(mode==='apply'?'me':'ai'));
  $('pp-title').textContent=mode==='plan'?'Assign tasks':mode==='apply'?'Apply backlog':'Work backlog';$('pp-acts').replaceChildren();
@@ -87,10 +96,10 @@ function projectBoard(task,name,mode){
  body.querySelectorAll('[data-remove-task]').forEach(button=>button.onclick=()=>guard(()=>db.doc('tasks/'+button.dataset.removeTask).update({status:'archived'})));
  if(mode==='plan'&&!disabled){$('pp-new').value=draft;ppDragInit(body.querySelector('ol'),order=>projSave(name,{taskOrder:order}));$('project-task-create').onsubmit=async event=>{event.preventDefault();const input=$('pp-new'),title=input.value.trim();if(!title)return;input.value='';const id='p'+crypto.randomUUID(),order=Math.max(0,...projectTasks(name).map(task=>task.order||0))+1;await guard(()=>db.doc('tasks/'+id).set({track:'project',title,course:name,goal:'',status:'todo',order}));$('pp-new')?.focus()};}
 }
-function projExtraCtx(task){const name=task.course||'Project',mode=projMode(task);return '\nTask assignment board (no sprint dates, goals, points, or timeboxes):\n'+boardItems(name).map(({task,who})=>'['+task.id+'] '+task.title+' | '+(who==='me'?'Me':who==='ai'?'Codex':'Unassigned')+' | '+task.status+' | Skills: '+(task.skills||[]).map(value=>T(value)?.title||value).join(', ')).join('\n')+'\n'+(mode==='apply'?'Coach the user through Me tasks with hints; do not implement their work.':mode==='work'?'Implement Codex tasks and explain your changes. Do not implement Me tasks unless the user explicitly asks.':'Help organize tasks and choose whether Me or Codex should own each task. Do not implement files.');}
+function projExtraCtx(task){const name=task.course||'Project',mode=projMode(task);return '\nTask assignment board:\n'+boardItems(name).map(({task,who})=>'['+task.id+'] '+task.title+' | '+(who==='me'?'Me':who==='ai'?'Codex':'Unassigned')+' | '+task.status+' | Skills: '+(task.skills||[]).map(projSkillTitle).filter(Boolean).join(', ')).join('\n')+'\n'+(mode==='apply'?'Coach the user through Me tasks with hints; do not implement their work.':mode==='work'?'Implement Codex tasks and explain your changes. Do not implement Me tasks unless the user explicitly asks.':'Help organize tasks and choose whether Me or Codex should own each task. Do not implement files.');}
 globalThis.SessionProjectBacklogs={items:boardItems,assign:boardAssign};
 
-/* drag the number to reorder sprint tasks */
+/* drag the number to reorder tasks */
 function ppDragInit(ol,onDone){
   if(!ol)return;
   const scroller=el=>{for(let e=el;e&&e!==document.body;e=e.parentElement){const o=getComputedStyle(e).overflowY;if((o==='auto'||o==='scroll')&&e.scrollHeight>e.clientHeight)return e}return null};
