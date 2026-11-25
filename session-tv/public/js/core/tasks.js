@@ -27,7 +27,6 @@ function openTask(id,edit){
       <dt>Due</dt><dd>${esc(fmtDue(t))}${d&&!done&&d.cls?` <span class="due ${d.cls}">${esc(d.text)}</span>`:''}</dd>
       <dt>Start early</dt><dd>${lead} day${lead===1?'':'s'} ahead${start?` <span class="muted">(shows as due soon from ${esc(start)})</span>`:''}</dd>
       <dt>Status</dt><dd>${done?`<span style="color:var(--ok)">✓ Submitted</span>${t.doneAt?` <span class="muted">${esc(new Date(t.doneAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}))}</span>`:''}`:'Not submitted'}</dd>
-      ${t.goal?`<dt>Goal</dt><dd>By the end, you should be able to explain ${esc(t.goal)}</dd>`:''}
       ${t.description?`<dt>Instructions</dt><dd class="assignment-instructions">${esc(t.description)}</dd>`:''}
       ${Array.isArray(t.skills)&&t.skills.length?`<dt>Skills</dt><dd>${esc(t.skills.join(', '))}</dd>`:''}
       ${t.points!==undefined&&t.points!==''?`<dt>Points</dt><dd>${esc(t.points)}</dd>`:''}
@@ -40,10 +39,12 @@ function openTask(id,edit){
   $('td-sub').onclick=()=>{toggleSubmitted(id);setTimeout(()=>openTask(id),50)};
   $('td-edit').onclick=()=>openTask(id,true);
   $('td-view').hidden=!!edit;$('td-form').hidden=!edit;
-  if(edit){$('td-t').value=t.title||'';$('td-course').value=t.course||'';$('td-lead').value=lead;$('td-due').value=t.due||'';$('td-time').value=t.dueTime||'';$('td-goal').value=t.goal||''}
+  if(edit){$('td-t').value=t.title||'';$('td-course').value=t.course||'';$('td-lead').value=lead;$('td-due').value=t.due||'';$('td-time').value=t.dueTime||'';fillCourseList()}
   if(!$('task-dlg').open)$('task-dlg').showModal();
   (edit?$('td-t'):t.canvas?$('td-close'):$('td-sub')).focus();
 }
+// the Course suggestions are the user's own classes, not a built-in list
+function fillCourseList(){const dl=$('td-courses');if(dl)dl.innerHTML=gdCourses().map(c=>`<option value="${esc(c)}">${esc(courseLabel(c))}</option>`).join('')}
 // after a failed save, redraw the details popup if it is showing that assignment
 function reopenTask(id){if($('task-dlg').open&&tdId===id)openTask(id,!$('td-form').hidden)}
 $('task-dlg').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.close()});
@@ -52,7 +53,7 @@ $('td-cancel').onclick=()=>openTask(tdId);
 $('td-form').onsubmit=async e=>{
   e.preventDefault();const id=tdId,t=T(id);if(!t)return;
   const lead=$('td-lead').value===''?1:Math.max(0,Math.min(21,Math.round(+$('td-lead').value)));
-  const patch={title:$('td-t').value.trim()||t.title,course:$('td-course').value.trim(),goal:$('td-goal').value.trim(),due:$('td-due').value||null,dueTime:$('td-due').value?($('td-time').value||'23:59'):null,leadDays:lead};
+  const patch={title:$('td-t').value.trim()||t.title,course:$('td-course').value.trim(),due:$('td-due').value||null,dueTime:$('td-due').value?($('td-time').value||'23:59'):null,leadDays:lead};
   const before=Object.fromEntries(Object.keys(patch).map(k=>[k,t[k]]));
   Object.assign(t,patch);refresh();openTask(id);
   await guard(()=>db.doc('tasks/'+id).update(patch),'Assignment updated',()=>{Object.assign(t,before);refresh();reopenTask(id)});
