@@ -168,7 +168,7 @@ test('Preferences is one tabbed popup with arrow-key tabs, private tabs and a co
   const key=(tab,name)=>tab.dispatchEvent(new w.KeyboardEvent('keydown',{key:name,bubbles:true,cancelable:true}));
   key(tabs[0],'ArrowDown');assert.equal(tabs[1].getAttribute('aria-selected'),'true');assert.equal(w.document.activeElement,tabs[1]);assert.equal(w.document.getElementById('pref-panel-sections').hidden,false);assert.equal(w.document.getElementById('pref-panel-appearance').hidden,true);
   key(tabs[1],'End');assert.equal(tabs[6].getAttribute('aria-selected'),'true');
-  assert.equal(w.document.getElementById('pref-panel-coach').textContent.includes('Coach profile is not available.'),true);
+  assert.ok(w.document.getElementById('pref-panel-coach').querySelector('form'),'the Coach tab shows the coach profile form');
   key(tabs[6],'ArrowDown');assert.equal(tabs[0].getAttribute('aria-selected'),'true','arrows wrap around');
   key(tabs[0],'ArrowUp');assert.equal(tabs[6].getAttribute('aria-selected'),'true');
   w.SessionCoachProfile={render(panel){panel.textContent='Coach profile ready'}};key(tabs[6],'Home');tabs[6].click();

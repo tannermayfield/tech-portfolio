@@ -18,7 +18,7 @@ async function extractSkills(){
   extracting=true;renderWrap();
   const learner=coachProfile().name||'Learner';
   const lines=list.map(t=>{const turns=(coachTurns[chatKey(t)]||current.skillChats?.[t.id]?.turns||[]).slice(-6).map(x=>`${x.role==='user'?learner:'AI coach'}: ${x.content.slice(0,300)}`).join('\n');
-    return `id ${t.id} | ${TYPES[typeOf(t)].label} | ${t.title}${t.course?` | ${t.course}`:''}${t.goal?` | goal: explain ${t.goal}`:''}${turns?`\nChat during the session:\n${turns}`:''}`}).join('\n\n');
+    return `id ${t.id} | ${TYPES[typeOf(t)].label} | ${t.title}${t.course?` | ${t.course}`:''}${t.goal&&typeOf(t)!=='class'?` | goal: ${t.goal}`:''}${turns?`\nChat during the session:\n${turns}`:''}`}).join('\n\n');
   const prompt=coachSay`${learner} just finished a work session. His skill list is exactly: ${names.map(n=>`"${n}"`).join(', ')}.\nFor each item below, pick which of those skills he actually used or practiced in it (0 to 3, only names from the list, spelled exactly). Pick none if no skill on the list really applies.\n\n${lines}\n\nReply with only a JSON object mapping each id to an array of skill names.`;
   try{
     const {text}=await sample(prompt,{cache:true});

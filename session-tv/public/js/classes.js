@@ -7,7 +7,7 @@
  // A class is stored under "CODE — Name" (or just "CODE" without a name), the same key Canvas sync builds.
  const classKey=(code,name)=>{code=String(code||'').trim();name=String(name||'').trim();return name&&name!==code?code+' — '+name:code};
  const label=value=>value.name?value.code+' — '+value.name:value.code;
- function fields(key){const value=view().classes[key]||{},parts=key.split(' — ');if(!value.canvasId){const imported=tasks.find(task=>task.course===key&&task.canvas?.courseId);if(imported)value.canvasId=imported.canvas.courseId}const code=String(value.code||parts[0]).trim(),name=String(value.name||parts.slice(1).join(' — ')||GD_COURSE_NAMES[key]||'').trim();return {...value,code,name:name===code?'':name}}
+ function fields(key){const value=view().classes[key]||{},parts=key.split(' — ');if(!value.canvasId){const imported=tasks.find(task=>task.course===key&&task.canvas?.courseId);if(imported)value.canvasId=imported.canvas.courseId}const code=String(value.code||parts[0]).trim(),name=String(value.name||parts.slice(1).join(' — ')||'').trim();return {...value,code,name:name===code?'':name}}
  /* The one class form, for adding and editing. Settings → Classes "+ Add class", the assignment form's class
     picker (also reached from Homework Overview → + Add Assignment) and each class row's Edit button open it. */
  let afterClose=null,savedKey=null;

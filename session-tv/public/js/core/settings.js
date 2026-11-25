@@ -67,7 +67,7 @@ function renderDbView(v){return SessionTV.hooks.run('dbView:render',arguments,v=
     const cls=live.filter(t=>typeOf(t)==='class'),courses=[...new Set([...cls.map(t=>t.course||'Other'),...Object.keys(recall('sb.classes'))])].sort();
     body=courses.map(c=>{const l=cls.filter(t=>(t.course||'Other')===c).sort((a,b)=>(a.status==='done')-(b.status==='done')||String(a.due||'9').localeCompare(String(b.due||'9')));
       const open=l.filter(t=>t.status!=='done').length;
-      return `<section class="db-grp class-section"><div class="class-section-head"><h4>${esc(c+(GD_COURSE_NAMES[c]?' · '+GD_COURSE_NAMES[c]:''))}<small>${open} open · ${l.length-open} done</small></h4><button type="button" class="btn" data-add-assignment="${esc(c)}">+ Add assignment</button></div><ul>${l.map(t=>row(t,t.status==='done'?`Done ${d(t.doneAt)}`:(t.due?esc(fmtDue(t)):'No due date'),t.status==='done')).join('')||'<li class="db-empty">No assignments yet.</li>'}</ul></section>`}).join('');}
+      return `<section class="db-grp class-section"><div class="class-section-head"><h4>${esc(courseLabel(c))}<small>${open} open · ${l.length-open} done</small></h4><button type="button" class="btn" data-add-assignment="${esc(c)}">+ Add assignment</button></div><ul>${l.map(t=>row(t,t.status==='done'?`Done ${d(t.doneAt)}`:(t.due?esc(fmtDue(t)):'No due date'),t.status==='done')).join('')||'<li class="db-empty">No assignments yet.</li>'}</ul></section>`}).join('');}
   else if(v==='skills'){title='Skills';add='Add skill';
     // Category → one row per skill (stage, counters, code editor, actions, like Classes) → its tools as chips below.
     // skill-categories.js adds the category chips and wires the editor select and Edit.

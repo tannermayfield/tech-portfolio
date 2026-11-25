@@ -15,9 +15,7 @@ $('guide-x').onclick=()=>closeSheets();
 
 /* ---------- the Menu: a cable-style listings grid for Class, an on-demand option menu for Skills and Projects ---------- */
 TV.gSel=TV.gSel||{};TV.gOff=null;TV.gFilter='All';TV.gHover=null;
-/* class names come from the user's own classes (Settings → My Database → Classes), never a built-in list.
-   GD_COURSE_NAMES stays defined (empty) only because classes.js and settings.js still read it; use courseLabel instead. */
-const GD_COURSE_NAMES=Object.freeze({});
+/* class names come from the user's own classes (Settings → My Database → Classes), never a built-in list; use courseLabel. */
 /* a class's code and name: "CS 101 — Computing" → {code:'CS 101',name:'Computing'}; name is '' when only the code is known */
 function courseFields(key){
   const k=String(key||''),f=globalThis.SessionClasses?.fields?SessionClasses.fields(k):{},parts=k.split(' — ');
@@ -47,7 +45,7 @@ function gdDefaultSel(k){
   const p=gdProjects();if(s&&p.includes(s))return s;const a=T(current?.active);if(a&&typeOf(a)==='project')return a.course||p[0];return p[0]||null;
 }
 /* in the Skills menu the category is already shown, so "Python for Data" under Data reads as just "Python" */
-/* menu shows a simple stage instead of the 1–5 level: 1–2 NEW, 3–4 LEARNED, 5 MASTERED */
+/* menu shows the stage name: NEW, LEARNED, EXPERIENCED or MASTERED */
 function lvlTag(t){return LVL_TAG(skillLevel(t))}
 function skShort(t){const c=catOf(t)||'';const q=c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');const r=String(t.title||'').replace(new RegExp('\\s+for\\s+'+q+'$','i'),'').replace(new RegExp('\\s*\\('+q+'\\)$','i'),'');return r||t.title}
 function gdFilt(){const subs=subsOf('skill');if(!subs.includes(TV.gFilter)){const a=T(current&&current.cur&&current.cur.skill);TV.gFilter=a&&subs.includes(catOf(a))?catOf(a):subs[0]}return TV.gFilter}

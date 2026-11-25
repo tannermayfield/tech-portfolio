@@ -75,7 +75,7 @@ test('Classes grid shows due times as "11:59 PM" and reads class names from the 
   assert.equal(w.eval("courseLabel('CS 101 — Computing')"),'CS 101 · Computing');
   assert.equal(w.eval("courseLabel('MATH 120')"),'MATH 120');
   assert.equal(w.eval("courseLabel('IS 401')"),'IS 401'); // no built-in course names
-  assert.equal(w.eval('Object.keys(GD_COURSE_NAMES).length'),0);
+  assert.equal(w.eval('typeof GD_COURSE_NAMES'),'undefined'); // the built-in map is gone
  }finally{dom.window.close()}
 });
 
