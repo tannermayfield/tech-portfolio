@@ -40,7 +40,7 @@
     if(SessionWorkspace.mode === 'demo')throw new Error('Sign in to save records.');
     if(kind === 'class') {
      if(!values.name)throw new Error('Enter a class name.');
-     const classes=recall('sb.classes',{}); if(Object.hasOwn(classes,values.name))throw new Error('That class already exists.');
+     const classes=recall('sb.classes'); if(Object.hasOwn(classes,values.name))throw new Error('That class already exists.');
      classes[values.name]={description:values.description,url:values.url}; store('sb.classes',classes);
     } else if(kind === 'project') {
      if(!values.name || !values.folder)throw new Error('Enter a project name and choose a computer folder.');
@@ -66,9 +66,9 @@
  }
  function open(kind, course, category) {
   if(SessionWorkspace.mode==='demo'){toast('Sign in to add records.');return;}
-  if(!(kind==='skill'&&dialogs.assignment.open))closeDrawers(); const dialog=dialogs[kind];dialog.querySelector('[role=status]').textContent='';
+  const dialog=dialogs[kind];dialog.querySelector('[role=status]').textContent='';
   if(kind==='assignment') {
-   const names=[...new Set([...Object.keys(recall('sb.classes',{})),...tasks.filter(task=>typeOf(task)==='class').map(task=>task.course).filter(Boolean)])].sort();
+   const names=[...new Set([...Object.keys(recall('sb.classes')),...tasks.filter(task=>typeOf(task)==='class').map(task=>task.course).filter(Boolean)])].sort();
    dialog.querySelector('[name=course]').replaceChildren(new Option('Choose a class',''),...names.map(name=>new Option(name,name)));
    const courseField=dialog.querySelector('[name=course]');courseField.value=course||'';courseField.closest('label').hidden=!!course;dialog.classList.toggle('class-assignment',!!course);
    assignmentSkills.clear();refreshSkills();
@@ -92,7 +92,5 @@
  document.getElementById('assignment-skill-picker').onchange=event=>{const name=event.target.value;if(name){if(assignmentSkills.has(name))assignmentSkills.delete(name);else assignmentSkills.add(name);refreshSkills()}};
  dialogs.assignment.querySelector('[data-new-assignment-skill]').onclick=()=>{returnToAssignment=true;open('skill')};
  dialogs.skill.addEventListener('close',()=>{if(returnToAssignment){returnToAssignment=false;refreshSkills();dialogs.assignment.showModal()}});
- const drawer = openDrawer;
- openDrawer = function(id) { if(id==='add-drawer')return open(tabs.left==='project'?'project':tabs.left==='skill'?'tool':'assignment'); return drawer(id); };
  globalThis.SessionAddForms={open};
 })();

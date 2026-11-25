@@ -1,4 +1,4 @@
-/* Keep script order: artifact files intentionally override earlier functions. */
+/* Loads the app scripts listed in js/manifest.js, in order, once the workspace is ready. */
 const sessionTVAssetVersion = document.currentScript ? new URL(document.currentScript.src).search : '';
 // Browser hover tips come from title attributes and SVG title elements.
 (() => {
@@ -36,8 +36,8 @@ const sessionTVAssetVersion = document.currentScript ? new URL(document.currentS
  try {
   await window.SessionCloud?.ready;
   if(window.SessionCloud?.user)await SessionCloud.open();
-  const scripts=Array.from({length:17},(_,i)=>'artifact/'+String(i+1).padStart(2,'0')+'.js').concat('local.js','account.js','project-publish.js','project-chats.js','project-backlogs.js','task-controls.js','add-forms.js','homework.js','canvas.js','classes.js','skill-categories.js','study-chats.js','home.js','session-preferences.js','chatgpt.js','connections.js','speech.js','composer.js','composer-integration.js','music.js','preview.js');
-  for(const name of scripts)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='js/'+name+sessionTVAssetVersion;s.onload=resolve;s.onerror=()=>reject(Error('Could not load '+name));document.body.appendChild(s)});
+  for(const name of window.SessionTVManifest) // the ordered list in js/manifest.js
+   await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='js/'+name+sessionTVAssetVersion;s.onload=resolve;s.onerror=()=>reject(Error('Could not load '+name));document.body.appendChild(s)});
  } catch(error) {
   const box=document.createElement('div');box.className='workspace-error';box.textContent='Workspace could not load: '+error.message+' Reload to retry. Your saved data has not been replaced.';document.body.appendChild(box);
   if(window.SessionCloud?.user){const button=document.createElement('button');button.className='btn';button.textContent='Sign out and return to demo';button.onclick=()=>SessionCloud.signOut();box.appendChild(button);}

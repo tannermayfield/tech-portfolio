@@ -68,13 +68,12 @@
  }
  $id('demo-publish-confirm').onclick=publish;$id('demo-publish-download').onclick=download;
  // Owner-only card next to Session Login.
- const base=renderSettings;renderSettings=function(){
-  base.apply(this,arguments);
+ SessionTV.hooks.after('settings:render',()=>{
   if(TV.dbView||!isOwner()||document.getElementById('demo-publish-open'))return;
   const login=document.getElementById('local-open')?.closest('.set-card');if(!login)return;
   const card=document.createElement('div');card.className='set-card demo-publish-card';
   card.innerHTML='<h3>Public Demo</h3><div class="row"><button class="btn" id="demo-publish-open">Publish to demo</button></div>';
   card.querySelector('button').onclick=open;login.after(card);
- };
+ });
  globalThis.SessionDemoExport={isOwner,open,download};
 })();

@@ -4,9 +4,10 @@ import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import jsdom from 'jsdom';
+import {appSources} from './manifest.mjs';
 const {JSDOM,VirtualConsole}=jsdom;
 const publicDir=fileURLToPath(new URL('../public/',import.meta.url));
-async function until(check){for(let i=0;i<150;i++){if(check())return;await new Promise(r=>setTimeout(r,10))}throw new Error('App did not reach expected state')}
+async function until(check){for(let i=0;i<150;i++){if(check())return;await new Promise(r=>setTimeout(r,10))}throw new Error('App did not reach expected state: '+check)}
 async function boot(saved={},url='http://127.0.0.1:4173'){
  const errors=[],vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
  const html=readFileSync(path.join(publicDir,'index.html'),'utf8').replace(/<script src="([^"]+)"><\/script>/g,(_,src)=>'<script>'+(src==='js/boot.js'?"(async()=>{await SessionCloud.ready;for(const source of window.__testSources){const s=document.createElement('script');s.textContent=source;document.body.appendChild(s)}})()":readFileSync(path.join(publicDir,src),'utf8'))+'</script>');
@@ -14,7 +15,7 @@ async function boot(saved={},url='http://127.0.0.1:4173'){
  const dom=new JSDOM(html,{
   url,runScripts:'dangerously',virtualConsole:vc,pretendToBeVisual:true,
   beforeParse(w){
-   w.__testSources=Array.from({length:17},(_,i)=>readFileSync(path.join(publicDir,'js/artifact/'+String(i+1).padStart(2,'0')+'.js'),'utf8')).concat(['local','account','project-chats','add-forms','homework','classes','skill-categories','home','session-preferences','demo-snapshot','demo-export','speech','music','preview'].map(n=>readFileSync(path.join(publicDir,'js/'+n+'.js'),'utf8')));
+   w.__testSources=appSources(); // the same ordered list boot.js loads (js/manifest.js)
    for(const [k,v]of Object.entries(saved))w.localStorage.setItem(k,v);
    w.fetch=async()=>({ok:true,json:async()=>({aiConfigured:false})});
    w.matchMedia=q=>({matches:q.includes('reduced-motion'),media:q,addEventListener(){},removeEventListener(){}});
@@ -42,10 +43,12 @@ test('boots directly into the TV, adds coursework, edits and reloads saved data'
   w.document.getElementById('btn-set').click();
   assert.ok(w.document.getElementById('local-open'));
   w.SessionTVLocal.openSetup();await until(()=>w.document.getElementById('local-setup').open);
-  w.document.getElementById('local-close').click();w.openDrawer('add-drawer');
-  w.document.getElementById('f-title').value='Integration test assignment';
-  w.document.getElementById('f-course').value='IS 402';
-  w.document.getElementById('add-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  w.document.getElementById('local-close').click();
+  const submit=kind=>w.document.querySelector('#create-'+kind+' form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  w.SessionAddForms.open('class');w.document.querySelector('#create-class [name=name]').value='IS 402';submit('class');
+  await until(()=>!w.document.getElementById('create-class').open);
+  w.SessionAddForms.open('assignment','IS 402');
+  w.document.querySelector('#create-assignment [name=title]').value='Integration test assignment';submit('assignment');
   await until(()=>w.eval('tasks.length===1'));
   const id=w.eval('tasks[0].id');
   await w.tune(id,{cut:false});
@@ -132,43 +135,7 @@ test('SQL executes on the airline sample data and editor drafts persist',async()
   assert.deepEqual(errors,[]);
  }finally{dom.window.close()}
 });
-test('project sprint planning and completion persist through the local database',async()=>{
- const {dom,w,errors}=await boot();
- try{
-  await until(()=>w.eval('PROJ.sub'));
-  const {id}=await w.eval("db.collection('tasks').add({track:'project',title:'Build first screen',course:'Test Project',status:'todo',order:1})");
-  await until(()=>w.eval('tasks.length===1'));
-  await w.tune(id,{cut:false});
-  w.document.querySelector('[data-pmode="plan"]').click();
-  w.document.getElementById('pp-create').click();
-  await until(()=>w.eval("sprintOf('Test Project')?.step===1"));
-  const date=w.document.querySelector('[data-cday]:not([disabled])');
-  assert.ok(date);date.click();
-  await until(()=>!w.document.getElementById('pp-go').disabled);
-  w.document.getElementById('pp-go').click();
-  await until(()=>w.document.getElementById('pp-goal'));
-  w.document.getElementById('pp-goal').value='Ship the first screen';
-  w.document.getElementById('pp-goal').dispatchEvent(new w.Event('input'));
-  w.document.getElementById('pp-go').click();
-  await until(()=>w.eval("sprintOf('Test Project')?.step===3"));
-  await w.projSave('Test Project',{sprint:{...w.eval("sprintOf('Test Project')"),items:[{id,pts:3}]}});
-  w.document.getElementById('pp-go').click();
-  await until(()=>w.document.querySelector('[data-all="me"]'));
-  w.document.querySelector('[data-all="me"]').click();
-  await until(()=>!w.document.getElementById('pp-go').disabled);
-  w.document.getElementById('pp-go').click();
-  await until(()=>w.eval("sprintOf('Test Project')?.status==='active'"));
-  const checkbox=w.document.querySelector('[data-spdone]');checkbox.checked=true;
-  checkbox.dispatchEvent(new w.Event('change'));
-  await until(()=>w.eval("tasks[0].status==='done'"));
-  assert.match(w.document.getElementById('pp-body').textContent,/100%/);
-  const data=JSON.parse(w.localStorage.getItem(w.SessionStore.KEY));
-  assert.equal(data.projects['test-project'].sprint.status,'active');
-  assert.deepEqual(errors,[]);
- }finally{dom.window.close()}
-});
-
-test('public preview keeps sign-in usable and blocks record editing in the DOM',async()=>{const {dom,w,errors}=await boot({},'https://tannermayfield.dev/session-tv/');try{assert.equal(w.SessionWorkspace.readOnly,true);assert.equal(w.document.body.dataset.readonly,'true');assert.equal(w.eval('tasks.length'),7);await assert.rejects(w.eval("db.doc('tasks/demo-cs').update({title:'Forbidden'})"),/read-only/);w.document.getElementById('add-form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));assert.equal(w.eval('tasks.length'),7);assert.equal(w.document.getElementById('workspace-email').disabled,false);assert.equal(w.document.getElementById('workspace-data'),null);assert.deepEqual(errors,[])}finally{dom.window.close()}});
+test('public preview keeps sign-in usable and blocks record editing in the DOM',async()=>{const {dom,w,errors}=await boot({},'https://tannermayfield.dev/session-tv/');try{assert.equal(w.SessionWorkspace.readOnly,true);assert.equal(w.document.body.dataset.readonly,'true');assert.equal(w.eval('tasks.length'),7);await assert.rejects(w.eval("db.doc('tasks/demo-cs').update({title:'Forbidden'})"),/read-only/);w.SessionAddForms.open('assignment');assert.equal(w.document.getElementById('create-assignment').open,false);w.document.querySelector('#create-assignment form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));assert.equal(w.eval('tasks.length'),7);assert.equal(w.document.getElementById('workspace-email').disabled,false);assert.equal(w.document.getElementById('workspace-data'),null);assert.deepEqual(errors,[])}finally{dom.window.close()}});
 
 test('appearance preferences persist without changing workspace data',async()=>{const {dom,w,errors}=await boot();try{assert.equal(w.document.getElementById('workspace-banner'),null);w.document.getElementById('btn-set').click();const titles=[...w.document.querySelectorAll('#set-body .set-card>h3')].map(x=>x.textContent);assert.deepEqual(titles.slice(0,3),['Session Login','Appearance','Exit SessionTV']);assert.equal(w.document.getElementById('session-exit').href,'https://tannermayfield.dev/#projects');w.document.getElementById('preferences-open').click();assert.equal(w.document.getElementById('appearance-preferences').open,true);w.document.querySelector('[data-pref="scheme"][data-value="dark"]').click();w.document.querySelector('[data-pref="screenEffect"][data-value="off"]').click();w.document.querySelector('[data-pref="cut"][data-value="0"]').click();assert.equal(w.document.body.dataset.scheme,'dark');assert.equal(w.document.body.dataset.screenEffect,'off');assert.equal(w.eval('TV.cutLen'),0);const saved=w.SessionTVLocal.backup().values;const reload=await boot(saved);try{assert.equal(reload.w.document.body.dataset.scheme,'dark');assert.equal(reload.w.document.body.dataset.screenEffect,'off');assert.equal(reload.w.eval('TV.cutLen'),0);assert.equal(reload.w.eval('tasks.length'),0)}finally{reload.dom.window.close()}assert.deepEqual(errors,[])}finally{dom.window.close()}});
 
@@ -205,7 +172,7 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
   w.eval("gdTune('project','Example project')");
   await until(()=>w.document.getElementById('coach-form').hidden===false);
   assert.equal(w.eval("T(current.active).projectChannel"),true);
-  await until(()=>!w.document.getElementById('coach-send').disabled);
+  await until(()=>w.document.getElementById('coach-form').dataset.providerReady==='true');
   let expectedMode='apply',expectedEffort='low';
   w.SessionCompanion.start=async({mode,threadId,effort,onEvent})=>{
    assert.equal(mode,expectedMode);assert.equal(threadId,'thread-'+expectedMode);assert.equal(effort,expectedEffort);
@@ -229,7 +196,7 @@ test('linked projects prepare three chats, appear in the menu, and chat only in 
   expectedEffort='medium';await w.sendCoach('Continue with the default');
   w.eval("current.projModes={'Example project':'plan'};renderWork()");
   assert.equal(w.document.getElementById('project-reasoning'),null);
-  expectedMode='plan';expectedEffort='low';await until(()=>!w.document.getElementById('coach-send').disabled);await w.sendCoach('Plan the sprint');
+  expectedMode='plan';expectedEffort='low';await until(()=>w.document.getElementById('coach-form').dataset.providerReady==='true');await w.sendCoach('Plan the sprint');
   w.SessionCompanion.prepareProject=async()=>{throw new Error('Sandbox setup needed')};
   await assert.rejects(w.SessionProjectChats.create('Not ready','C:\\Projects\\example'),/Sandbox setup needed/);
   assert.equal(w.SessionProjectChats.names().includes('Not ready'),false);
@@ -396,6 +363,8 @@ test('homework overview shows a labeled line icon per assignment type',async()=>
 
 test('class rows rename assignment courses and delete only SessionTV records with Canvas exclusions',async()=>{
  const {dom,w}=await boot();try{
+ // canvas.js only lets a signed-in workspace edit classes; this test covers the local record edits without Canvas
+ w.SessionCanvas=undefined;
  w.eval("store('sb.classes',{'CS 500':{canvasId:'123',code:'CS 500',name:'Original'}});store('sb.canvasCourses',{'123':'CS 500'});");await w.eval("db.doc('tasks/class-row-test').set({title:'Class task',track:'class',course:'CS 500',status:'todo',canvas:{courseId:'123',submitted:false,missing:false}})");
  w.eval("TV.dbView='classes';renderSettings()");assert.ok(w.document.querySelectorAll('.class-settings-row').length>0);w.SessionClasses.open('CS 500');w.document.querySelector('#class-edit [name=code]').value='IS 402';w.document.querySelector('#class-edit [name=name]').value='Database Systems';w.document.getElementById('class-name-form').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>w.eval("T('class-row-test').course")==='IS 402 — Database Systems');
  assert.equal(w.eval("T('class-row-test').course"),'IS 402 — Database Systems');assert.equal(w.eval("recall('sb.canvasCourses',{})['123']"),'IS 402 — Database Systems');
@@ -410,18 +379,43 @@ test('class edits appear immediately and another class remains editable while sa
 });
 
 test('project assignment board replaces sprint setup and routes Me and Codex backlogs persistently',async()=>{
- const {dom,w}=await boot();try{w.eval(readFileSync(path.join(publicDir,'js/project-backlogs.js'),'utf8'));await w.eval("db.doc('tasks/board-one').set({track:'project',title:'Board task',course:'Test board',status:'todo',order:1})");w.eval("globalThis.boardTask=tasks.find(t=>typeOf(t)==='project');current.active=boardTask.id;current.mood='project';ppSprint(boardTask,boardTask.course)");const name=w.boardTask.course,id=w.boardTask.id;
- assert.equal(w.document.getElementById('pp-title').textContent,'Assign tasks');assert.equal(w.document.getElementById('pp-create'),null);assert.equal(w.SessionProjectBacklogs.items(name).find(row=>row.task.id===id).who,'');await w.SessionProjectBacklogs.assign(name,id);assert.equal(w.SessionProjectBacklogs.items(name).find(row=>row.task.id===id).who,'me');w.eval('ppSkills(boardTask,boardTask.course)');assert.equal(w.document.getElementById('pp-title').textContent,'Apply backlog');assert(w.document.querySelector('.project-task-table [data-iid="'+id+'"]'));assert.equal(w.document.querySelector('.project-task-table input[type="checkbox"]'),null);w.eval('ppTeach(boardTask,boardTask.course)');assert.equal(w.document.querySelector('.project-task-table [data-iid="'+id+'"]'),null);await w.SessionProjectBacklogs.assign(name,id);w.eval('ppTeach(boardTask,boardTask.course)');assert(w.document.querySelector('.project-task-table [data-iid="'+id+'"]'));assert.equal(w.document.querySelector('.project-task-table input[type="checkbox"]'),null);await w.SessionProjectBacklogs.assign(name,id);assert.equal(w.SessionProjectBacklogs.items(name).find(row=>row.task.id===id).who,'');w.eval('ppSprint(boardTask,boardTask.course)');const input=w.document.getElementById('pp-new');input.value='New unassigned task';w.document.getElementById('project-task-create').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>w.SessionProjectBacklogs.items(name).some(row=>row.task.title==='New unassigned task'));assert.equal(w.SessionProjectBacklogs.items(name).find(row=>row.task.title==='New unassigned task').who,'');
+ const {dom,w}=await boot();try{await w.eval("db.doc('tasks/board-one').set({track:'project',title:'Board task',course:'Test board',status:'todo',order:1})");w.eval("globalThis.boardTask=tasks.find(t=>typeOf(t)==='project');current.active=boardTask.id;current.mood='project';projectPanel(boardTask,boardTask.course,'plan')");const name=w.boardTask.course,id=w.boardTask.id;
+ assert.equal(w.document.getElementById('pp-title').textContent,'Assign tasks');assert.equal(w.document.getElementById('pp-create'),null);assert.equal(w.SessionProjectBacklogs.items(name).find(row=>row.task.id===id).who,'');await w.SessionProjectBacklogs.assign(name,id);assert.equal(w.SessionProjectBacklogs.items(name).find(row=>row.task.id===id).who,'me');w.eval('projectPanel(boardTask,boardTask.course,"apply")');assert.equal(w.document.getElementById('pp-title').textContent,'Apply backlog');assert(w.document.querySelector('.project-task-table [data-iid="'+id+'"]'));assert.equal(w.document.querySelector('.project-task-table input[type="checkbox"]'),null);w.eval('projectPanel(boardTask,boardTask.course,"work")');assert.equal(w.document.querySelector('.project-task-table [data-iid="'+id+'"]'),null);await w.SessionProjectBacklogs.assign(name,id);w.eval('projectPanel(boardTask,boardTask.course,"work")');assert(w.document.querySelector('.project-task-table [data-iid="'+id+'"]'));assert.equal(w.document.querySelector('.project-task-table input[type="checkbox"]'),null);await w.SessionProjectBacklogs.assign(name,id);assert.equal(w.SessionProjectBacklogs.items(name).find(row=>row.task.id===id).who,'');w.eval('projectPanel(boardTask,boardTask.course,"plan")');const input=w.document.getElementById('pp-new');input.value='New unassigned task';w.document.getElementById('project-task-create').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>w.SessionProjectBacklogs.items(name).some(row=>row.task.title==='New unassigned task'));assert.equal(w.SessionProjectBacklogs.items(name).find(row=>row.task.title==='New unassigned task').who,'');
  }finally{dom.window.close()}
 });
 
 test('task controls persist prompts and skills, queue only prepared Codex tasks, and pause safely',async()=>{
- const {dom,w}=await boot();try{await w.eval("Promise.all([db.doc('tasks/auto-one').set({track:'project',title:'First',course:'Queue project',status:'todo',order:1,codexEffort:'low',codexPrompt:'First prompt'}),db.doc('tasks/auto-two').set({track:'project',title:'Second',course:'Queue project',status:'todo',order:2,codexEffort:'high',codexPrompt:'Second prompt'}),db.doc('tasks/auto-skip').set({track:'project',title:'Unprepared',course:'Queue project',status:'todo',order:3}),db.doc('tasks/manual-one').set({track:'project',title:'Manual',course:'Queue project',status:'todo',order:4}),db.doc('tasks/skill-one').set({track:'skill',title:'SQL joins',course:'SQL',cat:'Data',status:'todo'})])");w.eval(readFileSync(path.join(publicDir,'js/project-backlogs.js'),'utf8'));w.eval(readFileSync(path.join(publicDir,'js/task-controls.js'),'utf8'));w.eval("current.active='auto-one';current.mood='project';current.projModes={...(current.projModes||{}),'Queue project':'work'};TV.mode='task';PROJ.data[pslug('Queue project')]={name:'Queue project',taskAssignments:{'auto-one':'ai','auto-two':'ai','auto-skip':'ai','manual-one':'me'}};ppTeach(T('auto-one'),'Queue project')");
+ const {dom,w}=await boot();try{await w.eval("Promise.all([db.doc('tasks/auto-one').set({track:'project',title:'First',course:'Queue project',status:'todo',order:1,codexEffort:'low',codexPrompt:'First prompt'}),db.doc('tasks/auto-two').set({track:'project',title:'Second',course:'Queue project',status:'todo',order:2,codexEffort:'high',codexPrompt:'Second prompt'}),db.doc('tasks/auto-skip').set({track:'project',title:'Unprepared',course:'Queue project',status:'todo',order:3}),db.doc('tasks/manual-one').set({track:'project',title:'Manual',course:'Queue project',status:'todo',order:4}),db.doc('tasks/skill-one').set({track:'skill',title:'SQL joins',course:'SQL',cat:'Data',status:'todo'})])");w.eval("current.active='auto-one';current.mood='project';current.projModes={...(current.projModes||{}),'Queue project':'work'};TV.mode='task';PROJ.data[pslug('Queue project')]={name:'Queue project',taskAssignments:{'auto-one':'ai','auto-two':'ai','auto-skip':'ai','manual-one':'me'}};projectPanel(T('auto-one'),'Queue project','work')");
  const messages=[];w.SessionProjectChats.sendTask=async(name,prompt,effort)=>{messages.push({name,prompt,effort});return {completed:true}};await w.SessionTaskControls.run('Queue project');assert.deepEqual(messages.map(message=>message.effort),['low','high']);assert.match(messages[0].prompt,/First prompt/);assert.equal(w.eval("T('auto-skip').status"),'todo');assert.equal(w.eval("T('auto-one').status"),'done');
- w.eval("current.projModes['Queue project']='apply';ppSkills(T('auto-one'),'Queue project')");w.document.querySelector('[aria-label="Skills for Manual"]').click();const skill=w.document.querySelector('#task-skill-picker [aria-label="Select SQL joins"]');skill.click();w.document.querySelector('#task-skill-picker [data-save]').click();await until(()=>w.eval("T('manual-one').skills?.includes('skill-one')"));assert.match(w.document.querySelector('[aria-label="Skills for Manual"]').textContent,/1 skill/);
- await w.eval("db.doc('tasks/auto-one').update({status:'todo'})");w.eval("current.projModes['Queue project']='work';ppTeach(T('auto-one'),'Queue project')");w.document.querySelector('[aria-label="Edit prompt for First"]').click();w.document.querySelector('#task-prompt-editor textarea').value='Revised prompt';w.document.querySelector('#task-prompt-editor form').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>w.eval("T('auto-one').codexPrompt==='Revised prompt'"));
+ w.eval("current.projModes['Queue project']='apply';projectPanel(T('auto-one'),'Queue project','apply')");w.document.querySelector('[aria-label="Skills for Manual"]').click();const skill=w.document.querySelector('#task-skill-picker [aria-label="Select SQL joins"]');skill.click();w.document.querySelector('#task-skill-picker [data-save]').click();await until(()=>w.eval("T('manual-one').skills?.includes('skill-one')"));assert.match(w.document.querySelector('[aria-label="Skills for Manual"]').textContent,/1 skill/);
+ await w.eval("db.doc('tasks/auto-one').update({status:'todo'})");w.eval("current.projModes['Queue project']='work';projectPanel(T('auto-one'),'Queue project','work')");w.document.querySelector('[aria-label="Edit prompt for First"]').click();w.document.querySelector('#task-prompt-editor textarea').value='Revised prompt';w.document.querySelector('#task-prompt-editor form').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>w.eval("T('auto-one').codexPrompt==='Revised prompt'"));
  let release;w.SessionProjectChats.sendTask=()=>new Promise(resolve=>release=resolve);w.SessionCompanion.cancel=()=>release({completed:false});const pending=w.SessionTaskControls.run('Queue project');await until(()=>!!release);w.SessionTaskControls.pause();await pending;assert.equal(w.SessionTaskControls.running,false);assert.equal(w.eval("T('auto-one').status"),'todo');
  }finally{dom.window.close()}
 });
 
 test('Classwork menu uses exactly the settings classes including empty classes and custom names',async()=>{const {dom,w}=await boot();try{w.eval("store('sb.classes',{'CS 101 — Computing':{code:'CS 101',name:'Computing'},'MATH 120 — Algebra':{code:'MATH 120',name:'Algebra'},'ENG 110 — Writing':{code:'ENG 110',name:'Writing'},'HIST 100 — History':{code:'HIST 100',name:'History'}})");w.eval("TV.mode='settings';TV.dbView='classes';renderSettings()");const count=w.document.querySelectorAll('.class-settings-row').length;assert.equal(count,4);assert.equal(w.eval('gdCourses().length'),4);assert.deepEqual(Array.from(w.eval("subsOf('class')")),['Due Date',...Array.from(w.eval('SessionClasses.names()'))]);w.eval("current.mood='class';openGuide()");const labels=[...w.document.querySelectorAll('#tv-guide .gd-row:not(.gd-hdr) .gd-ch b')].map(node=>node.textContent);assert.equal(labels.length,4);assert(labels.includes('CS 101'));assert(!labels.includes('IS 401'));assert.match(w.document.getElementById('tv-guide').textContent,/Computing/);}finally{dom.window.close()}});
+
+test('failed saves put optimistic changes back and say so',async()=>{
+ const {dom,w,errors}=await boot();
+ try{
+  await w.eval("Promise.all([db.doc('tasks/rb-class').set({track:'class',title:'Essay',course:'IS 402',status:'todo',order:1}),db.doc('tasks/rb-tool').set({track:'develop',title:'Joins',course:'SQL',cat:'Data',level:1,status:'todo',order:2})])");
+  await until(()=>w.eval('tasks.length===2'));
+  // every task update fails from here on
+  w.eval("const realDoc=db.doc.bind(db);db.doc=path=>{const ref=realDoc(path);if(path.startsWith('tasks/'))ref.update=()=>Promise.reject(new Error('offline'));return ref}");
+  const toast=()=>w.document.getElementById('toast').textContent;
+  assert.equal(await w.toggleSubmitted('rb-class'),false);
+  assert.equal(w.eval("T('rb-class').status"),'todo');assert.equal(w.eval("T('rb-class').doneAt"),undefined);assert.match(toast(),/Couldn't save/);
+  w.document.getElementById('toast').textContent='';
+  assert.equal(await w.setLevel('rb-tool',3),false);
+  assert.equal(w.eval("T('rb-tool').level"),1);assert.match(toast(),/Couldn't save/);
+  w.openTask('rb-class',true);w.document.getElementById('td-t').value='Renamed essay';
+  w.document.getElementById('td-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  await until(()=>w.eval("T('rb-class').title")==='Essay');
+  assert.match(w.document.getElementById('td-view').textContent,/Essay/);assert.doesNotMatch(w.document.getElementById('td-view').textContent,/Renamed/);
+  w.document.getElementById('task-dlg').close();
+  await w.tune('rb-tool',{cut:false});w.eval('current.practiced=[]');
+  await w.markDone('rb-tool');
+  assert.deepEqual(Array.from(w.eval('current.practiced')),[]);assert.equal(w.eval('current.active'),'rb-tool');
+  assert.deepEqual(errors,[]);
+ }finally{dom.window.close()}
+});

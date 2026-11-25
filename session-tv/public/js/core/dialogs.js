@@ -1,3 +1,4 @@
+/* Confirm dialogs open inside the TV screen; using a TV control closes them. */
 (function(){
   const crt=()=>document.getElementById('crt');
   function place(){const c=crt();if(!c)return;const physical=c.getBoundingClientRect(),st=document.documentElement.style,scale=innerWidth>860?parseFloat(st.getPropertyValue('--tv-scale'))||1:1;

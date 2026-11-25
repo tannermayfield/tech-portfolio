@@ -7,7 +7,7 @@
  function close(){if(dialog.hidden)return;dialog.hidden=true;dialog.classList.remove('open');if(opener?.isConnected)opener.focus({preventScroll:true})}
  for(const name of ['btn-menu','btn-set'])$(name)?.addEventListener('click',close,true);
  addEventListener('keydown',event=>{if(event.key==='Escape'&&!dialog.hidden&&!document.querySelector('dialog[open]')){event.stopImmediatePropagation();close()}},true);
- let linkCourse='';const linkDialog=document.createElement('dialog');linkDialog.className='confirm-dlg';linkDialog.id='homework-course-link';linkDialog.innerHTML='<div class="local-panel"><h2>Course link</h2><p data-course></p><form><label>Course website<input type="url" required name="url" placeholder="https://…"></label><div class="row"><button class="btn" type="submit">Save link</button><button class="btn ghost" type="button" data-cancel>Cancel</button></div></form><p role="status"></p></div>';document.body.append(linkDialog);linkDialog.querySelector('[data-cancel]').onclick=()=>{linkDialog.close();render();show()};linkDialog.querySelector('form').onsubmit=event=>{event.preventDefault();if(SessionWorkspace.mode==='demo')return;const url=safeURL(linkDialog.querySelector('input').value);if(!url){linkDialog.querySelector('[role=status]').textContent='Enter an http or https course link.';return}const classes=recall('sb.classes',{});store('sb.classes',{...classes,[linkCourse]:{...classes[linkCourse],url}});linkDialog.close();render();show()};
+ let linkCourse='';const linkDialog=document.createElement('dialog');linkDialog.className='confirm-dlg';linkDialog.id='homework-course-link';linkDialog.innerHTML='<div class="local-panel"><h2>Course link</h2><p data-course></p><form><label>Course website<input type="url" required name="url" placeholder="https://…"></label><div class="row"><button class="btn" type="submit">Save link</button><button class="btn ghost" type="button" data-cancel>Cancel</button></div></form><p role="status"></p></div>';document.body.append(linkDialog);linkDialog.querySelector('[data-cancel]').onclick=()=>{linkDialog.close();render();show()};linkDialog.querySelector('form').onsubmit=event=>{event.preventDefault();if(SessionWorkspace.mode==='demo')return;const url=safeURL(linkDialog.querySelector('input').value);if(!url){linkDialog.querySelector('[role=status]').textContent='Enter an http or https course link.';return}const classes=recall('sb.classes');store('sb.classes',{...classes,[linkCourse]:{...classes[linkCourse],url}});linkDialog.close();render();show()};
  const classify=(task,now=Date.now())=>{if(task.canvas?.submitted===true)return 'submitted';if(task.canvas?.submitted===false)return task.canvas.missing===true?'missing':'due';if(task.status==='done')return 'submitted';const deadline=task.due?new Date(task.due+'T'+(task.dueTime||'23:59')).getTime():Infinity;return deadline<now?'missing':'due'};
  // Line icons share the app's 24px grid; stroke styling lives in homework.css.
  const kinds={
@@ -38,7 +38,7 @@
  function records(){return tasks.filter(task=>typeOf(task)==='class'&&task.status!=='archived')}
  const safeURL=value=>{try{const url=new URL(value);return ['https:','http:'].includes(url.protocol)?url.href:null}catch{return null}};
  function render(){
-  const all=records(),classes=recall('sb.classes',{}),names=[...new Set([...Object.keys(classes),...all.map(task=>task.course).filter(Boolean)])].sort();if(course!=='all'&&!names.includes(course))course='all';
+  const all=records(),classes=recall('sb.classes'),names=[...new Set([...Object.keys(classes),...all.map(task=>task.course).filter(Boolean)])].sort();if(course!=='all'&&!names.includes(course))course='all';
   const select=dialog.querySelector('select');select.replaceChildren(new Option('All classes','all'),...names.map(name=>new Option(name,name)));select.value=course;
   const filtered=all.filter(task=>course==='all'||task.course===course),stats=dialog.querySelector('.homework-stats');stats.replaceChildren();
   for(const [key,label]of [['due','Due'],['missing','Missing'],['submitted','Submitted']]){const button=document.createElement('button');button.className='homework-stat '+key;button.type='button';button.setAttribute('aria-pressed',String(active===key));const count=document.createElement('b');count.textContent=filtered.filter(task=>classify(task)===key).length;const caption=document.createElement('span');caption.textContent=label;button.append(count,caption);button.onclick=()=>{active=key;render()};stats.append(button)}
@@ -59,7 +59,7 @@
  }
  dialog.querySelector('[data-canvas]').onclick=()=>{if(SessionWorkspace.mode==='demo')return;SessionTVLocal.openSetup('preferences');document.getElementById('pref-tab-canvas').click()};
  dialog.querySelector('[data-close]').onclick=()=>close();dialog.querySelector('select').onchange=event=>{course=event.target.value;render()};dialog.querySelector('[data-add]').onclick=()=>SessionAddForms.open('assignment',course==='all'?undefined:course);
- const baseGuide=renderGuide;renderGuide=function(){baseGuide.apply(this,arguments);if(!dialog.hidden)render()};
+ SessionTV.hooks.after('guide:render',()=>{if(!dialog.hidden)render()});
  globalThis.SessionHomework={open(){opener=document.activeElement;active='due';course='all';render();show()},classify,kindOf,formatDue};
  addEventListener('sessiontv:auth',()=>{close();linkDialog.close()});
 })();
