@@ -1,7 +1,7 @@
 /* ================= TV controller: channels, tuning, knobs, cutscenes, song plate, timer and on-screen display ================= */
 document.body.classList.add('tv');
 const TV={scheme:recall('sb.scheme'),cutLen:recall('sb.cutLen')?4:0,sub:recall('sb.tvsub'),theme:null,mode:'task',guideCat:null,cut:null,songIdx:0,songT:0};
-const MAIN=['class','skill','project'],CH_BASE={class:100,skill:200,project:300},MAIN_LBL={class:'Class',skill:'Skills',project:'Projects'};
+const MAIN=['class','skill','project'],CH_BASE={class:100,skill:200,project:300},MAIN_LBL={class:'Classes',skill:'Skills',project:'Projects'};
 const darkMQ=matchMedia('(prefers-color-scheme: dark)');
 function applyScheme(){const s=TV.scheme==='auto'?(darkMQ.matches?'dark':'light'):TV.scheme;document.body.dataset.scheme=s;document.documentElement.dataset.theme=s}
 darkMQ.addEventListener?.('change',()=>{applyScheme();renderWork()});
