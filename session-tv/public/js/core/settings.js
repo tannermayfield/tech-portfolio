@@ -1,5 +1,11 @@
-/* ---------- Settings: Session Database ---------- */
+/* ---------- Settings: preferences, time stats and My Database ---------- */
 TV.dbView=null;
+/* Settings remembers where you came from and returns there on exit (see closeSheets) */
+function openSettings(){return SessionTV.hooks.run('settings:open',arguments,()=>{
+  stopCut();sheetSnap();if(TV.mode!=='settings'){TV.preSet={mode:TV.mode,cat:TV.guideCat};TV.dbView=null}TV.mode='settings';$('tv-guide').classList.remove('open');$('tv-settings').classList.add('open');renderSettings();renderPanel();
+})}
+$('set-x').onclick=()=>closeSheets();
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&TV.mode!=='task'&&view!=='log')closeSheets()});
 function settingsHeader(title, add, onAdd){
   const header=$('tv-settings').querySelector('.sheet-head');
   header.querySelector('h2').innerHTML='Settings'+(title?' <span class="settings-chevron" aria-hidden="true">&gt;</span> <span>'+esc(title)+'</span>':'');
@@ -11,11 +17,11 @@ function settingsHeader(title, add, onAdd){
   back.onclick=()=>{if(TV.dbView){TV.dbView=null;renderSettings()}else closeSheets()};
   if(add){const button=document.createElement('button');button.type='button';button.id='db-add';button.className='btn';button.textContent='+ '+add;button.onclick=onAdd;header.insertBefore(button,back)}
 }
-function renderSettings(){
+function renderSettings(){return SessionTV.hooks.run('settings:render',arguments,()=>{
   if(TV.dbView)return renderDbView(TV.dbView);
   settingsHeader();
   const live=tasks.filter(t=>t.status!=='archived'),cls=live.filter(t=>typeOf(t)==='class'),sk=live.filter(t=>typeOf(t)==='skill'),pj=live.filter(t=>typeOf(t)==='project');
-  const courses=[...new Set([...cls.map(t=>t.course).filter(Boolean),...Object.keys(recall('sb.classes',{}))])],projects=[...new Set([...pj.map(t=>t.course||'Other'),...Object.values(PROJ.data).map(p=>p.name).filter(Boolean)])];
+  const courses=[...new Set([...cls.map(t=>t.course).filter(Boolean),...Object.keys(recall('sb.classes'))])],projects=[...new Set([...pj.map(t=>t.course||'Other'),...Object.values(PROJ.data).map(p=>p.name).filter(Boolean)])];
   const exp=pj.filter(t=>t.status==='done').length;
   const stat=(n,l,v)=>`<button type="button" class="db-stat" data-db="${v}" title="Open ${l}"><b>${n}</b><span>${l}</span></button>`;
   $('set-body').innerHTML=`<div class="set-grid">
@@ -37,7 +43,7 @@ function renderSettings(){
     }
   };
   $('set-body').querySelectorAll('[data-db]').forEach(b=>b.onclick=()=>{if(b.dataset.db==='learning'){closeSheets();go('log');return}TV.dbView=b.dataset.db;renderSettings()});
-}
+})}
 const TT_RANGES=[['last','Last Session'],['14','Last 14 Days'],['all','Lifetime']];
 TV.ttRange=(()=>{try{return SessionWorkspace.storage.getItem('sb.ttRange')||'14'}catch(e){return '14'}})();
 function byTypeRange(r){
@@ -52,13 +58,13 @@ function setTimeCard(){
   const rows=CATS.map(k=>{const v=m[k]||0,p=tot?v/tot:0;return `<div class="tt-row"><div class="tt-top"><span>${esc(TYPES[k].label)}</span><span>${fmtMin(v)} · ${Math.round(p*100)}%</span></div><div class="tt-bar"><i style="width:${Math.min(100,p*100)}%"></i></div></div>`}).join('');
   return `<div class="set-card tt-card"><div class="tt-head"><h3>Time Stats</h3><button type="button" class="tt-range" id="tt-range" title="Change the time range">${rl}</button></div><div class="tt-rows">${rows}</div><div class="tt-tot">Total <b>${fmtMin(tot)}</b></div></div>`;
 }
-function renderDbView(v){
+function renderDbView(v){return SessionTV.hooks.run('dbView:render',arguments,v=>{
   const live=tasks.filter(t=>t.status!=='archived'),d=iso=>iso?new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'';
   const row=(t,meta,done)=>`<li><button type="button" class="db-row${done?' done':''}" data-open="${esc(t.id)}"><span class="db-t">${esc(t.title)}</span><span class="db-m">${meta}</span></button></li>`;
   const group=(h,sub,items)=>`<section class="db-grp"><h4>${esc(h)}${sub?` <small>${esc(sub)}</small>`:''}</h4><ul>${items||'<li class="db-empty">Nothing here yet.</li>'}</ul></section>`;
   let title='',body='',add='';
   if(v==='classes'||v==='assignments'){title='Classes';add='Add class';
-    const cls=live.filter(t=>typeOf(t)==='class'),courses=[...new Set([...cls.map(t=>t.course||'Other'),...Object.keys(recall('sb.classes',{}))])].sort();
+    const cls=live.filter(t=>typeOf(t)==='class'),courses=[...new Set([...cls.map(t=>t.course||'Other'),...Object.keys(recall('sb.classes'))])].sort();
     body=courses.map(c=>{const l=cls.filter(t=>(t.course||'Other')===c).sort((a,b)=>(a.status==='done')-(b.status==='done')||String(a.due||'9').localeCompare(String(b.due||'9')));
       const open=l.filter(t=>t.status!=='done').length;
       return `<section class="db-grp class-section"><div class="class-section-head"><h4>${esc(c+(GD_COURSE_NAMES[c]?' · '+GD_COURSE_NAMES[c]:''))}<small>${open} open · ${l.length-open} done</small></h4><button type="button" class="btn" data-add-assignment="${esc(c)}">+ Add assignment</button></div><ul>${l.map(t=>row(t,t.status==='done'?`Done ${d(t.doneAt)}`:(t.due?esc(fmtDue(t)):'No due date'),t.status==='done')).join('')||'<li class="db-empty">No assignments yet.</li>'}</ul></section>`}).join('');}
@@ -81,4 +87,4 @@ function renderDbView(v){
   $('set-body').querySelectorAll('[data-add-assignment]').forEach(button=>button.onclick=()=>SessionAddForms.open('assignment',button.dataset.addAssignment));
   $('set-body').querySelectorAll('[data-add-tool]').forEach(button=>button.onclick=()=>SessionAddForms.open('tool',button.dataset.addTool,button.dataset.toolCategory));
   $('set-body').querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openTask(b.dataset.open));
-}
+})}

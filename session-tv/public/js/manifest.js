@@ -1,0 +1,45 @@
+/* The ordered list of scripts boot.js loads after the workspace is ready (paths are relative to js/).
+   Tests read this same list, so they load exactly what the app loads. Order matters: core/ files
+   define the shared globals; feature files after them extend core through SessionTV.hooks. */
+globalThis.SessionTVManifest=Object.freeze([
+ // core: each function is defined once, in the module for its screen
+ 'core/hooks.js',
+ 'core/preferences.js',
+ 'core/util.js',
+ 'core/model.js',
+ 'core/dialogs.js',
+ 'core/scenes.js',
+ 'core/tv-controls.js',
+ 'core/tasks.js',
+ 'core/work.js',
+ 'core/editor.js',
+ 'core/projects.js',
+ 'core/wrapup.js',
+ 'core/log.js',
+ 'core/guide.js',
+ 'core/settings.js',
+ 'core/boot-state.js',
+ // features
+ 'local.js',
+ 'account.js',
+ 'project-publish.js',
+ 'project-chats.js',
+ 'task-controls.js',
+ 'add-forms.js',
+ 'homework.js',
+ 'canvas.js',
+ 'classes.js',
+ 'skill-categories.js',
+ 'study-chats.js',
+ 'home.js',
+ 'session-preferences.js',
+ 'chatgpt.js',
+ 'connections.js',
+ 'demo-snapshot.js',
+ 'demo-export.js',
+ 'speech.js',
+ 'composer.js',
+ 'composer-integration.js',
+ 'music.js',
+ 'preview.js'
+]);

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {JSDOM} from 'jsdom';
-const source=readFileSync(new URL('../public/js/study-chats.js',import.meta.url),'utf8');
+const source=readFileSync(new URL('../public/js/study-chats.js',import.meta.url),'utf8'),hooks=readFileSync(new URL('../public/js/core/hooks.js',import.meta.url),'utf8');
 const wait=async check=>{for(let i=0;i<100;i++){if(check())return;await new Promise(resolve=>setTimeout(resolve,5));}throw new Error('Study UI did not settle');};
 function boot({mode='private',active='class-a',connected=true,values={},start,account='account-a',models=[{slug:'newest-model',display_name:'Newest model'}]}={}){
  const dom=new JSDOM('<section id="coach-wrap"><div id="coach-quick"></div><div id="coach-log"></div><form id="coach-form"><textarea id="coach-input"></textarea><button id="coach-send">Send</button></form></section><button id="pref-tab-ai">AI</button>',{runScripts:'dangerously',url:'https://tannermayfield.dev/session-tv/'}),w=dom.window,data=new Map(Object.entries(values)),calls=[],toasts=[],formatted=[],legacy=[];
@@ -10,7 +10,8 @@ function boot({mode='private',active='class-a',connected=true,values={},start,ac
  w.recall=(key,fallback)=>data.get(key)??fallback;w.store=(key,value)=>data.set(key,JSON.parse(JSON.stringify(value)));w.$=id=>w.document.getElementById(id);w.toast=message=>toasts.push(message);
  w.tasks=[{id:'class-a',track:'class',title:'Design a schema',course:'IS 350',description:'Create tables for a library.',due:'2026-12-01',dueTime:'17:00',skills:['skill-a']},{id:'class-b',track:'class',title:'Other assignment',course:'IS 350'},{id:'skill-a',track:'skill',title:'SQL joins',level:2,goal:'Explain join behavior'},{id:'project-a',track:'project',title:'Project code',course:'Folder project'}];
  w.current={active,wrapUp:{}};w.T=id=>w.tasks.find(task=>task.id===id);w.typeOf=task=>task.track;w.skillLevel=task=>task.level||1;w.chatKey=task=>task.id;w.coachTurns={};
- w.renderCoachLog=()=>legacy.push('log');w.renderWork=()=>{legacy.push('work');w.renderCoachLog();};w.sendCoach=async(text,show)=>{legacy.push({text,show});return {legacy:true};};w.sample=()=>{throw Error('Legacy API must never run for study chats');};
+ w.eval(hooks);const run=(name,core)=>(...args)=>w.SessionTV.hooks.run(name,args,core);
+ w.renderCoachLog=run('coach:render',()=>legacy.push('log'));w.renderWork=run('work:render',()=>{legacy.push('work');w.renderCoachLog();});w.sendCoach=run('coach:send',async(text,show)=>{legacy.push({text,show});return {legacy:true};});w.sample=()=>{throw Error('Legacy API must never run for study chats');};
  w.fmtMsg=(text,ai)=>{formatted.push({text,ai});const div=w.document.createElement('div');div.textContent=text;return div.innerHTML.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');};
  w.SessionCompanion={chatGPTStatus:async()=>{calls.push({type:'status'});return {connected,planUsageEnabled:connected,account:{client_id:account,email:'learner@example.com'}};},chatGPTModels:async()=>{calls.push({type:'models'});return {models};},chatGPTStart:async options=>{calls.push({type:'start',options});if(start)return start(options);options.onEvent({type:'response.output_text.delta',delta:'**Concept** explained'});options.onEvent({type:'response.completed'});}};
  w.eval(source);return {dom,w,data,calls,toasts,formatted,legacy};

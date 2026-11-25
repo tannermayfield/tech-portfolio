@@ -1,6 +1,6 @@
 import http from 'node:http';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
-import {realpath,stat} from 'node:fs/promises';
+import {readFile,realpath,rm,stat,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {CodexBridge} from './codex.mjs';
@@ -10,10 +10,13 @@ import {chatGPTService} from './chatgpt.mjs';
 import {sessionTVPublisher,liveSessionTVCommit} from './publish.mjs';
 import {publishToolResponse} from './publish-tool.mjs';
 import {canvasService} from './canvas.mjs';
+import demoSnapshot from '../public/js/demo-snapshot.js';
 
 const failure=(status,message)=>Object.assign(new Error(message),{status});
 const secret=()=>randomBytes(24).toString('base64url');
 const equal=(a,b)=>typeof a==='string'&&typeof b==='string'&&Buffer.byteLength(a)===Buffer.byteLength(b)&&timingSafeEqual(Buffer.from(a),Buffer.from(b));
+const demoFile='session-tv/public/js/demo-data.js';
+const isPortfolio=cwd=>{const leaf=path.basename(cwd).toLowerCase(),parent=path.basename(path.dirname(cwd)).toLowerCase();return leaf==='tech-portfolio'||(leaf==='session-tv'&&parent==='tech-portfolio')};
 async function readJSON(req,limit=32000){let data='';for await(const chunk of req){data+=chunk;if(Buffer.byteLength(data)>limit)throw failure(413,'Request too large.')}try{return JSON.parse(data)}catch{throw failure(400,'Invalid JSON.')}}
 export async function canonicalWorkspaces(values){
  const roots=[];for(const value of values){const root=await realpath(value);if(!(await stat(root)).isDirectory()||path.parse(root).root===root)throw new Error('Select a project directory, not a filesystem root.');roots.push(root)}
@@ -68,6 +71,25 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
   }catch(error){if(record)endCodexLogin(record,{error:'Codex sign-in could not start. Update Codex and try again.'});throw error.status?error:failure(503,'Codex sign-in could not start. Check that Codex is installed and try again.');}
   finally{if(bridge&&codexLogin?.bridge!==bridge)bridge.stop();operation=false;}
  }
+ // Owner-reviewed public demo: validate with the shared allowlist, write only demo-data.js, then publish it alone.
+ async function publishDemo(cwd,snapshot){
+  const file=path.join(path.basename(cwd).toLowerCase()==='session-tv'?cwd:path.join(cwd,'session-tv'),'public','js','demo-data.js');
+  const publisher=await publisherFactory(cwd);
+  if((await publisher.snapshot()).tree)throw failure(409,'SessionTV has unpublished local changes. Publish or discard them before publishing the demo.');
+  const original=await readFile(file,'utf8').catch(()=>null),next=demoSnapshot.renderDemoFile(snapshot);
+  if(original===next)return {status:'no_changes'};
+  await writeFile(file,next);
+  try{
+   const review=await publisher.snapshot();
+   if(!review.tree)return {status:'no_changes'};
+   if(review.files.length!==1||review.files[0]!==demoFile)throw failure(409,'Only demo-data.js may change when publishing the demo.');
+   const release=await publisher.publish(review,{message:'Publish SessionTV demo snapshot'});
+   return {status:'pushed',commit:release.commit,url:release.url};
+  }catch(error){
+   if(original===null)await rm(file,{force:true});else await writeFile(file,original);
+   throw error.status?error:failure(503,'The demo could not be published. Check the portfolio checkout and try again.');
+  }
+ }
  const verify=verifyUser||(async token=>{
   const response=await fetch(new URL('/auth/v1/user',supabaseUrl),{headers:{apikey:publishableKey,Authorization:'Bearer '+token},signal:AbortSignal.timeout(10000)});
   if(!response.ok)throw failure(401,'Your Supabase session is invalid. Sign in again.');return response.json();
@@ -107,6 +129,15 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
     paired=true;const token=deviceToken||secret();pairs.set(token,{userId:user.id,expires:now()+1800000});json(res,200,{token,remember:!!deviceToken,expiresIn:deviceToken?null:1800});return;
    }
    await authorize(req);
+   if(route==='/demo/publish'){
+    const body=await readJSON(req,4*1024*1024);
+    let snapshot;try{snapshot=demoSnapshot.validateSnapshot(body?.snapshot)}catch(error){throw failure(400,error.message)}
+    const cwd=folders.workspaces.find(isPortfolio);if(!cwd)throw failure(409,'Add your tech-portfolio checkout to the companion to publish the demo.');
+    if(active||operation||codexLogin)throw failure(409,'A computer request is already running. Wait for it to finish.');
+    operation=true;
+    try{json(res,200,await publishDemo(cwd,snapshot))}finally{operation=false}
+    return;
+   }
    if(route==='/publish/status'){
     const body=await readJSON(req);
     json(res,200,{live:await verifyDeployment(body.commit).catch(()=>false)});return;
@@ -208,8 +239,7 @@ export function createCompanion({origin='https://tannermayfield.dev',supabaseUrl
    if(body.effort!==undefined&&!['low','medium','high','xhigh'].includes(body.effort))throw failure(400,'Choose Light, Medium, High, or Extra high effort.');
    if(body.reviewer!==undefined&&!['user','auto_review'].includes(body.reviewer))throw failure(400,'Choose a supported approval mode.');
    if(active||operation||codexLogin)throw failure(409,'A coding request is already running.');
-   const leaf=path.basename(cwd).toLowerCase(),parent=path.basename(path.dirname(cwd)).toLowerCase();
-   const canPublish=body.mode==='work'&&(leaf==='tech-portfolio'||(leaf==='session-tv'&&parent==='tech-portfolio'));
+   const canPublish=body.mode==='work'&&isPortfolio(cwd);
    const toolConnection=canPublish?{token:secret(),url:'http://127.0.0.1:'+server.address().port+'/codex/publish-tool',publish:()=>publishChanges(true)}:null;
    const bridge=active=bridgeFactory({executable,home,cwd,reviewChanges:body.mode==='work',reviewer:body.mode==='work'?body.reviewer:'user',publishTool:toolConnection});
    if(toolConnection)connectedPublisher=toolConnection;

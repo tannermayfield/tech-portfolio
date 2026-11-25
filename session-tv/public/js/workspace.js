@@ -21,6 +21,10 @@
   'demo-project-test':{track:'project',title:'Test keyboard navigation',course:'Campus Reading List',status:'todo',order:2}
  },settings:{main:{portfolioUrl:'https://tannermayfield.dev/',autoOpen:false}},projects:{},sessions:{},state:{}}}
  if(mode==='demo')storage.setItem('sessiontv.database.v1',JSON.stringify(window.SessionTVDemo?.database?SessionStore.validate(window.SessionTVDemo.database):sample()));
+ // Published owner preferences (class list, skills, categories, levels, themes) so demo menus match the owner's. Keep in sync with SessionDemoSnapshot.PREFERENCE_KEYS.
+ const demoPreferences=['sb.classes','sb.skillCategories','sb.skills','sb.skillChannels','sb.sectionThemes','sb.sectionCharacters'];
+ const published=window.SessionTVDemo?.database&&window.SessionTVDemo.preferences;
+ if(mode==='demo'&&published&&typeof published==='object')for(const key of demoPreferences)if(Object.hasOwn(published,key)&&published[key]!=null)memory.set(key,JSON.stringify(published[key]));
  window.SessionWorkspace={get mode(){return mode},get readOnly(){return mode==='demo'},get snapshotSource(){return window.SessionTVDemo?.source||'sample'},storage,get persistent(){return mode!=='demo'&&!!native},
   setPrivate(id){if(!id)throw Error('User required');mode='private';privateValues={}},
   hydratePrivate(values){privateValues={...values}},clearPrivate(){privateValues={};callbacks.clear()},onPrivateChange(cb){callbacks.add(cb);return()=>callbacks.delete(cb)},
