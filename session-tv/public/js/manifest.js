@@ -20,6 +20,7 @@ globalThis.SessionTVManifest=Object.freeze([
  'core/settings.js',
  'core/boot-state.js',
  // features
+ 'tooltips.js',
  'local.js',
  'account.js',
  'project-publish.js',

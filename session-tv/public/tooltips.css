@@ -1,0 +1,21 @@
+/* TV tooltips (js/tooltips.js): a small on-screen-display caption, white phosphor by night, amber on bakelite by day. */
+.tv-tooltip{--tip-bg:#0C0C0B;--tip-ink:#F4F4F2;--tip-line:rgba(255,255,255,.34);--tip-glow:rgba(255,255,255,.3);
+  position:fixed;left:0;top:0;z-index:2147483000;box-sizing:border-box;max-width:min(300px,calc(100vw - 12px));padding:4px 9px 3px;
+  font:400 17px/1.05 var(--f-osd,"VT323",ui-monospace,monospace);letter-spacing:.07em;text-transform:uppercase;text-align:center;overflow-wrap:anywhere;
+  color:var(--tip-ink);background:var(--tip-bg);border:1px solid var(--tip-line);border-radius:5px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.5),0 0 10px -2px var(--tip-glow),0 6px 16px -6px rgba(0,0,0,.75);
+  text-shadow:0 0 6px var(--tip-glow);pointer-events:none;user-select:none;opacity:0;transition:opacity .12s ease-out}
+.tv-tooltip[data-show]{opacity:1}
+.tv-tooltip[hidden]{display:none}
+/* faint scanlines across the caption, like the picture tube */
+.tv-tooltip::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px)}
+.tv-tooltip span{position:relative}
+/* the pointer notch, aimed at the element's centre */
+.tv-tooltip::after{content:"";position:absolute;left:var(--tip-arrow,50%);width:7px;height:7px;margin-left:-4px;background:var(--tip-bg);
+  border:1px solid var(--tip-line);transform:rotate(45deg)}
+.tv-tooltip[data-side="top"]::after{bottom:-5px;border-top:0;border-left:0}
+.tv-tooltip[data-side="bottom"]::after{top:-5px;border-bottom:0;border-right:0}
+body[data-scheme="light"] .tv-tooltip{--tip-bg:#2A2018;--tip-ink:#FFE7A8;--tip-line:rgba(255,206,120,.5);--tip-glow:rgba(255,190,90,.3)}
+@media (prefers-reduced-motion:reduce){.tv-tooltip{transition:none}}
+@media (forced-colors:active){.tv-tooltip{border-color:CanvasText;background:Canvas;color:CanvasText}.tv-tooltip::before{display:none}}
