@@ -1,4 +1,4 @@
-> Current sign-in implementation: Username/password with an email/password fallback replaces email OTP. Apply the username migration and deploy the username-login Edge Function in addition to the base schema. See [current account setup](NEXT-STEPS.md). The email-OTP instructions below describe the earlier implementation and are superseded for sign-in.
+> Current sign-in implementation: email and password, or Continue with Google, through Supabase Auth; this replaces email OTP. The username migration below is kept for migration order only; the username-login Edge Function is no longer used. See [current account setup](NEXT-STEPS.md). The email-OTP instructions below describe the earlier implementation and are superseded for sign-in.
 
 > Current owner setup: Enter correct records manually after signing in. The existing local data is incorrect and will not be migrated. Backup/import controls have been removed from Settings; the import APIs below are retained as maintenance utilities only. See [simple setup instructions](NEXT-STEPS.md).
 

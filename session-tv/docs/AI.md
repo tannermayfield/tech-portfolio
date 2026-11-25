@@ -48,7 +48,7 @@ Pairing is user-initiated. Modern browsers can ask permission for loopback/local
 The companion supports OpenAI’s official locally hosted app sign-in flow. ChatGPT authorization and inference execute in your local companion, separate from Codex and Supabase sign-in. There is no developer API key, paid API fallback or access to conversations or memory from ChatGPT.com.
 
 1. Sign in to your private SessionTV workspace.
-2. Open Settings → Session Preferences → AI Connection.
+2. Open Settings → Preferences → AI Connections.
 3. Under ChatGPT, click **Continue with ChatGPT** and approve SessionTV in the OpenAI browser window.
 4. In [ChatGPT Settings → Usage](https://chatgpt.com/settings/usage), leave the option to use credits after your plan limit **off** for SessionTV. Requests consume your existing shared plan allowance; this does not add a separate allowance.
 5. Return to SessionTV, check the connection, then open ChatGPT chat. Select a model available to your signed-in account.

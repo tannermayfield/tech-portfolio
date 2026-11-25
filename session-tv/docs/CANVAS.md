@@ -5,7 +5,7 @@ Canvas assignments are read through your local Session Companion. The Canvas acc
 1. Sign into SessionTV and make sure the computer companion is paired.
 2. In https://byu.instructure.com open Account → Settings → Approved Integrations → New Access Token.
 3. Name the token SessionTV and choose an expiration date. Copy the generated token; do not paste it into chats or source files.
-4. Open SessionTV Settings → Session Preferences → Open Full Preferences → Canvas. Paste the token into the protected input and connect.
+4. Open SessionTV Settings → Preferences → Canvas. Paste the token into the protected input and connect.
 5. Click Sync now. Classes and assignments appear in Homework Overview.
 
 When enabled, automatic refresh runs when SessionTV loads online, returns to the foreground, or regains internet access while your companion is connected. There is no five-minute polling timer. It does not run with the browser closed. Expired or revoked tokens require reconnecting. Sync only reads Canvas: marking tasks complete in SessionTV does not submit homework or change Canvas.

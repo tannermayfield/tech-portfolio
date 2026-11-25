@@ -7,7 +7,9 @@
   // Appearance and TV controls
   ['sb.scheme','auto','Light / dark mode: auto, light or dark.'],
   ['sb.cutLen',4,'Channel cutscene length in seconds (0 turns cutscenes off).'],
-  ['sb.screenEffect',true,'TV screen interference effect on or off.'],
+  ['sb.screenStatic',true,'Screen static on or off: snow, rolling bars, interference lines and scanlines.'],
+  ['sb.screenColor','bw','Picture color: "bw" (black and white) or "color".'],
+  ['sb.screenEffect',null,'Replaced by sb.screenStatic and sb.screenColor; read once to migrate (false meant static off, color on).'],
   ['sb.tvsub',{},'Last sub-channel chosen per section, e.g. {skill:"Data"}.'],
   ['sb.ttRange','14','Settings → Time Stats range: last, 14 or all.','text'],
   ['sb.sectionThemes',{},'Background theme chosen per section; empty means rotate.'],

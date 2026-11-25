@@ -18,7 +18,7 @@ See [cloud setup](docs/CLOUD.md) and [simple next steps](docs/NEXT-STEPS.md). En
 
 ## AI Connections
 
-Settings → Session Preferences → AI Connection manages the local Codex companion and optional ChatGPT plan-backed general chat. ChatGPT authorization and inference run on your computer using the official local-app OAuth flow; the website receives no OpenAI credentials. Continue with ChatGPT requires your own browser consent. Use included plan usage and leave credit use disabled in ChatGPT Settings → Usage; there is no API-key or paid fallback. See [AI setup](docs/AI.md).
+Settings → Preferences → AI Connections manages the local Codex companion and optional ChatGPT plan-backed general chat. ChatGPT authorization and inference run on your computer using the official local-app OAuth flow; the website receives no OpenAI credentials. Continue with ChatGPT requires your own browser consent. Use included plan usage and leave credit use disabled in ChatGPT Settings → Usage; there is no API-key or paid fallback. See [AI setup](docs/AI.md).
 
 Project Plan and Apply use GPT-6 Luna at Light effort. Work uses the latest supported Codex model and opens at Medium, with Light, Medium, High and Extra high offered when supported. Every turn sends the selected model and effort explicitly. Classes and Skills use their own ChatGPT study conversations through the existing subscription connection, fixed to the first model in the live account catalog at Medium. Their conversations are kept separate per assignment or skill.
 
