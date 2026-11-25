@@ -45,8 +45,8 @@ test('boots directly into the TV, adds coursework, edits and reloads saved data'
   w.SessionTVLocal.openSetup();await until(()=>w.document.getElementById('local-setup').open);
   w.document.getElementById('local-close').click();
   const submit=kind=>w.document.querySelector('#create-'+kind+' form').dispatchEvent(new w.Event('submit',{cancelable:true}));
-  w.SessionAddForms.open('class');w.document.querySelector('#create-class [name=name]').value='IS 402';submit('class');
-  await until(()=>!w.document.getElementById('create-class').open);
+  w.SessionAddForms.open('class');w.document.querySelector('#class-edit [name=code]').value='IS 402';w.document.getElementById('class-name-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  await until(()=>!w.document.getElementById('class-edit').open);
   w.SessionAddForms.open('assignment','IS 402');
   w.document.querySelector('#create-assignment [name=title]').value='Integration test assignment';submit('assignment');
   await until(()=>w.eval('tasks.length===1'));
@@ -210,8 +210,8 @@ test('class, assignment, and skill creation use separate forms and save their re
   w.SessionWorkspace={...w.SessionWorkspace,mode:'private'};
   const submit=kind=>w.document.querySelector('#create-'+kind+' form').dispatchEvent(new w.Event('submit',{cancelable:true}));
   w.SessionAddForms.open('class');
-  w.document.querySelector('#create-class [name=name]').value='CS 500';submit('class');
-  await until(()=>!w.document.getElementById('create-class').open);
+  w.document.querySelector('#class-edit [name=code]').value='CS 500';w.document.getElementById('class-name-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  await until(()=>!w.document.getElementById('class-edit').open);
   w.SessionAddForms.open('assignment');
   w.document.querySelector('#create-assignment [name=course]').value='CS 500';
   w.document.querySelector('#create-assignment [name=title]').value='My assignment';submit('assignment');
@@ -314,13 +314,13 @@ test('class-scoped assignments inherit class and persist combined deadline and n
  w.SessionAddForms.open('assignment','CS 500');const form=w.document.querySelector('#create-assignment form');
  // Register the class so it is available to the existing course selector.
  w.eval("store('sb.classes',{'CS 500':{}})");w.document.getElementById('create-assignment').close();w.SessionAddForms.open('assignment','CS 500');
- assert.equal(form.querySelector('[name=course]').closest('label').hidden,true);
+ assert.equal(form.querySelector('[name=course]').closest('.assignment-class-field').hidden,true);
  form.querySelector('[name=title]').value='Linked assignment';form.querySelector('[name=dueAt]').value='2026-12-03T14:30';
  w.document.querySelector('[data-new-assignment-skill]').click();const skill=w.document.querySelector('#create-skill form');skill.querySelector('[name=title]').value='New assignment skill';skill.querySelector('[name=category]').value='Data';skill.dispatchEvent(new w.Event('submit',{cancelable:true}));
  await until(()=>!w.document.getElementById('create-skill').open);assert.equal(w.document.getElementById('create-assignment').open,true);assert.match(w.document.getElementById('assignment-skill-summary').textContent,/New assignment skill/);
  form.dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>!w.document.getElementById('create-assignment').open);
  const record=w.eval("tasks.find(task=>task.title==='Linked assignment')");assert.equal(record.course,'CS 500');assert.equal(record.due,'2026-12-03');assert.equal(record.dueTime,'14:30');assert.deepEqual(Array.from(record.skills),['New assignment skill']);
- w.SessionAddForms.open('assignment');assert.equal(form.querySelector('[name=course]').closest('label').hidden,false);
+ w.SessionAddForms.open('assignment');assert.equal(form.querySelector('[name=course]').closest('.assignment-class-field').hidden,false);
  }finally{dom.window.close()}
 });
 

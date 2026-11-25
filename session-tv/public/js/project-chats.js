@@ -117,11 +117,18 @@
   }
   return ms;
  }
+ // Settings → Projects counters: skills from completed Apply (Me) tasks, and completed tasks by owner.
  function stats(name) {
-  let milliseconds = sessions.reduce((sum, session) => sum + (Number(session.projectTime?.[name]) || 0), 0) + totalTime(name, current?.timeOn);
-  const active = T(current?.active);
-  if (active?.course === name && current.activeSince) milliseconds += Math.max(0, Math.min(Date.now() - current.activeSince, 150 * 60000));
-  return {sprints:(projData(name).past || []).length, minutes:Math.round(milliseconds / 60000)};
+  const done = SessionProjectBacklogs.items(name).filter(row => row.task.status === 'done');
+  return {skills:projectSkills(name).length, mine:done.filter(row => row.who === 'me').length, codex:done.filter(row => row.who === 'ai').length};
+ }
+ // Open folder always stays clickable; it says what is missing instead of looking disabled.
+ async function openFolder(name, report = toast) {
+  if (SessionWorkspace.mode !== 'private') return report('Sign in to open project folders.');
+  const folder = entry(name).folder;
+  if (!folder) return report('No computer folder is linked to ' + name + '. Choose one in Manage.');
+  try { await SessionCompanion.openFolder(folder); }
+  catch(error) { report('Could not open the folder. Make sure the SessionTV companion is running and paired in Settings → Session Preferences. (' + error.message + ')'); }
  }
  const manage = document.createElement('dialog');
  manage.id = 'project-manage'; manage.className = 'confirm-dlg'; manage.setAttribute('aria-labelledby','project-manage-title');
@@ -131,7 +138,6 @@
   const value = entry(managedProject);
   $('pm-name').textContent = managedProject;
   $('pm-folder').textContent = value.folder || 'No computer folder linked';
-  $('pm-open').disabled = !value.folder;
   $('pm-chats').replaceChildren(...MODES.map(mode => {
    const li = document.createElement('li'); li.textContent = labels[mode] + (modeChat(managedProject,mode)?.threadId ? ' · Ready' : ' · Setup needed'); return li;
   }));
@@ -149,7 +155,7 @@
   finally { controls.forEach(button => button.disabled = false); renderManage(); }
  }
  $('pm-close').onclick = () => manage.close();
- $('pm-open').onclick = () => SessionCompanion.openFolder(entry(managedProject).folder).catch(error => $('pm-status').textContent = error.message);
+ $('pm-open').onclick = () => openFolder(managedProject, message => { $('pm-status').textContent = message; });
  $('pm-change').onclick = async () => {
   try { const result = await SessionCompanion.pickFolder(); if(result.folder && result.folder !== entry(managedProject).folder) await updateManaged(result.folder); }
   catch(error) { $('pm-status').textContent = error.message; }
@@ -167,14 +173,9 @@
   for(const name of names()) {
    const value = entry(name), totals = stats(name), row = document.createElement('div'); row.className = 'project-table-row';
    const label = document.createElement('strong'); label.textContent = name;
-   const open = document.createElement('button'); open.className = 'btn ghost'; open.textContent = 'Open folder'; open.disabled = !value.folder;
-   open.onclick = () => SessionCompanion.openFolder(value.folder).catch(error=>toast(error.message));
-   const pd=projData(name),owners=new Map();for(const sprint of [...(pd.past||[]),pd.sprint].filter(Boolean))for(const item of spItems(sprint))if(item.who)owners.set(item.id,item.who);
-   for(const [id,who] of Object.entries(pd.taskAssignments||{}))owners.set(id,who);
-   const completed=tasks.filter(task=>typeOf(task)==='project'&&task.course===name&&task.status==='done');
-   const skills=new Set(completed.flatMap(task=>Array.isArray(task.skills)?task.skills:[]));
-   const counters=document.createElement('div');counters.className='class-counters project-counters';for(const [count,caption] of [[totals.sprints,'Sprints completed'],[completed.filter(task=>owners.get(task.id)==='me').length,'Tasks completed by me'],[skills.size,'Skills applied'],[completed.filter(task=>owners.get(task.id)==='ai').length,'Tasks completed by Codex']]){const counter=document.createElement('span'),number=document.createElement('b'),label=document.createElement('small');number.textContent=count;label.textContent=caption;counter.append(number,label);counters.append(counter);}
-   const time = document.createElement('span'); time.textContent = fmtMin(totals.minutes); time.setAttribute('aria-label','Total project time');
+   const open = document.createElement('button'); open.type = 'button'; open.className = 'btn project-open-folder'; open.textContent = 'Open folder';
+   open.title = value.folder || 'No computer folder linked yet'; open.onclick = () => openFolder(name);
+   const counters=document.createElement('div');counters.className='class-counters project-counters';for(const [count,caption] of [[totals.skills,'Skills Applied'],[totals.mine,'My Tasks Completed'],[totals.codex,'Codex Tasks Completed']]){const counter=document.createElement('span'),number=document.createElement('b'),label=document.createElement('small');number.textContent=count;label.textContent=caption;counter.append(number,label);counters.append(counter);}
    const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Manage'; button.onclick = () => openManage(name);
    const identity=document.createElement('div');identity.className='class-identity';identity.append(label,open);row.append(identity,counters,button); table.appendChild(row);
   }
@@ -260,7 +261,7 @@
   }
   if(!chat.messages.length) {
    const intro = document.createElement('div'); intro.className='msg ai';
-   intro.textContent = mode === 'plan' ? 'Plan your next weekly Scrum sprint. What outcome do you want by the end of this week?' : mode === 'apply' ? 'Build this yourself with hints and feedback. What skill are you practicing, and what have you tried?' : 'Build with Codex and learn as you go. What would you like to implement?';
+   intro.textContent = mode === 'plan' ? 'Plan this project’s tasks. What do you want to get done next, and which tasks should you or Codex take?' : mode === 'apply' ? 'Build this yourself with hints and feedback. What skill are you practicing, and what have you tried?' : 'Build with Codex and learn as you go. What would you like to implement?';
    log.appendChild(intro);
   }
   for(const message of chat.messages) {

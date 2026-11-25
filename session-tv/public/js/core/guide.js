@@ -70,9 +70,9 @@ function gdInfoHTML(k){
       <div class="gd-acts"><button type="button" class="btn primary" data-act="tune">Open chat ▸</button></div>`}
   const p=sel;if(!p)return `<div class="gd-sel"><div class="gd-t">No projects yet</div></div><div class="gd-desc">Create a project from Settings → My Database → Projects.</div>`;
   const l=listFor('project',p);
-  const ps=((settings&&settings.projectSkills)||{})[p]||[];
+  const ps=projectSkills(p);
   return `<div class="gd-sel"><div class="gd-t">${esc(p)}</div></div>
-    <div class="gd-pskills">${ps.length?esc(ps.join(', ')):'<span class="gd-psk none">Skills not listed yet</span>'}</div>
+    <div class="gd-pskills">${ps.length?'Skills applied: '+esc(ps.join(', ')):'<span class="gd-psk none">No skills applied yet</span>'}</div>
     <div class="gd-desc">${l.some(task=>!task.projectChannel)?`Open tasks: ${l.filter(task=>!task.projectChannel).length}`:'Plan, Apply and Work chats'}</div>
     <div class="gd-acts"><button type="button" class="btn primary" data-act="tune">Work on it ▸</button></div>`;
 }

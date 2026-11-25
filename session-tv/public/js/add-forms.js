@@ -1,14 +1,15 @@
-/* Dedicated creation forms for each database record type. */
+/* Dedicated creation forms for each database record type. Classes use the shared class form in classes.js. */
 (() => {
  const dialogs = {};
  const assignmentSkills=new Set();
  let returnToAssignment=false;
+ const classNames=()=>globalThis.SessionClasses?.names()||[...new Set([...Object.keys(recall('sb.classes')),...tasks.filter(task=>typeOf(task)==='class'&&task.status!=='archived').map(task=>task.course).filter(Boolean)])].sort();
+ function refreshClasses(selected){const select=dialogs.assignment.querySelector('[name=course]'),names=classNames(),value=selected??select.value;select.replaceChildren(new Option('Choose a class',''),...names.map(name=>new Option(name,name)));select.value=names.includes(value)?value:'';dialogs.assignment.querySelector('[role=status]').textContent=names.length?'':'No classes yet. Add one with + Add class.';}
  function refreshSkills(){const picker=document.getElementById('assignment-skill-picker');if(!picker)return;const skills=[...new Set([...tasks.filter(task=>typeOf(task)==='skill'&&task.status!=='archived').map(task=>task.title),...assignmentSkills])].sort();picker.replaceChildren(new Option('Choose skills…',''),...skills.map(name=>new Option((assignmentSkills.has(name)?'✓ ':'')+name,name)));const summary=document.getElementById('assignment-skill-summary');summary.textContent=assignmentSkills.size?[...assignmentSkills].join(', '):'No skills selected';summary.title=summary.textContent;}
  const field = (label, input) => `<label>${label}${input}</label>`;
  const text = (name, required = true) => `<input name="${name}" ${required?'required':''} maxlength="200">`;
  const definitions = {
-  class: ['Add class', field('Class code or name',text('name')) + field('Description',text('description',false)) + field('Course website (optional)','<input name="url" type="url" placeholder="https://…">')],
-  assignment: ['Add assignment', field('Class','<select name="course" required></select>') + field('Assignment title',text('title')) + field('Due date & time','<input name="dueAt" type="datetime-local">') + field('Points (optional)','<input name="points" type="number" min="0" step="any">') + '<div class="assignment-skill-field"><label for="assignment-skill-picker">Skills that apply</label><div class="assignment-skill-actions"><select id="assignment-skill-picker" aria-describedby="assignment-skill-summary"></select><button class="btn" type="button" data-new-assignment-skill>+ Add new skill</button></div><p id="assignment-skill-summary" class="small" aria-live="polite">No skills selected</p></div>'],
+  assignment: ['Add assignment', '<div class="assignment-class-field"><label for="assignment-course">Class</label><div class="assignment-skill-actions"><select id="assignment-course" name="course" required></select><button class="btn" type="button" data-new-assignment-class>+ Add class</button></div></div>' +field('Assignment title',text('title')) + field('Due date & time','<input name="dueAt" type="datetime-local">') + field('Points (optional)','<input name="points" type="number" min="0" step="any">') + '<div class="assignment-skill-field"><label for="assignment-skill-picker">Skills that apply</label><div class="assignment-skill-actions"><select id="assignment-skill-picker" aria-describedby="assignment-skill-summary"></select><button class="btn" type="button" data-new-assignment-skill>+ Add new skill</button></div><p id="assignment-skill-summary" class="small" aria-live="polite">No skills selected</p></div>'],
   skill: ['Add skill', field('Skill name',text('title')) + field('Category','<select name="category" required></select>')],
   tool: ['Add tool', field('Skill','<select name="course" required></select>') + field('Tool name',text('title')) + field('Level','<select name="level"><option value="1">New</option><option value="2">Learned</option><option value="3">Experienced</option><option value="4">Mastered</option></select>') + field('Learning goal',text('goal',false))],
   project: ['Create project', field('Project name',text('name')) + field('Computer folder','<div class="project-folder-picker"><output name="folder-display">No folder selected</output><input name="folder" type="hidden"><button type="button" class="btn" data-pick-folder>Choose a folder</button></div>')]
@@ -38,11 +39,7 @@
    const button = form.querySelector('[type=submit]'); button.disabled = true;
    try {
     if(SessionWorkspace.mode === 'demo')throw new Error('Sign in to save records.');
-    if(kind === 'class') {
-     if(!values.name)throw new Error('Enter a class name.');
-     const classes=recall('sb.classes'); if(Object.hasOwn(classes,values.name))throw new Error('That class already exists.');
-     classes[values.name]={description:values.description,url:values.url}; store('sb.classes',classes);
-    } else if(kind === 'project') {
+    if(kind === 'project') {
      if(!values.name || !values.folder)throw new Error('Enter a project name and choose a computer folder.');
      dialog.querySelector('[role=status]').textContent='Preparing Plan, Apply and Work chats…';
      await SessionProjectChats.create(values.name,values.folder);
@@ -66,13 +63,12 @@
  }
  function open(kind, course, category) {
   if(SessionWorkspace.mode==='demo'){toast('Sign in to add records.');return;}
+  if(kind==='class'){SessionClasses.add();return;} // one class form for every entry point
   const dialog=dialogs[kind];dialog.querySelector('[role=status]').textContent='';
   if(kind==='assignment') {
-   const names=[...new Set([...Object.keys(recall('sb.classes')),...tasks.filter(task=>typeOf(task)==='class').map(task=>task.course).filter(Boolean)])].sort();
-   dialog.querySelector('[name=course]').replaceChildren(new Option('Choose a class',''),...names.map(name=>new Option(name,name)));
-   const courseField=dialog.querySelector('[name=course]');courseField.value=course||'';courseField.closest('label').hidden=!!course;dialog.classList.toggle('class-assignment',!!course);
+   refreshClasses(course||'');
+   const courseField=dialog.querySelector('[name=course]');if(course&&courseField.value!==course)courseField.append(new Option(course,course));courseField.value=course||'';courseField.closest('.assignment-class-field').hidden=!!course;dialog.classList.toggle('class-assignment',!!course);
    assignmentSkills.clear();refreshSkills();
-   if(!names.length)dialog.querySelector('[role=status]').textContent='Add a class in My Database → Classes first.';
   }
   if(kind==='skill') {
    const categories=SessionSkills.categories(),select=dialog.querySelector('[name=category]');
@@ -91,6 +87,8 @@
  }
  document.getElementById('assignment-skill-picker').onchange=event=>{const name=event.target.value;if(name){if(assignmentSkills.has(name))assignmentSkills.delete(name);else assignmentSkills.add(name);refreshSkills()}};
  dialogs.assignment.querySelector('[data-new-assignment-skill]').onclick=()=>{returnToAssignment=true;open('skill')};
+ // the assignment stays open underneath; a newly added class comes back selected
+ dialogs.assignment.querySelector('[data-new-assignment-class]').onclick=()=>SessionClasses.add({onClose:key=>{refreshClasses(key||undefined);if(!dialogs.assignment.open)dialogs.assignment.showModal()}});
  dialogs.skill.addEventListener('close',()=>{if(returnToAssignment){returnToAssignment=false;refreshSkills();dialogs.assignment.showModal()}});
  globalThis.SessionAddForms={open};
 })();
