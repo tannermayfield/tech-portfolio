@@ -15,7 +15,17 @@ $('guide-x').onclick=()=>closeSheets();
 
 /* ---------- the Menu: a cable-style listings grid for Class, an on-demand option menu for Skills and Projects ---------- */
 TV.gSel=TV.gSel||{};TV.gOff=null;TV.gFilter='All';TV.gHover=null;
-const GD_COURSE_NAMES={'IS 401':'Product Management','IS 402':'Database','IS 404':'Infrastructure','IS 403':'Javascript'};
+/* class names come from the user's own classes (Settings → My Database → Classes), never a built-in list.
+   GD_COURSE_NAMES stays defined (empty) only because classes.js and settings.js still read it; use courseLabel instead. */
+const GD_COURSE_NAMES=Object.freeze({});
+/* a class's code and name: "CS 101 — Computing" → {code:'CS 101',name:'Computing'}; name is '' when only the code is known */
+function courseFields(key){
+  const k=String(key||''),f=globalThis.SessionClasses?.fields?SessionClasses.fields(k):{},parts=k.split(' — ');
+  const code=String(f.code||parts[0]).trim(),name=String(f.name||parts.slice(1).join(' — ')).trim();
+  return {code,name:name&&name!==code&&name!==k?name:''};
+}
+/* how a class reads in lists: "CS 101 · Computing", or just the code when it has no separate name */
+function courseLabel(key){const {code,name}=courseFields(key);return name?code+' · '+name:code}
 const gdYmd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const gdVis=()=>{const w=$('crt').getBoundingClientRect().width;return w<600?2:w<1000?3:4};
 function gdClock(){
@@ -29,7 +39,7 @@ function gdDays(){
   if(all.some(t=>!t.due))out.push('none');return out;
 }
 function gdCellItems(course,day){return candidates('class').filter(t=>(t.course||'Other')===course&&(day==='none'?!t.due:t.due===day)).sort((a,b)=>(a.dueTime||'23:59').localeCompare(b.dueTime||'23:59'))}
-function gdShortTime(hm){if(!hm)return '11:59p';const [h,m]=hm.split(':').map(Number);return `${(h%12)||12}:${String(m).padStart(2,'0')}${h<12?'a':'p'}`}
+function gdShortTime(hm){const [h,m]=(hm||'23:59').split(':').map(Number);return `${(h%12)||12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}`}
 function gdDefaultSel(k){
   const s=TV.gSel[k];
   if(k==='class'){const all=candidates('class');if(s&&all.some(t=>t.id===s))return s;const a=T(current?.active);if(a&&typeOf(a)==='class')return a.id;return (listFor('class','Due Date')[0]||all[0])?.id||null}
@@ -43,13 +53,14 @@ function skShort(t){const c=catOf(t)||'';const q=c.replace(/[.*+?^${}()|[\]\\]/g
 function gdFilt(){const subs=subsOf('skill');if(!subs.includes(TV.gFilter)){const a=T(current&&current.cur&&current.cur.skill);TV.gFilter=a&&subs.includes(catOf(a))?catOf(a):subs[0]}return TV.gFilter}
 function gdSkills(){const all=allChannels('skill'),f=gdFilt();return all.filter(t=>catOf(t)===f)}
 function gdProjects(){return subsOf('project').filter(p=>p!=='All')}
+function gdProjLine(p){const n=listFor('project',p).filter(task=>!task.projectChannel).length;return n?`${n} open task${n===1?'':'s'}`:'Plan · Apply · Work'}
 
 function gdInfoHTML(k){
   const sel=TV.gSel[k];
   if(k==='class'){const t=T(sel);if(!t)return `<div class="gd-sel"><div class="gd-t">Nothing listed</div></div><div class="gd-desc">Add an assignment and it shows up here on its due date.</div><div class="gd-det-row"><button type="button" class="btn gd-det" data-act="homework">Homework Overview</button></div>`;
     const d=dueFor(t),done=t.status==='done';
     return `<div class="gd-sel"><div class="gd-t">${esc(t.title)}</div></div>
-      <div class="gd-desc">${esc(d.text)}${done?' · submitted':''}${t.goal?` — by the end, explain ${esc(t.goal)}.`:''}</div>
+      <div class="gd-desc">${esc(d.text)}${done?' · submitted':''}</div>
       <div class="gd-det-row"><button type="button" class="btn gd-det" data-act="homework">Homework Overview</button></div>
       <div class="gd-acts">${done?'':`<button type="button" class="btn primary" data-act="tune">Tune in ▸</button>`}${t.canvas?'':`<button type="button" class="btn" data-act="sub">${done?'Mark not submitted':'Mark submitted'}</button>`}</div>`}
   if(k==='skill'){const t=T(sel);if(!t)return `<div class="gd-sel"><div class="gd-t">No skills here</div></div><div class="gd-desc">Pick another category, or add a skill from Settings.</div>`;
@@ -76,10 +87,13 @@ function gdBindInfo(k){
 }
 function gdPickPip(k){const list=THEMES[k]||THEMES.class,cur=TV.pipPick;let n=list[Math.floor(Math.random()*list.length)];if(list.length>1)while(n.id===cur)n=list[Math.floor(Math.random()*list.length)];TV.pipPick=n.id;const s=document.querySelector('#tv-guide .gd-pip span');if(s)s.textContent=`CH ${gdPipCh(k)} · ${n.name}`}
 function gdPipCh(k){return (k==='class'&&courseCh(T(TV.gSel[k])))||CH_BASE[k]}
+/* the tooltip on the item a first click selected: a second click on it opens it (every menu) */
+const GD_AGAIN='Click again to open';
+const gdAgain=on=>on?` title="${GD_AGAIN}"`:'';
 function gdSetSel(k,v,rerender){
   const chg=k==='class'&&TV.gSel[k]!==v;
   TV.gSel[k]=v;if(chg)gdPickPip(k);
-  document.querySelectorAll('#tv-guide [data-gid]').forEach(b=>b.classList.toggle('sel',b.dataset.gid===v));
+  document.querySelectorAll('#tv-guide [data-gid]').forEach(b=>{const on=b.dataset.gid===v;b.classList.toggle('sel',on);if(on)b.title=GD_AGAIN;else b.removeAttribute('title')});
   const box=$('gd-info-sel');if(box){box.innerHTML=gdInfoHTML(k);gdBindInfo(k)}
   const ck=$('gd-clock');if(ck)ck.textContent=gdClock();
 }
@@ -113,11 +127,11 @@ function renderGuide(){return SessionTV.hooks.run('guide:render',arguments,()=>{
       <div class="gd-row gd-hdr"><div class="gd-ch"><button type="button" data-slide="-1" aria-label="Earlier days">◀</button><button type="button" data-today>Today</button></div>
         <div class="gd-vp"><div class="gd-track" style="${tr}">${days.map((d,j)=>`<div class="gd-day${d===today?' today':''}" style="${cwOf(j)}">${dayLbl(d)}</div>`).join('')}</div></div>
         <div class="gd-end"><button type="button" data-slide="1" aria-label="Later days">▶</button></div></div>
-      ${courses.map((c,i)=>`<div class="gd-row"><div class="gd-ch"><b>${esc(globalThis.SessionClasses?.fields(c).code||c)}</b><small>${esc(globalThis.SessionClasses?.fields(c).name||GD_COURSE_NAMES[c]||('CH '+(101+i)))}</small></div>
+      ${courses.map((c,i)=>`<div class="gd-row"><div class="gd-ch"><b>${esc(courseFields(c).code||c)}</b><small>${esc(courseFields(c).name||('CH '+(101+i)))}</small></div>
         <div class="gd-vp"><div class="gd-track" style="${tr}">${days.map((d,j)=>{const all=gdCellItems(c,d),wide=TV.gWide.has(d),items=all.length>2&&!wide?all.slice(0,2):all;
           const more=all.length>2?(wide?`<button type="button" class="gd-more-btn" data-less="${d}" aria-label="Show fewer">&lt;</button>`:`<button type="button" class="gd-more-btn" data-more="${d}" aria-label="Show ${all.length-2} more">+${all.length-2}</button>`):'';
           return `<div class="gd-cell${d===today?' today':''}" style="${cwOf(j)}">${items.length?items.map(t=>{const late=t.status!=='done'&&dueAt(t)&&dueAt(t)<new Date();
-            return `<button type="button" class="gd-prog${t.id===TV.gSel.class?' sel':''}${t.status==='done'?' done':''}${late?' late':''}" data-gid="${esc(t.id)}" title="${esc(t.title)}"><span class="pt">${esc(t.title)}</span><small>${d==='none'?'ANYTIME':gdShortTime(t.dueTime)}</small></button>`}).join('')+more:'<span class="gd-empty"></span>'}</div>`}).join('')}</div></div>
+            return `<button type="button" class="gd-prog${t.id===TV.gSel.class?' sel':''}${t.status==='done'?' done':''}${late?' late':''}" data-gid="${esc(t.id)}"${gdAgain(t.id===TV.gSel.class)}><span class="pt">${esc(t.title)}</span><small>${d==='none'?'ANYTIME':gdShortTime(t.dueTime)}</small></button>`}).join('')+more:'<span class="gd-empty"></span>'}</div>`}).join('')}</div></div>
         <div class="gd-end"></div></div>`).join('')}
     </div>`;
     hint='Slide ◀ ▶ through the days · click a show twice to tune in';
@@ -125,10 +139,10 @@ function renderGuide(){return SessionTV.hooks.run('guide:render',arguments,()=>{
     const opts=k==='skill'?gdSkills():gdProjects();
     const filt=k==='skill'?`<div class="gd-filt" role="group" aria-label="Category">${(gdFilt(),subsOf('skill')).map(c=>`<button type="button" data-filt="${esc(c)}" aria-pressed="${TV.gFilter===c}">${esc(c)}</button>`).join('')}</div>`:'';
     const pills=opts.length?opts.map(o=>k==='skill'
-      ?`<button type="button" class="gd-pill${o.id===TV.gSel.skill?' sel':''}" data-gid="${esc(o.id)}" title="${esc(o.title)}"><span class="pn">${esc(skShort(o))}</span><i class="lv">${lvlTag(o)}</i></button>`
-      :`<button type="button" class="gd-pill${o===TV.gSel.project?' sel':''}" data-gid="${esc(o)}"><span class="pn">${esc(o)}</span></button>`).join('')
+      ?`<button type="button" class="gd-pill${o.id===TV.gSel.skill?' sel':''}" data-gid="${esc(o.id)}"${gdAgain(o.id===TV.gSel.skill)}><span class="pn">${esc(skShort(o))}</span><i class="lv">${lvlTag(o)}</i></button>`
+      :`<button type="button" class="gd-pill gd-proj${o===TV.gSel.project?' sel':''}" data-gid="${esc(o)}"${gdAgain(o===TV.gSel.project)}><span class="pn">${esc(o)}</span><small class="ps">${gdProjLine(o)}</small></button>`).join('')
       :`<p class="gd-none">Nothing on demand here yet.</p>`;
-    body=`<div class="gd-menu">${filt}<div class="gd-pills" id="gd-pills">${pills}</div><div class="gd-more" id="gd-more"></div></div>`;
+    body=`<div class="gd-menu">${filt}<div class="gd-pills${k==='project'?' gd-projs':''}" id="gd-pills">${pills}</div><div class="gd-more" id="gd-more"></div></div>`;
     hint=k==='skill'?'Pick a skill to open its chat with AI coach':'Pick a project, then plan the work with AI coach';
   }
   g.innerHTML=`<button type="button" class="gd-x" id="gd-x">EXIT ✕</button>
