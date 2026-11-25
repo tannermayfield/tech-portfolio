@@ -7,6 +7,6 @@ The website supports email/password and Google through the same Supabase account
 3. In Supabase → Authentication → Sign In / Providers → Google, enable Google and save that client ID and client secret. Keep the secret in Supabase, never in website code.
 4. In Authentication → URL Configuration, set the Site URL and add the redirect URL `https://tannermayfield.dev/session-tv/`.
 5. In Authentication settings, enable Manual identity linking for the Account Settings → Link Google account action.
-6. Refresh SessionTV. Sign into your existing account, open Account Settings, and link Google. Then test signing out and using Sign in with Google.
+6. Refresh SessionTV. Sign into your existing account, open Account Settings, and link Google. Then test signing out and using Continue with Google.
 
 Permanent deletion uses the account-delete Edge Function. It validates the caller with Supabase Auth and deletes only that caller after typed confirmation. The private stv tables cascade from auth.users; files in computer folders are unaffected. No live account is deleted during deployment or testing.
