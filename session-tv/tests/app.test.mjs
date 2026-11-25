@@ -122,7 +122,7 @@ test('SQL executes on the airline sample data and editor drafts persist',async()
   await w.wsRun();
   assert.match(w.document.getElementById('ws-out').textContent,/flight_count/);
   assert.match(w.document.getElementById('ws-out').textContent,/240/);
-  assert.match(w.localStorage.getItem('sb.ws.'+id),/COUNT/);
+  assert.match(w.localStorage.getItem('sb.ws.'+id+'.sql'),/COUNT/); // drafts are kept per skill and editor kind
   w.document.getElementById('ws-tables').click();
   assert.ok(w.document.querySelector('#ws-out svg.erd'));
   const htmlTask=await w.eval("db.collection('tasks').add({track:'develop',title:'HTML',course:'HTML/CSS',level:1,status:'todo',order:2})");
@@ -295,8 +295,13 @@ test('skill settings show category chips, then each skill in a row with its tool
   const body=w.document.getElementById('set-body');
   assert.deepEqual([...body.querySelectorAll('.settings-skill-filters [data-category]')].map(b=>b.textContent),Array.from(w.eval('Object.keys(SKILL_TAGS)')));
   const data=body.querySelector('[data-skill-category="Data"]');assert.equal(data.hidden,false);
-  assert.deepEqual([...data.querySelectorAll('.skill-section h4')].map(h=>h.firstChild.textContent).slice(0,2),['SQL','Databases']);
-  const sql=data.querySelector('.skill-section');assert.match(sql.querySelector('ul').textContent,/CTEs/);assert.match(sql.querySelector('small').textContent,/1 tool$/);
+  assert.deepEqual([...data.querySelectorAll('.skill-settings-row .skill-identity strong')].map(h=>h.textContent).slice(0,3),['SQL','Databases','Python']);
+  const sql=data.querySelector('.skill-settings-row');assert.match(sql.querySelector('.skill-tools').textContent,/CTEs/);
+  assert.equal(sql.querySelector('.skill-identity .lvl-box').textContent,'LEARNED');
+  assert.deepEqual([...sql.querySelectorAll('.skill-counters small')].map(s=>s.textContent),['Tool','Practice sessions','Last practiced']);
+  assert.equal(sql.querySelector('.skill-counters b').textContent,'1');
+  assert.equal(sql.querySelector('[data-skill-editor]').value,'sql');assert.ok(sql.querySelector('[data-add-tool="SQL"]'));assert.ok(sql.querySelector('[data-edit-skill]'));
+  assert.doesNotMatch(body.textContent,/\b[1-5]\s*[–-]\s*[1-5]\b|level [1-5]/i);
   body.querySelector('[data-category="AI"]').click();
   assert.equal(data.hidden,true);assert.equal(body.querySelector('[data-skill-category="AI"]').hidden,false);
   w.document.getElementById('db-add').click();

@@ -18,7 +18,9 @@
   ['sb.classes',{},'Classes by name with description, URL and Canvas link.'],
   ['sb.skillCategories',[],'Custom skill categories added in Settings.'],
   ['sb.skills',{},'Custom skills by category.'],
-  ['sb.skillChannels',{},'Per-skill channel state (level, practice stamps).'],
+  ['sb.skillChannels',{},'Per-skill channel state by skill channel id: level, practice stamps and code editor (none, sql, python, js or html; unset uses the default for the skill name).'],
+  // AI coach
+  ['sb.coachProfile',{name:'Tanner',pronouns:'he/him',school:'BYU Information Systems',goal:'a data analyst co-op interview at Delta Air Lines',focus:'SQL, Python, AWS data pipelines',buildProjects:['Airline Pipeline']},'Who the AI coach tutors: name, pronouns (he/him, she/her or they/them), school or program, goal, focus skills, and the projects the learner builds without AI writing the code.'],
   // Chats
   ['sb.localChats',null,'Work chat turns for the current session, restored after a reload.'],
   ['sb.studyChats',{},'Class and skill study chat histories by task id.'],

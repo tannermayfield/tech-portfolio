@@ -10,8 +10,18 @@ const WS_KINDS={
   html:{label:'HTML/CSS editor',lang:'html',mode:'htmlmixed',run:'Preview',file:'index.html',
     starter:'<!doctype html>\n<html>\n<head>\n\n</head>\n<body>\n  <h1>Hello</h1>\n</body>\n</html>\n'}
 };
-const WS_BY_COURSE={SQL:'sql',Databases:'sql',Python:'python',JavaScript:'js','Node.js':'js','HTML/CSS':'html'};
-const wsKindOf=t=>t&&typeOf(t)==='skill'?WS_BY_COURSE[t.course]||null:null;
+// the editor a skill starts with when its owner has not picked one in Settings → Skills
+const WS_BY_COURSE={SQL:'sql',Databases:'sql',Python:'python','Python (Data)':'python','Python (Software)':'python',JavaScript:'js','Node.js':'js','HTML/CSS':'html'};
+// the choices in Settings → Skills; 'none' hides the editor for that skill
+const WS_CHOICES=[['none','None'],...Object.entries(WS_KINDS).map(([kind,K])=>[kind,K.label])];
+// a skill's editor kind (or null): the choice stored on its skill channel, else the default for its name
+function wsEditorOf(category,skill){
+  const chosen=(recall('sb.skillChannels')[skillChannelId(category,skill)]||{}).editor;
+  if(chosen==='none')return null;
+  return WS_KINDS[chosen]?chosen:WS_BY_COURSE[skill]||null;
+}
+// a skill channel or one of its tools opens its skill's editor
+const wsKindOf=t=>t&&typeOf(t)==='skill'?wsEditorOf(catOf(t),t.course||'Other'):null;
 
 /* sample airline data (same rows in SQL and as CSV files for Python), seeded so it never changes */
 const AIR=(()=>{
@@ -95,7 +105,12 @@ async function pyodide(){
 
 /* the editor: CodeMirror when it loads, a plain text box otherwise */
 const WS={kind:null,id:null,ed:null,flags:[],out:'',busy:false};
-const wsKey=id=>'sb.ws.'+id;
+// drafts are kept per skill and editor kind, so switching a skill's editor never puts SQL in the Python editor
+const wsKey=(id,kind)=>'sb.ws.'+id+'.'+kind;
+// drafts saved before editors could be chosen used sb.ws.<id>, and always belonged to the skill's default editor
+function wsDraft(t,kind){
+  try{const own=SessionWorkspace.storage.getItem(wsKey(t.id,kind));if(own!=null||WS_BY_COURSE[t.course]!==kind)return own;return SessionWorkspace.storage.getItem('sb.ws.'+t.id)}catch(e){return null}
+}
 function wsMakeEditor(host,kind,text){
   host.innerHTML='';
   if(window.CodeMirror){
@@ -116,7 +131,7 @@ function wsMakeEditor(host,kind,text){
   ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();wsRun()}else if(e.key==='Tab'){e.preventDefault();const s=ta.selectionStart;ta.setRangeText(kind==='python'?'    ':'  ',s,ta.selectionEnd,'end');wsSave()}});
   return {get:()=>ta.value,set:v=>{ta.value=v},focus:()=>ta.focus(),flag:()=>{},clear:()=>{},refresh:()=>{}};
 }
-function wsSave(){if(!WS.id||!WS.ed)return;try{SessionWorkspace.storage.setItem(wsKey(WS.id),WS.ed.get())}catch(e){}}
+function wsSave(){if(!WS.id||!WS.ed)return;try{SessionWorkspace.storage.setItem(wsKey(WS.id,WS.kind),WS.ed.get())}catch(e){}}
 function wsClearFlags(){WS.flags=[];WS.ed&&WS.ed.clear();$('ws-flagnote').hidden=true}
 function wsFlag(lines){WS.flags=lines;WS.ed.clear();WS.ed.flag(lines);const n=$('ws-flagnote');n.hidden=!lines.length;n.textContent=`AI coach marked line${lines.length>1?'s':''} ${fmtLines(lines)}`}
 const fmtLines=ls=>{const out=[];let a=null,b=null;ls.forEach(n=>{if(a==null){a=b=n}else if(n===b+1)b=n;else{out.push(a===b?a:a+'–'+b);a=b=n}});if(a!=null)out.push(a===b?a:a+'–'+b);return out.join(', ')};
@@ -133,10 +148,10 @@ async function wsMount(t){
   $('ws-title').textContent=K.label;$('ws-file').textContent=K.file;$('ws-run').innerHTML='<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" style="margin-right:5px;vertical-align:-1px"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></svg>Run';$('ws-run').setAttribute('aria-label',K.run);
   $('ws-tables').hidden=kind!=='sql';$('ws-flagnote').hidden=true;
   $('ws-out').innerHTML=`<div class="ws-hint">${kind==='sql'?'Results show here. <b>Ctrl/⌘ + Enter</b> runs the query.':kind==='html'?'Your page previews here.':kind==='python'?'Output shows here. The first run loads Python, which takes a few seconds.':'console.log output shows here.'}</div>`;
-  let text;try{text=SessionWorkspace.storage.getItem(wsKey(t.id))}catch(e){}
+  const text=wsDraft(t,kind);
   const host=$('ws-ed');host.innerHTML='<div class="ws-hint" style="padding:14px">Loading editor…</div>';
   try{await loadCM(kind)}catch(e){}
-  if(WS.id!==t.id)return;
+  if(WS.id!==t.id||WS.kind!==kind)return;
   WS.ed=wsMakeEditor(host,kind,text??K.starter);
 }
 async function wsRun(){
@@ -187,10 +202,11 @@ function wsSend(){
   const model=`Here is my ${K.label.replace(' editor','')} code (line numbers on the left are not part of the code):\n${numbered}`+(WS.out?`\n\nWhen I ran it:\n${WS.out}`:'\n\n(I have not run it yet.)')+'\n\nReview it.';
   wsClearFlags();sendCoach(model,show);
 }
-function wsRulesFor(t){
+// what the coach should know about the editor beside the chat; flags:false leaves out the LINES: reply line for chats that cannot mark lines
+function wsRulesFor(t,{flags=true}={}){
   const kind=wsKindOf(t);if(!kind)return '';
   const K=WS_KINDS[kind];
-  return `\n\nHe has a ${K.label} open beside this chat${kind==='sql'?` connected to a SQLite sample airline database. Write practice problems against these tables only:\n${AIR_SCHEMA}`:kind==='python'?` that runs Python in the browser with flights.csv, airports.csv, airlines.csv and bookings.csv in the working folder (same columns as the airline database: ${Object.entries(AIR.tables).map(([n,t])=>`${n}: ${t.cols.map(c=>c.split(' ')[0]).join(', ')}`).join('; ')}). pandas may not be available, so prefer the csv module unless the skill is about pandas`:kind==='js'?' that runs plain JavaScript and shows console.log output (no Node modules)':' with a live preview'}.\nWhen you give him a problem, have him write the answer in the editor. When he sends code, review it like an interviewer would: say what works, point out bugs, edge cases and style issues, and ask him to fix them himself rather than rewriting it for him. If specific lines need attention, end your reply with one final line exactly like "LINES: 3, 7-9" using his line numbers. If you give starter code or a sample schema, put it in one fenced code block.`;
+  return coachSay`\n\nHe has a ${K.label} open beside this chat${kind==='sql'?` connected to a SQLite sample airline database. Write practice problems against these tables only:\n${AIR_SCHEMA}`:kind==='python'?` that runs Python in the browser with flights.csv, airports.csv, airlines.csv and bookings.csv in the working folder (same columns as the airline database: ${Object.entries(AIR.tables).map(([n,t])=>`${n}: ${t.cols.map(c=>c.split(' ')[0]).join(', ')}`).join('; ')}). pandas may not be available, so prefer the csv module unless the skill is about pandas`:kind==='js'?' that runs plain JavaScript and shows console.log output (no Node modules)':' with a live preview'}.\nWhen you give him a problem, have him write the answer in the editor. When he sends code, review it like an interviewer would: say what works, point out bugs, edge cases and style issues, and ask him to fix them himself rather than rewriting it for him. ${flags?coachSay`If specific lines need attention, end your reply with one final line exactly like "LINES: 3, 7-9" using his line numbers. `:''}If you give starter code or a sample schema, put it in one fenced code block.`;
 }
 /* draggable divider: the chat stops at a usable width; the editor stops at its smallest useful width */
 const WS_MIN=330,CHAT_MIN=360;

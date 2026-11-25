@@ -10,7 +10,7 @@
  const SPRINT_ITEM_FIELDS=['id','pts','who'];
  const SESSION_FIELDS=['date','minutes','track'];
  const CLASS_FIELDS=['code','name'];
- const SKILL_CHANNEL_FIELDS=['level','reps','lastPracticed'];
+ const SKILL_CHANNEL_FIELDS=['level','reps','lastPracticed','editor'];
  const SECTIONS=['class','skill','project'];
  const ASSIGNEES=['','me','ai'];
  const PREFERENCE_KEYS=['sb.classes','sb.skillCategories','sb.skills','sb.skillChannels','sb.sectionThemes','sb.sectionCharacters'];
@@ -128,7 +128,7 @@
    ['Classes',Object.entries(prefs['sb.classes']||{}).map(([key,value])=>value.code&&value.name?value.code+' — '+value.name:key)],
    ['Skill categories',prefs['sb.skillCategories']||[]],
    ['Custom skills',Object.entries(prefs['sb.skills']||{}).flatMap(([category,names])=>names.map(name=>category+' › '+name))],
-   ['Skill levels',Object.entries(prefs['sb.skillChannels']||{}).map(([id,value])=>id.split(':').slice(1).map(part=>{try{return decodeURIComponent(part)}catch{return part}}).join(' › ')+(value.level?' — level '+value.level:''))],
+   ['Skill levels',Object.entries(prefs['sb.skillChannels']||{}).map(([id,value])=>id.split(':').slice(1).map(part=>{try{return decodeURIComponent(part)}catch{return part}}).join(' › ')+(value.level?' — '+(['','New','Learned','Experienced','Mastered'][value.level]||'New'):''))],
    ['Section themes',Object.entries(prefs['sb.sectionThemes']||{}).map(([key,value])=>key+': '+value)],
    ['Section characters',Object.entries(prefs['sb.sectionCharacters']||{}).map(([key,value])=>key+': '+value)],
    ['Study sessions (date, minutes and time split only)',Object.values(db.sessions).map(item=>String(item.date).slice(0,10)+(item.minutes?' · '+item.minutes+' min':''))]

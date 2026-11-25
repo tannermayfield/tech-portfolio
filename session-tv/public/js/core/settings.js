@@ -31,7 +31,7 @@ function renderSettings(){return SessionTV.hooks.run('settings:render',arguments
     <div class="set-card connections-card"><h3>Connections</h3><div id="session-connection-summary" aria-live="polite"></div></div>
     ${setTimeCard()}
     <div class="set-card db-card"><h3>My Database</h3>
-      <div class="db-stats">${stat(courses.length,'Classes','classes')}${stat(sk.length,'Skills','skills')}${stat(projects.length,'Projects','projects')}<button type="button" class="db-stat resume-placeholder" disabled title="Coming later"><span>Resume &amp; Portfolio</span><small>Coming later</small></button></div>
+      <div class="db-stats">${stat(courses.length,'Classes','classes')}${stat(globalThis.SessionSkills?SessionSkills.count():new Set([...Object.values(SKILL_TAGS).flat(),...sk.map(t=>t.course||'Other')]).size,'Skills','skills')}${stat(projects.length,'Projects','projects')}<button type="button" class="db-stat resume-placeholder" disabled title="Coming later"><span>Resume &amp; Portfolio</span><small>Coming later</small></button></div>
       </div>
   </div>`;
   if($('tt-range'))$('tt-range').onclick=()=>{const i=TT_RANGES.findIndex(x=>x[0]===TV.ttRange);TV.ttRange=TT_RANGES[(i+1)%TT_RANGES.length][0];try{SessionWorkspace.storage.setItem('sb.ttRange',TV.ttRange)}catch(e){}
@@ -69,11 +69,21 @@ function renderDbView(v){return SessionTV.hooks.run('dbView:render',arguments,v=
       const open=l.filter(t=>t.status!=='done').length;
       return `<section class="db-grp class-section"><div class="class-section-head"><h4>${esc(c+(GD_COURSE_NAMES[c]?' · '+GD_COURSE_NAMES[c]:''))}<small>${open} open · ${l.length-open} done</small></h4><button type="button" class="btn" data-add-assignment="${esc(c)}">+ Add assignment</button></div><ul>${l.map(t=>row(t,t.status==='done'?`Done ${d(t.doneAt)}`:(t.due?esc(fmtDue(t)):'No due date'),t.status==='done')).join('')||'<li class="db-empty">No assignments yet.</li>'}</ul></section>`}).join('');}
   else if(v==='skills'){title='Skills';add='Add skill';
-    // Category → one row per skill → that skill's tools (the skill task records) listed below it.
-    const sk=live.filter(t=>typeOf(t)==='skill');
-    body=subsOf('skill').map(c=>{const inCat=sk.filter(t=>catOf(t)===c),skills=globalThis.SessionSkills?.skillsIn(c,sk)||SKILL_TAGS[c]||[];
-      const rows=skills.map(s=>{const l=inCat.filter(t=>(t.course||'Other')===s).sort(byOrder);
-        return `<section class="db-grp class-section skill-section"><div class="class-section-head"><h4>${esc(s)}<small>${l.length} tool${l.length===1?'':'s'}</small></h4><button type="button" class="btn" data-add-tool="${esc(s)}" data-tool-category="${esc(c)}">+ Add tool</button></div><ul>${l.map(t=>row(t,`${LVL_TAG(skillLevel(t))} · ${esc(agoLabel(t.lastPracticed))}`)).join('')||'<li class="db-empty">No tools yet.</li>'}</ul></section>`}).join('');
+    // Category → one row per skill (stage, counters, code editor, actions, like Classes) → its tools as chips below.
+    // skill-categories.js adds the category chips and wires the editor select and Edit.
+    const sk=live.filter(t=>typeOf(t)==='skill'),edits=SessionWorkspace.mode==='demo'?' disabled':'';
+    const when=iso=>{const a=agoLabel(iso);return a==='Not practiced yet'?'Never':a.replace(/^Practiced /,'').replace(/^./,x=>x.toUpperCase())};
+    const counter=(n,label)=>`<span><b>${esc(n)}</b><small>${esc(label)}</small></span>`;
+    body=subsOf('skill').map(c=>{const inCat=sk.filter(t=>catOf(t)===c),skills=globalThis.SessionSkills?.channels(c)||(SKILL_TAGS[c]||[]).map(s=>({id:skillChannelId(c,s),title:s,course:s,cat:c,track:'develop',level:1,reps:0,lastPracticed:null}));
+      const rows=skills.map(s=>{const l=inCat.filter(t=>(t.course||'Other')===s.course).sort((a,b)=>(a.status==='done')-(b.status==='done')||byOrder(a,b)),kind=wsEditorOf(c,s.course)||'none';
+        return `<section class="skill-settings-row" data-skill="${esc(s.course)}" data-skill-id="${esc(s.id)}">
+          <div class="class-identity skill-identity"><strong title="${esc(c+' › '+s.course)}">${esc(skShort(s))}</strong>${lvlBox(s)}</div>
+          <div class="class-counters skill-counters">${counter(l.length,l.length===1?'Tool':'Tools')}${counter(s.reps||0,s.reps===1?'Practice session':'Practice sessions')}${counter(when(s.lastPracticed),'Last practiced')}</div>
+          <label class="skill-editor-pick"><span>Code editor</span><select data-skill-editor="${esc(s.id)}" aria-label="Code editor for ${esc(s.course)}"${edits}>${WS_CHOICES.map(([v,label])=>`<option value="${v}"${v===kind?' selected':''}>${esc(label)}</option>`).join('')}</select></label>
+          <button type="button" class="btn skill-add-tool" data-add-tool="${esc(s.course)}" data-tool-category="${esc(c)}"${edits}>Add tool</button>
+          <button type="button" class="btn skill-edit" data-edit-skill="${esc(s.id)}" title="Edit skill" aria-label="Edit skill ${esc(s.course)}"${edits}>✎</button>
+          <ul class="skill-tools" aria-label="Tools for ${esc(s.course)}">${l.map(t=>`<li><button type="button" class="skill-tool${t.status==='done'?' done':''}" data-open="${esc(t.id)}" style="--lc:${LVL_COLORS[skillLevel(t)]}" title="${esc(LVL_NAMES[skillLevel(t)]+' · '+agoLabel(t.lastPracticed))}"><span>${esc(t.title)}</span><small>${LVL_TAG(skillLevel(t))}</small></button></li>`).join('')||'<li class="db-empty">No tools yet.</li>'}</ul>
+        </section>`}).join('');
       return `<div class="skill-category" data-skill-category="${esc(c)}">${rows||'<p class="db-empty">No skills in this category yet. Add one with + Add skill.</p>'}</div>`}).join('');}
   else if(v==='projects'){title='Projects';add='Create project';
     const pj=live.filter(t=>typeOf(t)==='project'),names=[...new Set(pj.map(t=>t.course||'Other'))];
