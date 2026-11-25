@@ -30,6 +30,7 @@ globalThis.SessionTVManifest=Object.freeze([
  'canvas.js',
  'classes.js',
  'skill-categories.js',
+ 'coach-profile.js',
  'study-chats.js',
  'home.js',
  'session-preferences.js',

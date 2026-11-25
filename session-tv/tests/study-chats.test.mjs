@@ -71,3 +71,17 @@ test('initial boot and an auth refresh initialize the study provider once withou
 });
 
 test('catalog usage limit offers retry without reporting a disconnected account',async()=>{const app=boot();try{await app.w.SessionStudyChats.refresh();const models=app.w.SessionCompanion.chatGPTModels;app.w.SessionCompanion.chatGPTModels=async()=>{throw Error('ChatGPT usage limit reached. Your account remains connected.')};await app.w.SessionStudyChats.refresh();assert.equal(app.w.SessionStudyChats.state.connected,true);assert.equal(app.w.document.querySelector('.study-chat-status button').textContent,'Retry');app.w.SessionCompanion.chatGPTModels=models;await app.w.SessionStudyChats.refresh();assert.equal(app.w.SessionStudyChats.state.ready,true);}finally{app.dom.window.close()}});
+
+test('skill study chats describe the learner from the coach profile, the stage by name and the chosen editor',async()=>{
+ const app=boot({active:'skill-a'});try{
+  const w=app.w,profile={name:'Sam',pronouns:'they/them',school:'Information Systems',goal:'a data analyst internship',focus:'SQL',buildProjects:[]};
+  w.coachProfile=()=>profile;w.coachLearner=p=>p.name+', an '+p.school+' student preparing for '+p.goal;w.LVL_NAMES=['','New','Learned','Experienced','Mastered'];
+  w.eval("var COACH_RULES={skill:'Match their stage.',class:'Graded coursework.'}");
+  const flags=[];w.wsRulesFor=(task,options)=>{flags.push(options?.flags);return '\n\nThey have a SQL editor open beside this chat.'};
+  await w.SessionStudyChats.refresh();await w.sendCoach('Quiz me');
+  const content=app.calls.find(call=>call.type==='start').options.messages[0].content;
+  assert.match(content,/The learner is Sam, an Information Systems student preparing for a data analyst internship \(focus: SQL\)\. Use they\/them pronouns/);
+  assert.match(content,/Match their stage\./);assert.match(content,/They have a SQL editor open beside this chat\./);assert.deepEqual(flags,[false]);
+  assert.match(content,/"level":"Learned"/);
+ }finally{app.dom.window.close();}
+});
