@@ -39,7 +39,7 @@ function gdDays(){
   if(all.some(t=>!t.due))out.push('none');return out;
 }
 function gdCellItems(course,day){return candidates('class').filter(t=>(t.course||'Other')===course&&(day==='none'?!t.due:t.due===day)).sort((a,b)=>(a.dueTime||'23:59').localeCompare(b.dueTime||'23:59'))}
-function gdShortTime(hm){if(!hm)return '11:59p';const [h,m]=hm.split(':').map(Number);return `${(h%12)||12}:${String(m).padStart(2,'0')}${h<12?'a':'p'}`}
+function gdShortTime(hm){const [h,m]=(hm||'23:59').split(':').map(Number);return `${(h%12)||12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}`}
 function gdDefaultSel(k){
   const s=TV.gSel[k];
   if(k==='class'){const all=candidates('class');if(s&&all.some(t=>t.id===s))return s;const a=T(current?.active);if(a&&typeOf(a)==='class')return a.id;return (listFor('class','Due Date')[0]||all[0])?.id||null}
