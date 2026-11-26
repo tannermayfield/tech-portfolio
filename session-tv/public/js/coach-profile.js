@@ -34,7 +34,7 @@
  function input(name,value,placeholder){const control=document.createElement('input');control.name=name;control.value=value;control.maxLength=LIMITS[name];control.autocomplete='off';if(placeholder)control.placeholder=placeholder;return control}
  function render(container){
   if(!container)return null;
-  const profile=get(),locked=readOnly(),form=document.createElement('form');
+  const profile=get(),locked=readOnly(),form=document.createElement('form');form.dataset.write='disable';
   form.className='coach-profile-form';form.noValidate=true;form.setAttribute('aria-label','Coach profile');
   const intro=document.createElement('p');intro.className='coach-profile-intro';intro.textContent='The AI coach uses this to talk about you, set its examples and decide which projects it should never build for you.';form.append(intro);
   field(form,'Name',input('name',profile.name,'Your first name'));
@@ -51,7 +51,7 @@
   for(const name of names){const row=document.createElement('label');row.className='coach-profile-project';const box=document.createElement('input');box.type='checkbox';box.name='buildProjects';box.value=name;box.checked=profile.buildProjects.includes(name);row.append(box,document.createTextNode(' '+name));group.append(row)}
   form.append(group);
   const actions=document.createElement('div');actions.className='row coach-profile-actions';
-  const save=document.createElement('button');save.type='submit';save.className='btn';save.textContent='Save coach profile';actions.append(save);form.append(actions);
+  const save=document.createElement('button');save.type='submit';save.className='btn';save.dataset.write='';save.textContent='Save coach profile';actions.append(save);form.append(actions);
   const status=document.createElement('p');status.setAttribute('role','status');form.append(status);
   form.querySelectorAll('input,select,button').forEach(control=>control.disabled=locked);
   if(locked)status.textContent='Sign in to your private session to change the coach profile.';

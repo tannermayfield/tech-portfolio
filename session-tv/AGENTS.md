@@ -42,6 +42,8 @@ Rule: define each function once, and extend it through `SessionTV.hooks`. Never 
 - `core/preferences.js` lists every `sb.*` preference key with its default and a description. `recall(key)` with no fallback returns that default. Add any new key there.
 - If the UI changes before a save finishes, pass an undo function: `guard(save, message, undo)`. When the save fails, `guard` runs undo (restore the old values and re-render) and then shows the error toast.
 
+- Mark every control that changes data with `data-write` where you create it. This covers buttons, selects and forms that add, edit, delete, submit, save or publish. In the read-only public demo, `preview.js` hides every `[data-write]` element and blocks its clicks. Use `data-write="disable"` to keep a control visible but disabled, such as the timer or a form whose fields should stay readable. Leave navigation, filters, tabs, menu selection, appearance preferences and Sign in unmarked. Do not add selectors to `preview.js`. `tests/read-only.test.mjs` walks the demo's screens and fails if a write control is still usable.
+
 ## UI text conventions
 
 Apply these to every label, button, heading, aria-label, empty state and toast, in core and feature files alike.

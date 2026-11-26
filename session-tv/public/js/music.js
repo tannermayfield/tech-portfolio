@@ -119,7 +119,7 @@
   if (!container || !privateMode()) return;
   initializePlaylists();
   const config = preferences();
-  const form = document.createElement('form'); form.className = 'music-preferences';
+  const form = document.createElement('form'); form.className = 'music-preferences'; form.dataset.write = '';
   form.innerHTML = `<h3>Apple Music</h3><p class="small">Save playlist share links, then open TV Radio to use Apple’s player.</p>
    <div class="music-sections"></div>
    <label class="music-switch"><input name="autoSwitch" type="checkbox"> Switch playlists with section</label>

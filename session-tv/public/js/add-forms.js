@@ -18,7 +18,7 @@
  for (const [kind,[title,fields]] of Object.entries(definitions)) {
   const dialog = document.createElement('dialog'); dialog.className = 'confirm-dlg create-record'; dialog.id = 'create-' + kind;
   dialog.setAttribute('aria-labelledby',dialog.id+'-title');
-  dialog.innerHTML = `<div class="local-panel"><div class="row spread"><h2 id="${dialog.id}-title">${title}</h2><button type="button" class="btn ghost" data-close-form>Close</button></div><form>${fields}<div class="create-form-actions"><button class="btn primary" type="submit">${title}</button></div></form><p role="status"></p></div>`;
+  dialog.innerHTML = `<div class="local-panel"><div class="row spread"><h2 id="${dialog.id}-title">${title}</h2><button type="button" class="btn ghost" data-close-form>Close</button></div><form data-write>${fields}<div class="create-form-actions"><button class="btn primary" type="submit">${title}</button></div></form><p role="status"></p></div>`;
   document.body.appendChild(dialog); dialogs[kind] = dialog;
   dialog.querySelector('[data-close-form]').onclick = () => dialog.close();
   const picker = dialog.querySelector('[data-pick-folder]');

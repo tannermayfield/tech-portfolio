@@ -50,7 +50,7 @@ function fmtMsg(text,ai){
     ALLOWED_ATTR:['href','title','class','align','start']
   });
   html=html.replace(/<table>/g,'<div class="markdown-table"><table>').replace(/<\/table>/g,'</table></div>');
-  html=html.replace(/<pre>/g,(ai&&WS.ed?'<button type="button" class="use-code" data-usecode>Put in editor ↗</button>':'')+'<pre class="code">');
+  html=html.replace(/<pre>/g,(ai&&WS.ed?'<button type="button" class="use-code" data-usecode data-write>Put in editor ↗</button>':'')+'<pre class="code">');
   return '<div class="markdown-body">'+html+'</div>'+projectActions(acts);
 }
 
@@ -91,9 +91,9 @@ function renderWork(){return SessionTV.hooks.run('work:render',arguments,()=>{
   wsMount(t&&typeOf(t)==='skill'?t:null);ppMount(t);ppNoSignal(!t);
   if(!t){f.innerHTML=`<div class="signal-lost" role="status"><div class="signal-bars" aria-hidden="true"></div><h2>Signal lost</h2><p>Choose a channel from Menu</p></div>`;$('coach-log').innerHTML='';$('coach-quick').innerHTML='';$('coach-form').hidden=true;renderClock();return}
   const type=typeOf(t),doneNow=isDoneNow(t);
-  const doneBtn=doneNow?(isSkill(t)?`<span class="small" style="color:var(--ok)">Practiced ✓</span>`:`<button class="btn" id="undo-done">Mark not done</button>`)
-    :isSkill(t)?(current.wrapUp?.[t.id]?`<button class="btn primary" id="done-btn" title="Save this conversation and move to the next skill">Next skill</button>`:`<button class="btn primary" id="wrapup-btn" title="Stop practicing and teach back what you know">Wrap up</button>`)
-    :`<button class="btn primary" id="done-btn" title="Mark this assignment done and go back to the channel menu">Done</button>`;
+  const doneBtn=doneNow?(isSkill(t)?`<span class="small" style="color:var(--ok)">Practiced ✓</span>`:`<button class="btn" id="undo-done" data-write>Mark not done</button>`)
+    :isSkill(t)?(current.wrapUp?.[t.id]?`<button class="btn primary" id="done-btn" data-write title="Save this conversation and move to the next skill">Next skill</button>`:`<button class="btn primary" id="wrapup-btn" data-write title="Stop practicing and teach back what you know">Wrap up</button>`)
+    :`<button class="btn primary" id="done-btn" data-write title="Mark this assignment done and go back to the channel menu">Done</button>`;
   const head=type==='project'?(t.course||'Project'):t.title;
   f.innerHTML=`<div class="chat-title"><h2 title="${esc(head)}">${esc(head)}</h2></div>
     <div class="row chat-actions">${type==='skill'?`<span class="lvl-wrap">${lvlCtl(t)}</span>`:''}${type==='class'?`<button class="btn ghost" id="info-btn" title="Assignment details">Details</button>`:''}${type==='project'?projModeSeg(t):doneBtn}</div>`;

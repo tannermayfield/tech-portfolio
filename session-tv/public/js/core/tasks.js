@@ -2,8 +2,8 @@
 function lvlBox(t){const n=skillLevel(t);return `<span class="lvl-box" style="--lc:${LVL_COLORS[n]}" title="${LVL_NAMES[n]}" aria-label="${LVL_NAMES[n]}">${LVL_TAG(n)}</span>`}
 function lvlCtl(t){
   const n=skillLevel(t);
-  return `<span class="lvl"><button type="button" class="lvl-box" style="--lc:${LVL_COLORS[n]}" data-lvlopen="${esc(t.id)}" aria-haspopup="true" aria-expanded="false" title="${LVL_NAMES[n]}. Click to change" aria-label="Your stage on ${esc(t.title)}: ${LVL_NAMES[n]}. Change">${LVL_TAG(n)}</button>
-    <span class="lvl-pop" role="radiogroup" aria-label="Pick your level" hidden>${[1,2,3,4].map(i=>`<button type="button" style="--lc:${LVL_COLORS[i]}" data-lvl="${esc(t.id)}" data-n="${i}" role="radio" aria-checked="${i===n}" title="${LVL_NAMES[i]}">${LVL_TAG(i)}</button>`).join('')}</span></span>`;
+  return `<span class="lvl"><button type="button" class="lvl-box" style="--lc:${LVL_COLORS[n]}" data-lvlopen="${esc(t.id)}" data-write="disable" aria-haspopup="true" aria-expanded="false" title="${LVL_NAMES[n]}. Click to change" aria-label="Your stage on ${esc(t.title)}: ${LVL_NAMES[n]}. Change">${LVL_TAG(n)}</button>
+    <span class="lvl-pop" role="radiogroup" aria-label="Pick your level" hidden>${[1,2,3,4].map(i=>`<button type="button" style="--lc:${LVL_COLORS[i]}" data-lvl="${esc(t.id)}" data-n="${i}" data-write role="radio" aria-checked="${i===n}" title="${LVL_NAMES[i]}">${LVL_TAG(i)}</button>`).join('')}</span></span>`;
 }
 document.addEventListener('click',e=>{if(!e.target.closest('.lvl'))document.querySelectorAll('.lvl-pop:not([hidden])').forEach(x=>{x.hidden=true;x.previousElementSibling?.setAttribute('aria-expanded','false')})});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.lvl-pop:not([hidden])').forEach(x=>x.hidden=true)});
@@ -31,7 +31,7 @@ function openTask(id,edit){
       ${t.points!==undefined&&t.points!==''?`<dt>Points</dt><dd>${esc(t.points)}</dd>`:''}
       ${t.canvas?`<dt>Source</dt><dd>Canvas · submission status updates on sync${canvasLink?` · <a href="${esc(canvasLink)}" target="_blank" rel="noopener noreferrer">Open in Canvas</a>`:''}</dd>`:''}
     </dl>
-    <div class="dd-btns"><button type="button" class="btn ghost" id="td-edit">Edit</button><button type="button" class="btn primary" id="td-sub">${done?'Mark not submitted':'Mark submitted'}</button></div>`;
+    <div class="dd-btns"><button type="button" class="btn ghost" id="td-edit" data-write>Edit</button><button type="button" class="btn primary" id="td-sub" data-write>${done?'Mark not submitted':'Mark submitted'}</button></div>`;
   if(TV.tdPast===id){const x=$('td-close');x.textContent='← Back';x.setAttribute('aria-label','Back to past assignments');x.onclick=()=>{TV.tdPast=null;openPast()}}
   else $('td-close').onclick=()=>$('task-dlg').close();
   $('td-sub').hidden=!!t.canvas;

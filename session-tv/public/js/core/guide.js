@@ -60,7 +60,7 @@ function gdInfoHTML(k){
     return `<div class="gd-sel"><div class="gd-t">${esc(t.title)}</div></div>
       <div class="gd-desc">${esc(d.text)}${done?' · submitted':''}</div>
       <div class="gd-det-row"><button type="button" class="btn gd-det" data-act="homework">Homework Overview</button></div>
-      <div class="gd-acts">${done?'':`<button type="button" class="btn primary" data-act="tune">Tune in ▸</button>`}${t.canvas?'':`<button type="button" class="btn" data-act="sub">${done?'Mark not submitted':'Mark submitted'}</button>`}</div>`}
+      <div class="gd-acts">${done?'':`<button type="button" class="btn primary" data-act="tune">Tune in ▸</button>`}${t.canvas?'':`<button type="button" class="btn" data-act="sub" data-write>${done?'Mark not submitted':'Mark submitted'}</button>`}</div>`}
   if(k==='skill'){const t=T(sel);if(!t)return `<div class="gd-sel"><div class="gd-t">No skills here</div></div><div class="gd-desc">Pick another category, or add a skill from Settings.</div>`;
     const n=skillLevel(t);
     return `<div class="gd-sel"><div class="gd-t">${esc(skShort(t))}</div></div>

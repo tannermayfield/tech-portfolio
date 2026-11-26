@@ -15,7 +15,7 @@ function settingsHeader(title, add, onAdd){
   back.innerHTML=title?'← Back':'×';
   back.setAttribute('aria-label',title?'Back to settings':'Close settings');
   back.onclick=()=>{if(TV.dbView){TV.dbView=null;renderSettings()}else closeSheets()};
-  if(add){const button=document.createElement('button');button.type='button';button.id='db-add';button.className='btn';button.textContent='+ '+add;button.onclick=onAdd;header.insertBefore(button,back)}
+  if(add){const button=document.createElement('button');button.type='button';button.id='db-add';button.className='btn';button.dataset.write='';button.textContent='+ '+add;button.onclick=onAdd;header.insertBefore(button,back)}
 }
 function renderSettings(){return SessionTV.hooks.run('settings:render',arguments,()=>{
   if(TV.dbView)return renderDbView(TV.dbView);
@@ -67,7 +67,7 @@ function renderDbView(v){return SessionTV.hooks.run('dbView:render',arguments,v=
     const cls=live.filter(t=>typeOf(t)==='class'),courses=[...new Set([...cls.map(t=>t.course||'Other'),...Object.keys(recall('sb.classes'))])].sort();
     body=courses.map(c=>{const l=cls.filter(t=>(t.course||'Other')===c).sort((a,b)=>(a.status==='done')-(b.status==='done')||String(a.due||'9').localeCompare(String(b.due||'9')));
       const open=l.filter(t=>t.status!=='done').length;
-      return `<section class="db-grp class-section"><div class="class-section-head"><h4>${esc(courseLabel(c))}<small>${open} open · ${l.length-open} done</small></h4><button type="button" class="btn" data-add-assignment="${esc(c)}">+ Add assignment</button></div><ul>${l.map(t=>row(t,t.status==='done'?`Done ${d(t.doneAt)}`:(t.due?esc(fmtDue(t)):'No due date'),t.status==='done')).join('')||'<li class="db-empty">No assignments yet.</li>'}</ul></section>`}).join('');}
+      return `<section class="db-grp class-section"><div class="class-section-head"><h4>${esc(courseLabel(c))}<small>${open} open · ${l.length-open} done</small></h4><button type="button" class="btn" data-add-assignment="${esc(c)}" data-write>+ Add assignment</button></div><ul>${l.map(t=>row(t,t.status==='done'?`Done ${d(t.doneAt)}`:(t.due?esc(fmtDue(t)):'No due date'),t.status==='done')).join('')||'<li class="db-empty">No assignments yet.</li>'}</ul></section>`}).join('');}
   else if(v==='skills'){title='Skills';add='Add skill';
     // Category → one row per skill (stage, counters, code editor, actions, like Classes) → its tools as chips below.
     // skill-categories.js adds the category chips and wires the editor select and Edit.
@@ -79,9 +79,9 @@ function renderDbView(v){return SessionTV.hooks.run('dbView:render',arguments,v=
         return `<section class="skill-settings-row" data-skill="${esc(s.course)}" data-skill-id="${esc(s.id)}">
           <div class="class-identity skill-identity"><strong title="${esc(c+' › '+s.course)}">${esc(skShort(s))}</strong>${lvlBox(s)}</div>
           <div class="class-counters skill-counters">${counter(l.length,l.length===1?'Tool':'Tools')}${counter(s.reps||0,s.reps===1?'Practice session':'Practice sessions')}${counter(when(s.lastPracticed),'Last practiced')}</div>
-          <label class="skill-editor-pick"><span>Code editor</span><select data-skill-editor="${esc(s.id)}" aria-label="Code editor for ${esc(s.course)}"${edits}>${WS_CHOICES.map(([v,label])=>`<option value="${v}"${v===kind?' selected':''}>${esc(label)}</option>`).join('')}</select></label>
-          <button type="button" class="btn skill-add-tool" data-add-tool="${esc(s.course)}" data-tool-category="${esc(c)}"${edits}>+ Add tool</button>
-          <button type="button" class="btn skill-edit" data-edit-skill="${esc(s.id)}" aria-label="Edit skill ${esc(s.course)}"${edits}>Edit</button>
+          <label class="skill-editor-pick" data-write><span>Code editor</span><select data-skill-editor="${esc(s.id)}" aria-label="Code editor for ${esc(s.course)}" data-write${edits}>${WS_CHOICES.map(([v,label])=>`<option value="${v}"${v===kind?' selected':''}>${esc(label)}</option>`).join('')}</select></label>
+          <button type="button" class="btn skill-add-tool" data-add-tool="${esc(s.course)}" data-tool-category="${esc(c)}" data-write${edits}>+ Add tool</button>
+          <button type="button" class="btn skill-edit" data-edit-skill="${esc(s.id)}" aria-label="Edit skill ${esc(s.course)}" data-write${edits}>Edit</button>
           <ul class="skill-tools" aria-label="Tools for ${esc(s.course)}">${l.map(t=>`<li><button type="button" class="skill-tool${t.status==='done'?' done':''}" data-open="${esc(t.id)}" style="--lc:${LVL_COLORS[skillLevel(t)]}" title="${esc(LVL_NAMES[skillLevel(t)]+' · '+agoLabel(t.lastPracticed))}"><span>${esc(t.title)}</span><small>${LVL_TAG(skillLevel(t))}</small></button></li>`).join('')||'<li class="db-empty">No tools yet.</li>'}</ul>
         </section>`}).join('');
       return `<div class="skill-category" data-skill-category="${esc(c)}">${rows||'<p class="db-empty">No skills in this category yet. Add one with + Add skill.</p>'}</div>`}).join('');}
