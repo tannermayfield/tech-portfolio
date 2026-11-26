@@ -37,7 +37,7 @@ function renderLog(){
   $('bal').innerHTML=CATS.map(k=>{const p=tot?m[k]/tot:0;return `<div style="display:flex;flex-direction:column;gap:4px"><div class="bal-top"><span>${TYPES[k].label}</span><span>${fmtMin(m[k])} · ${Math.round(p*100)}%</span></div><div class="hbar"><i style="width:${Math.min(100,p*100)}%;background:${COLOR[k]}"></i></div></div>`}).join('');
   if(!loaded.sessions){$('log').innerHTML='<div class="muted small">Loading…</div>';return}
   $('log').innerHTML=sessions.length?sessions.map(s=>{
-    const d=new Date(s.date).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+    const d=fmtDay(new Date(s.date));
     const bt={};for(const k in (s.byTrack||{})){const c=mapOldCat(k);bt[c]=(bt[c]||0)+s.byTrack[k]}
     const moods=CATS.filter(k=>bt[k]>0).map(k=>` · ${fmtMin(bt[k])} ${MOODS[k].label.toLowerCase()}`).join('');
     return `<div class="entry"><span class="due">${esc(d)} · ${fmtMin(s.minutes)}${moods}${s.confidence?` · confidence ${s.confidence}/5`:''}</span>

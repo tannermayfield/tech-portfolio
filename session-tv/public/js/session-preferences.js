@@ -43,7 +43,7 @@
   :key==='ai'?`<section class="prefs-group"><h4>Status</h4><div class="connection-summary" data-connection-summary aria-live="polite"></div></section>
    <section class="prefs-group" id="chatgpt-connection"></section>
    <section class="prefs-group" id="ai-connections"><h4>Codex &amp; local AI companion</h4><p class="prefs-status" id="companion-status" role="status"></p>
-    <form id="companion-controls" class="prefs-inline"><label for="companion-code">Pairing code</label><div class="prefs-actions"><input id="companion-code" autocomplete="off" type="password"><button class="btn" id="companion-pair" type="submit">Pair companion</button><button class="btn" id="companion-check" type="button">Check status</button><button class="btn ghost" id="companion-guide" type="button">Setup guide</button></div></form></section>`
+    <form id="companion-controls" class="prefs-inline" data-write><label for="companion-code">Pairing code</label><div class="prefs-actions"><input id="companion-code" autocomplete="off" type="password"><button class="btn" id="companion-pair" type="submit">Pair companion</button><button class="btn" id="companion-check" type="button">Check status</button><button class="btn ghost" id="companion-guide" type="button">Setup guide</button></div></form></section>`
   :key==='coach'?'<div id="pref-coach-body"></div>'
   :`<div id="${inner[key]}"></div>`;
  dialog.innerHTML=`<div class="prefs"><header class="prefs-head"><h2 id="preferences-heading">Preferences</h2><button class="btn ghost" id="preferences-close" type="button">Close</button></header>
@@ -83,11 +83,11 @@
    const section=document.createElement('section');section.className='section-identity';
    const heading=document.createElement('h4');heading.textContent=label;
    const nameLabel=document.createElement('label');nameLabel.textContent='Character name';
-   const name=document.createElement('input');name.value=characters[key]||character;name.maxLength=60;name.setAttribute('aria-label',label+' character name');
+   const name=document.createElement('input');name.value=characters[key]||character;name.maxLength=60;name.dataset.write='';name.setAttribute('aria-label',label+' character name');
    name.onchange=()=>{const values=recall('sb.sectionCharacters');values[key]=name.value.trim()||character;name.value=values[key];store('sb.sectionCharacters',values)};
    nameLabel.appendChild(name);
    const themeLabel=document.createElement('label');themeLabel.textContent='Background theme';
-   const picker=document.createElement('select');picker.setAttribute('aria-label',label+' background theme');picker.add(new Option('Rotate themes',''));
+   const picker=document.createElement('select');picker.dataset.write='';picker.setAttribute('aria-label',label+' background theme');picker.add(new Option('Rotate themes',''));
    for(const theme of THEMES[key])picker.add(new Option(theme.name,theme.id));
    picker.value=themes[key]||'';
    picker.onchange=()=>{

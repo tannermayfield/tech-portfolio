@@ -25,7 +25,7 @@
 <div class="wrap">
 <dialog class="confirm-dlg task-dlg" id="task-dlg" aria-labelledby="td-title">
   <div id="td-view"></div>
-  <form id="td-form" hidden>
+  <form id="td-form" hidden data-write>
     <h3 id="td-ftitle">Edit assignment</h3>
     <div class="td-grid">
       <label class="field full">Title<input id="td-t" required></label>
@@ -39,17 +39,17 @@
   </form>
 </dialog>
 <dialog class="confirm-dlg erd-dlg" id="erd-dlg" aria-label="Airline database diagram">
-  <div class="td-head"><h3>Airline sample database</h3><button type="button" class="td-x" onclick="this.closest('dialog').close()" aria-label="Close">×</button></div>
+  <div class="td-head"><h3>Airline sample database</h3><button type="button" class="btn ghost td-x" onclick="this.closest('dialog').close()">Close</button></div>
   <div class="erd-wrap big" id="erd-dlg-body"></div>
 </dialog>
 <dialog class="confirm-dlg past-dlg" id="past-dlg" aria-labelledby="pa-title">
-  <div class="pa-head"><h3 id="pa-title">Past Assignments</h3><button type="button" class="pa-x" id="pa-close" aria-label="Close">×</button></div>
+  <div class="pa-head"><h3 id="pa-title">Past Assignments</h3><button type="button" class="btn ghost pa-x" id="pa-close">Close</button></div>
   <ol class="pa-list" id="pa-list"></ol>
 </dialog>
 <dialog class="confirm-dlg" id="finish-dlg" aria-labelledby="fd-title">
   <h3 id="fd-title">Finish this session?</h3>
   <p id="fd-msg"></p>
-  <div class="dd-btns"><button class="btn ghost" id="fd-cancel">Keep going</button><button class="btn" id="fd-discard">Discard session</button><button class="btn primary" id="fd-save" autofocus>Save to learning log</button></div>
+  <div class="dd-btns"><button class="btn ghost" id="fd-cancel">Keep going</button><button class="btn" id="fd-discard">Discard session</button><button class="btn primary" id="fd-save" autofocus data-write>Save to learning log</button></div>
 </dialog>
 <dialog class="confirm-dlg" id="discard-dlg" aria-labelledby="dd-title">
   <h3 id="dd-title">Discard this session?</h3>
@@ -80,7 +80,7 @@
           <div class="coach">
             <div class="coach-log" id="coach-log" aria-live="polite"></div>
             <div class="coach-quick" id="coach-quick"></div>
-            <form class="coach-form" id="coach-form">
+            <form class="coach-form" id="coach-form" data-write>
               <textarea id="coach-input" rows="1" placeholder="Message your AI coach…" aria-label="Message to AI coach"></textarea>
               <button class="send-btn" type="submit" id="coach-send" aria-label="Send"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             </form>
@@ -92,9 +92,9 @@
             <span id="ws-file" hidden></span><h3 id="ws-title">SQL editor</h3>
             <div class="ws-acts">
               <button type="button" class="btn ghost" id="ws-tables" title="Show the airline database tables">Tables</button>
-              <button type="button" class="btn ghost" id="ws-reset" title="Start over with the example">Reset</button>
-              <button type="button" class="btn" id="ws-run" title="Ctrl/⌘ + Enter">Run query</button>
-              <button type="button" class="btn primary" id="ws-send" title="Submit your code and its output to Claude">Submit</button>
+              <button type="button" class="btn ghost" id="ws-reset" data-write title="Start over with the example">Reset</button>
+              <button type="button" class="btn" id="ws-run" data-write title="Ctrl/⌘ + Enter">Run query</button>
+              <button type="button" class="btn primary" id="ws-send" data-write title="Submit your code and its output to Claude">Submit</button>
             </div>
           </header>
           <div class="ws-ed" id="ws-ed"></div>
@@ -118,12 +118,12 @@
       <div class="wrap-right">
       <div class="row spread">
         <div><h2 id="wrap-title">Session Review</h2></div>
-        <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex:none"><div id="wc-acts-slot" style="display:contents"></div><button class="btn ghost" id="back-to-work">Back to work</button><button class="btn primary" id="wrap-finish">Finish</button></div>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex:none"><div id="wc-acts-slot" style="display:contents"></div><button class="btn ghost" id="back-to-work">Back to work</button><button class="btn primary" id="wrap-finish" data-write>Finish</button></div>
       </div>
       <section class="wrap-chat" aria-label="Skill check with Claude">
         <header class="chat-head" id="wc-head"></header>
         <div class="coach-log" id="wc-log" aria-live="polite"></div>
-        <form class="coach-form" id="wc-form">
+        <form class="coach-form" id="wc-form" data-write>
           <textarea id="wc-input" rows="1" placeholder="Explain it in your own words…" aria-label="Your explanation"></textarea>
           <button class="send-btn" type="submit" id="wc-send" aria-label="Send"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </form>
@@ -132,7 +132,7 @@
         <div class="row" style="gap:10px" hidden><span class="small muted">How well could you explain this in an interview?</span>
           <div class="conf" id="conf" role="group" aria-label="Confidence 1 to 5"><button data-c="1">1</button><button data-c="2">2</button><button data-c="3">3</button><button data-c="4">4</button><button data-c="5">5</button></div>
         </div>
-        <div class="row" style="gap:10px"><button class="btn ghost" id="discard-btn">Discard session</button><button class="btn primary big" id="finish-btn">Save to learning log</button></div>
+        <div class="row" style="gap:10px"><button class="btn ghost" id="discard-btn">Discard session</button><button class="btn primary big" id="finish-btn" data-write>Save to learning log</button></div>
       </div>
       </div>
     </section>
@@ -179,7 +179,7 @@
     <div class="sub-name" id="sub-name"></div>
     <div class="btn-row"><button type="button" class="rbtn" id="btn-menu" aria-pressed="false"><i></i>Menu</button><button type="button" class="rbtn" id="btn-set" aria-pressed="false"><i></i>Settings</button></div>
     <div style="position:relative;width:100%">
-     <button type="button" class="timer" id="tv-timer"></button>
+     <button type="button" class="timer" id="tv-timer" data-write="disable"></button>
     </div>
     <div class="speaker" aria-hidden="true"></div>
     <div class="song-note" id="song-note"></div>

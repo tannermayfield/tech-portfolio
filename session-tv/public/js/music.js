@@ -20,7 +20,7 @@
  radio.className = 'confirm-dlg';
  radio.setAttribute('aria-labelledby', 'radio-heading');
  radio.innerHTML = `<div class="local-panel radio-panel">
-  <header class="row spread"><h2 id="radio-heading">TV Radio</h2><button type="button" class="btn ghost" data-radio-close>Collapse</button></header>
+  <header class="row spread"><h2 id="radio-heading">TV Radio</h2><button type="button" class="btn ghost" data-radio-close>Close</button></header>
   <div class="radio-station"><span data-radio-section></span><button type="button" class="btn ghost" data-radio-stop>Stop music</button></div>
   <div class="radio-player"></div><p class="small" role="status" data-radio-status></p>
  </div>`;
@@ -119,7 +119,7 @@
   if (!container || !privateMode()) return;
   initializePlaylists();
   const config = preferences();
-  const form = document.createElement('form'); form.className = 'music-preferences';
+  const form = document.createElement('form'); form.className = 'music-preferences'; form.dataset.write = '';
   form.innerHTML = `<h3>Apple Music</h3><p class="small">Save playlist share links, then open TV Radio to use Apple’s player.</p>
    <div class="music-sections"></div>
    <label class="music-switch"><input name="autoSwitch" type="checkbox"> Switch playlists with section</label>

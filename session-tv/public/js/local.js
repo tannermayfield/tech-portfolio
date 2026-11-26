@@ -1,14 +1,14 @@
-/* Session Login (email and password, or Google), backups and Work chat persistence; preserve the original TV interface.
+/* Sign in (email and password, or Google), backups and Work chat persistence; preserve the original TV interface.
    Preferences live in session-preferences.js; openSetup('preferences') opens them. */
 (() => {
  SessionTV.hooks.after('settings:render',()=>{if(TV.dbView)return;$('local-open').onclick=async()=>{if(SessionWorkspace.mode==='private'){try{await SessionCloud.signOut()}catch(error){toast(error.message)}}else openLocalSetup('login')};if($('account-settings-open'))$('account-settings-open').onclick=()=>SessionAccount.open()});
  const dialog=document.createElement('dialog');dialog.id='local-setup';dialog.className='confirm-dlg';dialog.setAttribute('aria-labelledby','local-heading');
- dialog.innerHTML=`<div class="local-panel"><div class="row spread"><h2 id="local-heading">Session Login</h2><button class="btn ghost" id="local-close" type="button">Close</button></div>
+ dialog.innerHTML=`<div class="local-panel"><div class="row spread"><h2 id="local-heading">Sign in</h2><button class="btn ghost" id="local-close" type="button">Close</button></div>
  <p id="workspace-status" class="small"></p>
  <section id="workspace-auth"><form id="workspace-login">
  <label for="workspace-email">Email address</label><input id="workspace-email" name="email" type="email" required autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com">
  <label for="workspace-password">Password</label><div class="password-field"><input id="workspace-password" name="password" type="password" required autocomplete="current-password" placeholder="Your password"><button class="btn ghost" id="workspace-show-password" type="button" aria-controls="workspace-password" aria-pressed="false">Show</button></div>
- <div class="local-actions"><button class="btn primary" id="workspace-signin" type="submit">Sign In</button></div></form>
+ <div class="local-actions"><button class="btn primary" id="workspace-signin" type="submit">Sign in</button></div></form>
  <p class="login-or" aria-hidden="true"><span>or</span></p>
  <button class="btn" id="workspace-google" type="button">Continue with Google</button></section>
  <button class="btn" id="workspace-signout" type="button" hidden>Sign out</button>
@@ -16,9 +16,9 @@
  document.body.appendChild(dialog);
  function update(){
   const privateMode=SessionWorkspace.mode==='private';
-  $('workspace-status').textContent=privateMode?'You are signed in. Records are saved to your private workspace.':'Sign in with your email and password, or continue with Google.';
+  $('workspace-status').textContent=privateMode?(SessionCloud.user?.email?'Signed in as '+SessionCloud.user.email+'. ':'Signed in. ')+'Records are saved to your private workspace.':'Sign in with your email and password, or continue with Google.';
   $('workspace-auth').hidden=privateMode;$('workspace-signout').hidden=!privateMode;
-  if($('local-open')){$('local-open').textContent=privateMode?'Logout':'Login to Session';$('local-open').dataset.sessionAction=privateMode?'logout':'login';}
+  if($('local-open')){$('local-open').textContent=privateMode?'Sign out':'Sign in';$('local-open').dataset.sessionAction=privateMode?'logout':'login';}
  }
  function openLocalSetup(view=SessionWorkspace.mode==='private'?'preferences':'login',tab){
   if(view==='preferences'&&globalThis.SessionPreferences){SessionPreferences.open(tab);return}
@@ -26,7 +26,7 @@
  }
  function fail(error){$('local-message').textContent=error.message}
  $('workspace-show-password').onclick=()=>{const input=$('workspace-password'),visible=input.type==='password';input.type=visible?'text':'password';$('workspace-show-password').textContent=visible?'Hide':'Show';$('workspace-show-password').setAttribute('aria-pressed',String(visible))};
- $('workspace-login').onsubmit=async e=>{e.preventDefault();const button=$('workspace-signin');button.disabled=true;button.textContent='Signing in...';$('local-message').textContent='';try{await SessionCloud.signInWithPassword($('workspace-email').value,$('workspace-password').value)}catch(error){fail(error)}finally{$('workspace-password').value='';button.disabled=false;button.textContent='Sign In'}};
+ $('workspace-login').onsubmit=async e=>{e.preventDefault();const button=$('workspace-signin');button.disabled=true;button.textContent='Signing in…';$('local-message').textContent='';try{await SessionCloud.signInWithPassword($('workspace-email').value,$('workspace-password').value)}catch(error){fail(error)}finally{$('workspace-password').value='';button.disabled=false;button.textContent='Sign in'}};
  $('workspace-google').onclick=async()=>{try{await SessionCloud.signInWithGoogle()}catch(error){fail(error)}};
  $('workspace-signout').onclick=async()=>{try{await SessionCloud.signOut()}catch(error){fail(error)}};
  $('local-close').onclick=()=>dialog.close();

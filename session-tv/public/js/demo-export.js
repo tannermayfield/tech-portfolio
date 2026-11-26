@@ -12,7 +12,7 @@
   <ul id="demo-publish-counts" class="demo-publish-counts"></ul>
   <div id="demo-publish-list" class="demo-publish-list" tabindex="0" aria-label="Records to publish" style="max-height:40vh;overflow:auto"></div>
   <p id="demo-publish-message" role="status"></p>
-  <div class="row"><button class="btn ghost" type="button" data-cancel>Cancel</button><button class="btn" type="button" id="demo-publish-download" hidden>Download demo-data.js</button><button class="btn" type="button" id="demo-publish-confirm" disabled>Publish to demo</button></div></div>`;
+  <div class="row"><button class="btn ghost" type="button" data-cancel>Cancel</button><button class="btn" type="button" id="demo-publish-download" hidden>Download demo-data.js</button><button class="btn" type="button" id="demo-publish-confirm" data-write disabled>Publish to demo</button></div></div>`;
  document.body.append(dialog);
  const $id=id=>document.getElementById(id);
  let snapshot=null,generation=0,busy=false;
@@ -67,12 +67,12 @@
   }finally{busy=false}
  }
  $id('demo-publish-confirm').onclick=publish;$id('demo-publish-download').onclick=download;
- // Owner-only card next to Session Login.
+ // Owner-only card next to Account.
  SessionTV.hooks.after('settings:render',()=>{
   if(TV.dbView||!isOwner()||document.getElementById('demo-publish-open'))return;
   const login=document.getElementById('local-open')?.closest('.set-card');if(!login)return;
   const card=document.createElement('div');card.className='set-card demo-publish-card';
-  card.innerHTML='<h3>Public Demo</h3><div class="row"><button class="btn" id="demo-publish-open">Publish to demo</button></div>';
+  card.innerHTML='<h3>Public Demo</h3><div class="row"><button class="btn" id="demo-publish-open" data-write>Publish to demo</button></div>';
   card.querySelector('button').onclick=open;login.after(card);
  });
  globalThis.SessionDemoExport={isOwner,open,download};

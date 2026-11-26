@@ -128,11 +128,11 @@
   const folder = entry(name).folder;
   if (!folder) return report('No computer folder is linked to ' + name + '. Choose one in Manage.');
   try { await SessionCompanion.openFolder(folder); }
-  catch(error) { report('Could not open the folder. Make sure the SessionTV companion is running and paired in Settings → Session Preferences. (' + error.message + ')'); }
+  catch(error) { report('Could not open the folder. Make sure the SessionTV companion is running and paired in Preferences → AI Connections. (' + error.message + ')'); }
  }
  const manage = document.createElement('dialog');
  manage.id = 'project-manage'; manage.className = 'confirm-dlg'; manage.setAttribute('aria-labelledby','project-manage-title');
- manage.innerHTML = `<div class="local-panel"><div class="row spread"><h2 id="project-manage-title">Manage project</h2><button class="btn" id="pm-close">Close</button></div><h3 id="pm-name"></h3><p id="pm-folder" class="project-folder-path"></p><div class="row"><button class="btn" id="pm-open">Open folder</button><button class="btn" id="pm-change">Choose another folder</button></div><h3>Codex chats</h3><ul id="pm-chats"></ul><button class="btn" id="pm-repair">Prepare starter chats</button><p role="status" id="pm-status"></p></div>`;
+ manage.innerHTML = `<div class="local-panel"><div class="row spread"><h2 id="project-manage-title">Manage project</h2><button class="btn ghost" id="pm-close">Close</button></div><h3 id="pm-name"></h3><p id="pm-folder" class="project-folder-path"></p><div class="row"><button class="btn" id="pm-open">Open folder</button><button class="btn" id="pm-change" data-write>Choose another folder</button></div><h3>Codex chats</h3><ul id="pm-chats"></ul><button class="btn" id="pm-repair" data-write>Prepare starter chats</button><p role="status" id="pm-status"></p></div>`;
  document.body.appendChild(manage);
  function renderManage() {
   const value = entry(managedProject);
@@ -176,7 +176,7 @@
    const open = document.createElement('button'); open.type = 'button'; open.className = 'btn project-open-folder'; open.textContent = 'Open folder';
    open.title = value.folder || 'No computer folder linked yet'; open.onclick = () => openFolder(name);
    const counters=document.createElement('div');counters.className='class-counters project-counters';for(const [count,caption] of [[totals.skills,'Skills Applied'],[totals.mine,'My Tasks Completed'],[totals.codex,'Codex Tasks Completed']]){const counter=document.createElement('span'),number=document.createElement('b'),label=document.createElement('small');number.textContent=count;label.textContent=caption;counter.append(number,label);counters.append(counter);}
-   const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Manage'; button.onclick = () => openManage(name);
+   const button = document.createElement('button'); button.className = 'btn'; button.dataset.write = ''; button.textContent = 'Manage'; button.onclick = () => openManage(name);
    const identity=document.createElement('div');identity.className='class-identity';identity.append(label,open);row.append(identity,counters,button); table.appendChild(row);
   }
   if(!names().length) { const empty = document.createElement('p'); empty.className='db-empty'; empty.textContent='No projects yet.'; table.appendChild(empty); }
@@ -208,7 +208,7 @@
     const detail=document.createElement('span');detail.textContent=[approval.command,approval.cwd,approval.host,approval.grantRoot,approval.reason,approval.additionalPermissions?JSON.stringify(approval.additionalPermissions):''].filter(Boolean).join('\n');panel.append(detail);
     const actions=document.createElement('div');actions.className='row';
     for(const accept of [true,false]){
-     const button=document.createElement('button');button.className='btn';button.type='button';button.textContent=accept?'Approve once':'Deny';button.disabled=approval.sending;
+     const button=document.createElement('button');button.className='btn';button.type='button';button.dataset.write='';button.textContent=accept?'Approve once':'Deny';button.disabled=approval.sending;
      button.onclick=async()=>{approval.sending=true;for(const control of actions.children)control.disabled=true;try{await SessionCompanion.answerCodexApproval(approval.id,accept)}catch(error){approval.sending=false;for(const control of actions.children)control.disabled=false;toast(error.message)}};
      actions.append(button);
     }

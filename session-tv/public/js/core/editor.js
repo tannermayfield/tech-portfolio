@@ -279,7 +279,7 @@ function erdSvg(){
   return `<svg class="erd" viewBox="0 0 800 ${maxY}" width="800" height="${maxY}" role="img" aria-label="Diagram of the airline database: flights links to airlines, aircraft and airports (origin and destination); bookings links to flights" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">${lines}${g}</svg>`;
 }
 $('ws-tables').onclick=()=>{
-  $('ws-out').innerHTML=`<div class="ws-meta" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>Airline sample database · each line runs from a foreign key (fork = many) to the key it points at (bar = one)</span><button type="button" class="btn ghost" id="erd-big" style="padding:3px 10px;font-size:12px;flex:none">Open larger</button></div><div class="erd-wrap">${erdSvg()}</div>`;
+  $('ws-out').innerHTML=`<div class="ws-meta" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>Airline sample database · each line runs from a foreign key (fork = many) to the key it points at (bar = one)</span><button type="button" class="btn ghost" id="erd-big" style="padding:3px 10px;flex:none">Open larger</button></div><div class="erd-wrap">${erdSvg()}</div>`;
   $('erd-big').onclick=()=>{$('erd-dlg-body').innerHTML=erdSvg();$('erd-dlg').showModal()};
 };
 $('ws-flagnote').onclick=()=>{if(WS.flags.length)WS.ed.flag(WS.flags)};
