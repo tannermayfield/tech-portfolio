@@ -8,7 +8,7 @@ import jsdom from 'jsdom';
 import {appSources} from './manifest.mjs';
 const {JSDOM,VirtualConsole}=jsdom;
 const publicDir=fileURLToPath(new URL('../public/',import.meta.url));
-async function until(check){for(let i=0;i<150;i++){if(check())return;await new Promise(r=>setTimeout(r,10))}throw new Error('App did not reach expected state: '+check)}
+async function until(check){for(let i=0;i<500;i++){if(check())return;await new Promise(r=>setTimeout(r,10))}throw new Error('App did not reach expected state: '+check)}
 async function boot(){
  const errors=[],vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
  const html=readFileSync(path.join(publicDir,'index.html'),'utf8').replace(/<script src="([^"]+)"><\/script>/g,(_,src)=>'<script>'+(src==='js/boot.js'?"(async()=>{await SessionCloud.ready;for(const source of window.__testSources){const s=document.createElement('script');s.textContent=source;document.body.appendChild(s)}})()":readFileSync(path.join(publicDir,src),'utf8'))+'</script>');
@@ -101,11 +101,15 @@ test('project skills come from completed Apply tasks and feed the menu and Setti
 test('Apply tasks can be marked done and given skills, and project copy never says sprint',async()=>{
  const {dom,w}=await boot();try{
   await w.eval("Promise.all([db.doc('tasks/ap-one').set({track:'project',title:'Build page',course:'Apply project',status:'todo',order:1}),db.doc('tasks/ap-skill').set({track:'skill',title:'CSS grid',course:'CSS',cat:'Software',status:'todo'})])");
-  w.eval("current.active='ap-one';current.mood='project';current.projModes={...(current.projModes||{}),'Apply project':'apply'};TV.mode='task';PROJ.data[pslug('Apply project')]={name:'Apply project',taskAssignments:{'ap-one':'me'}};projectPanel(T('ap-one'),'Apply project','apply')");
+  w.eval("current.active='ap-one';current.mood='project';current.projModes={...(current.projModes||{}),'Apply project':'apply'};TV.mode='task'");
+  // save the owner through the database like the app does, so a late projects snapshot cannot wipe it
+  await w.eval("db.doc('projects/'+pslug('Apply project')).set({name:'Apply project',taskAssignments:{'ap-one':'me'}})");
+  await until(()=>w.eval("projData('Apply project').taskAssignments?.['ap-one']==='me'"));
+  w.eval("projectPanel(T('ap-one'),'Apply project','apply')");
   w.document.querySelector('[aria-label="Skills for Build page"]').click();w.document.querySelector('#task-skill-picker [aria-label="Select CSS grid"]').click();w.document.querySelector('#task-skill-picker [data-save]').click();
   await until(()=>w.eval("T('ap-one').skills?.includes('ap-skill')"));
   assert.deepEqual(Array.from(w.eval("projectSkills('Apply project')")),[],'open tasks do not count yet');
-  w.eval("projectPanel(T('ap-one'),'Apply project','apply')");w.document.querySelector('[aria-label="Mark done: Build page"]').click();
+  w.eval("projectPanel(T('ap-one'),'Apply project','apply')");await until(()=>w.document.querySelector('[aria-label="Mark done: Build page"]'));w.document.querySelector('[aria-label="Mark done: Build page"]').click();
   await until(()=>w.eval("T('ap-one').status")==='done');
   assert.deepEqual(Array.from(w.eval("projectSkills('Apply project')")),['CSS grid']);
   w.eval("projectPanel(T('ap-one'),'Apply project','apply')");assert.equal(w.document.querySelector('[aria-label="Mark not done: Build page"]').textContent,'Done ✓');

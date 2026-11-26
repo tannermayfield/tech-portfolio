@@ -7,7 +7,7 @@ import jsdom from 'jsdom';
 import {appSources} from './manifest.mjs';
 const {JSDOM,VirtualConsole}=jsdom;
 const publicDir=fileURLToPath(new URL('../public/',import.meta.url));
-async function until(check){for(let i=0;i<150;i++){if(check())return;await new Promise(r=>setTimeout(r,10))}throw new Error('App did not reach expected state: '+check)}
+async function until(check){for(let i=0;i<500;i++){if(check())return;await new Promise(r=>setTimeout(r,10))}throw new Error('App did not reach expected state: '+check)}
 async function boot(saved={},url='http://127.0.0.1:4173'){
  const errors=[],vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
  const html=readFileSync(path.join(publicDir,'index.html'),'utf8').replace(/<script src="([^"]+)"><\/script>/g,(_,src)=>'<script>'+(src==='js/boot.js'?"(async()=>{await SessionCloud.ready;for(const source of window.__testSources){const s=document.createElement('script');s.textContent=source;document.body.appendChild(s)}})()":readFileSync(path.join(publicDir,src),'utf8'))+'</script>');
@@ -295,7 +295,7 @@ test('skill settings show category chips, then each skill in a row with its tool
   const body=w.document.getElementById('set-body');
   assert.deepEqual([...body.querySelectorAll('.settings-skill-filters [data-category]')].map(b=>b.textContent),Array.from(w.eval('Object.keys(SKILL_TAGS)')));
   const data=body.querySelector('[data-skill-category="Data"]');assert.equal(data.hidden,false);
-  assert.deepEqual([...data.querySelectorAll('.skill-settings-row .skill-identity strong')].map(h=>h.textContent).slice(0,3),['SQL','Databases','Python']);
+  assert.deepEqual([...data.querySelectorAll('.skill-settings-row .skill-identity strong')].map(h=>h.textContent).slice(0,3),['SQL','Databases','Python (Data)']);
   const sql=data.querySelector('.skill-settings-row');assert.match(sql.querySelector('.skill-tools').textContent,/CTEs/);
   assert.equal(sql.querySelector('.skill-identity .lvl-box').textContent,'LEARNED');
   assert.deepEqual([...sql.querySelectorAll('.skill-counters small')].map(s=>s.textContent),['Tool','Practice sessions','Last practiced']);

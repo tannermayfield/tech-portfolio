@@ -44,10 +44,9 @@ function gdDefaultSel(k){
   if(k==='skill'){const l=gdSkills();if(s&&l.some(t=>t.id===s))return s;const a=T(current?.active);if(a&&typeOf(a)==='skill'&&l.some(t=>t.id===a.id))return a.id;return l[0]?.id||null}
   const p=gdProjects();if(s&&p.includes(s))return s;const a=T(current?.active);if(a&&typeOf(a)==='project')return a.course||p[0];return p[0]||null;
 }
-/* in the Skills menu the category is already shown, so "Python for Data" under Data reads as just "Python" */
 /* menu shows the stage name: NEW, LEARNED, EXPERIENCED or MASTERED */
 function lvlTag(t){return LVL_TAG(skillLevel(t))}
-function skShort(t){const c=catOf(t)||'';const q=c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');const r=String(t.title||'').replace(new RegExp('\\s+for\\s+'+q+'$','i'),'').replace(new RegExp('\\s*\\('+q+'\\)$','i'),'');return r||t.title}
+function skShort(t){return t.title} // full skill names: "Python (Data)" and "Python (Software)" stay distinct
 function gdFilt(){const subs=subsOf('skill');if(!subs.includes(TV.gFilter)){const a=T(current&&current.cur&&current.cur.skill);TV.gFilter=a&&subs.includes(catOf(a))?catOf(a):subs[0]}return TV.gFilter}
 function gdSkills(){const all=allChannels('skill'),f=gdFilt();return all.filter(t=>catOf(t)===f)}
 function gdProjects(){return subsOf('project').filter(p=>p!=='All')}
