@@ -13,16 +13,20 @@ function toast(m){const el=$('toast');if(!el)return;el.textContent=m;el.hidden=f
 addEventListener('sessiontv:error',event=>toast(event.detail));
 const reduce=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function fmtMin(m){m=Math.max(0,Math.round(m||0));const h=Math.floor(m/60),r=m%60;return h?(r?`${h}h ${String(r).padStart(2,'0')}m`:`${h}h`):`${r}m`}
-const fmtClock=d=>d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+/* Dates and times, one format app-wide: "Thu, Nov 26 · 11:59 PM", "Thu, Nov 26" or "11:59 PM" */
+const fmtClock=d=>d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}).replace(/\s+/g,' ');
+const fmtDay=d=>d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 function parseDay(s){if(!s)return null;const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
 function today(){const d=new Date();d.setHours(0,0,0,0);return d}
 function daysUntil(s){const d=parseDay(s);return d?Math.round((d-today())/864e5):null}
 function fmtTime(hm){const [h,m]=hm.split(':').map(Number);const d=new Date();d.setHours(h,m,0,0);return fmtClock(d)}
+// a record's due date (and time, when it has one): "Thu, Nov 26 · 11:59 PM"
+function fmtDue(t){if(!t?.due)return 'No due date';const d=parseDay(String(t.due));if(!d||!Number.isFinite(d.getTime()))return String(t.due);return fmtDay(d)+(/^\d{1,2}:\d{2}$/.test(t.dueTime||'')?' · '+fmtTime(t.dueTime):'')}
 function dueAt(t){const d=parseDay(t.due);if(!d)return null;const [h,m]=(t.dueTime||'23:59').split(':').map(Number);d.setHours(h,m,0,0);return d}
 function dueLabel(t){
   const n=daysUntil(t.due);if(n==null)return {text:'No date',cls:''};
   const tm=t.dueTime?` · ${fmtTime(t.dueTime)}`:'';
-  const d=parseDay(t.due).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+  const d=fmtDay(parseDay(t.due));
   const past=dueAt(t)<new Date();
   if(n<0||(n===0&&past&&t.dueTime))return {text:`${d}${tm} · late`,cls:'late'};
   if(n===0)return {text:`Today${tm}`,cls:'late'};

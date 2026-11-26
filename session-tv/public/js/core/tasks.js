@@ -16,12 +16,11 @@ function bindRows(root){
 }
 /* assignment details popup, with an Edit form */
 let tdId=null;
-function fmtDue(t){if(!t.due)return 'No due date';const d=parseDay(t.due);return d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+(t.dueTime?' at '+fmtTime(t.dueTime):'')}
 function openTask(id,edit){
   const t=T(id);if(!t)return;tdId=id;const done=t.status==='done',d=t.due?dueFor(t):null,lead=leadOf(t);
   let canvasLink='';try{const url=new URL(t.canvas?.url);if(url.origin==='https://byu.instructure.com'&&!url.username&&!url.password)canvasLink=url.href}catch{}
-  let start='';if(t.due){const s=parseDay(t.due);s.setDate(s.getDate()-lead);start=s.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}
-  $('td-view').innerHTML=`<div class="td-head"><h3 id="td-title">${esc(t.title)}</h3><button type="button" class="td-x" id="td-close" aria-label="Close">×</button></div>
+  let start='';if(t.due){const s=parseDay(t.due);s.setDate(s.getDate()-lead);start=fmtDay(s)}
+  $('td-view').innerHTML=`<div class="td-head"><h3 id="td-title">${esc(t.title)}</h3><button type="button" class="btn ghost td-x" id="td-close">Close</button></div>
     <dl class="td-rows">
       <dt>Course</dt><dd>${esc(t.course||'—')}</dd>
       <dt>Due</dt><dd>${esc(fmtDue(t))}${d&&!done&&d.cls?` <span class="due ${d.cls}">${esc(d.text)}</span>`:''}</dd>
@@ -33,7 +32,7 @@ function openTask(id,edit){
       ${t.canvas?`<dt>Source</dt><dd>Canvas · submission status updates on sync${canvasLink?` · <a href="${esc(canvasLink)}" target="_blank" rel="noopener noreferrer">Open in Canvas</a>`:''}</dd>`:''}
     </dl>
     <div class="dd-btns"><button type="button" class="btn ghost" id="td-edit">Edit</button><button type="button" class="btn primary" id="td-sub">${done?'Mark not submitted':'Mark submitted'}</button></div>`;
-  if(TV.tdPast===id){const x=$('td-close');x.textContent='‹ Back';x.classList.add('td-back');x.setAttribute('aria-label','Back to past assignments');x.onclick=()=>{TV.tdPast=null;openPast()}}
+  if(TV.tdPast===id){const x=$('td-close');x.textContent='← Back';x.setAttribute('aria-label','Back to past assignments');x.onclick=()=>{TV.tdPast=null;openPast()}}
   else $('td-close').onclick=()=>$('task-dlg').close();
   $('td-sub').hidden=!!t.canvas;
   $('td-sub').onclick=()=>{toggleSubmitted(id);setTimeout(()=>openTask(id),50)};
@@ -90,7 +89,7 @@ function pastAssignments(){
 }
 function openPast(){
   const list=pastAssignments(),ol=$('pa-list');
-  const when=iso=>{if(!iso)return 'Done';const d=new Date(iso);return 'Done '+d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+' · '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})};
+  const when=iso=>{if(!iso)return 'Done';const d=new Date(iso);return 'Done '+fmtDay(d)+' · '+fmtClock(d)};
   ol.innerHTML=list.length?list.map(t=>`<li><button type="button" class="pa-row" data-id="${esc(t.id)}"><span class="pa-t">${esc(t.title)}</span><span class="pa-m"><span>${esc(t.course||'Other')}</span><span>${esc(when(t.doneAt))}</span></span></button></li>`).join('')
     :'<li class="pa-empty">Nothing marked done yet. Finished assignments show up here, newest first.</li>';
   ol.querySelectorAll('.pa-row').forEach(b=>b.onclick=()=>{TV.tdPast=b.dataset.id;openTask(b.dataset.id)});

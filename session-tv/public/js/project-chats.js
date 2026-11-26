@@ -128,11 +128,11 @@
   const folder = entry(name).folder;
   if (!folder) return report('No computer folder is linked to ' + name + '. Choose one in Manage.');
   try { await SessionCompanion.openFolder(folder); }
-  catch(error) { report('Could not open the folder. Make sure the SessionTV companion is running and paired in Settings → Session Preferences. (' + error.message + ')'); }
+  catch(error) { report('Could not open the folder. Make sure the SessionTV companion is running and paired in Preferences → AI Connections. (' + error.message + ')'); }
  }
  const manage = document.createElement('dialog');
  manage.id = 'project-manage'; manage.className = 'confirm-dlg'; manage.setAttribute('aria-labelledby','project-manage-title');
- manage.innerHTML = `<div class="local-panel"><div class="row spread"><h2 id="project-manage-title">Manage project</h2><button class="btn" id="pm-close">Close</button></div><h3 id="pm-name"></h3><p id="pm-folder" class="project-folder-path"></p><div class="row"><button class="btn" id="pm-open">Open folder</button><button class="btn" id="pm-change">Choose another folder</button></div><h3>Codex chats</h3><ul id="pm-chats"></ul><button class="btn" id="pm-repair">Prepare starter chats</button><p role="status" id="pm-status"></p></div>`;
+ manage.innerHTML = `<div class="local-panel"><div class="row spread"><h2 id="project-manage-title">Manage project</h2><button class="btn ghost" id="pm-close">Close</button></div><h3 id="pm-name"></h3><p id="pm-folder" class="project-folder-path"></p><div class="row"><button class="btn" id="pm-open">Open folder</button><button class="btn" id="pm-change">Choose another folder</button></div><h3>Codex chats</h3><ul id="pm-chats"></ul><button class="btn" id="pm-repair">Prepare starter chats</button><p role="status" id="pm-status"></p></div>`;
  document.body.appendChild(manage);
  function renderManage() {
   const value = entry(managedProject);

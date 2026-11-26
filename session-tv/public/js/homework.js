@@ -1,7 +1,7 @@
 /* Homework overview uses SessionTV records; no Canvas data is imported. */
 (()=>{
  let active='due',course='all';const dialog=document.createElement('section');dialog.id='homework-overview';dialog.className='tv-sheet';dialog.hidden=true;dialog.setAttribute('aria-labelledby','homework-heading');
- dialog.innerHTML=`<div class="homework-shell"><header class="sheet-head row spread"><h2 id="homework-heading">Homework Overview</h2><button class="btn ghost" data-close>← Back</button></header><div class="homework-stats" role="group" aria-label="Assignment status"></div><div class="homework-toolbar"><label>Class <select id="homework-course"></select></label><div class="row"><button class="btn ghost" data-canvas>Canvas settings</button><button class="btn" data-add>+ Add Assignment</button></div></div><div class="homework-list" role="region" aria-label="Assignments" tabindex="0"></div></div>`;$('crt').append(dialog);
+ dialog.innerHTML=`<div class="homework-shell"><header class="sheet-head row spread"><h2 id="homework-heading">Homework Overview</h2><button class="btn ghost" data-close>← Back</button></header><div class="homework-stats" role="group" aria-label="Assignment status"></div><div class="homework-toolbar"><label>Class <select id="homework-course"></select></label><div class="row"><button class="btn ghost" data-canvas>Canvas settings</button><button class="btn" data-add>+ Add assignment</button></div></div><div class="homework-list" role="region" aria-label="Assignments" tabindex="0"></div></div>`;$('crt').append(dialog);
  let opener;
  function show(){dialog.hidden=false;dialog.classList.add('open');dialog.querySelector('[data-close]').focus({preventScroll:true})}
  function close(){if(dialog.hidden)return;dialog.hidden=true;dialog.classList.remove('open');if(opener?.isConnected)opener.focus({preventScroll:true})}
@@ -32,9 +32,6 @@
   if(/\bfinals?\b/i.test(text))return 'exam';
   return 'assignment'};
  const kindOf=task=>normalizeKind(task?.kind)||titleKind(task?.title);
- const formatDue=task=>{if(!task?.due)return 'No due date';const [y,m,d]=String(task.due).split('-').map(Number),day=new Date(y,m-1,d);if(!Number.isFinite(day.getTime()))return String(task.due);
-  const date=day.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});if(!/^\d{1,2}:\d{2}$/.test(task.dueTime||''))return date;
-  const [h,min]=task.dueTime.split(':').map(Number);day.setHours(h,min);return date+' · '+day.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}).replace(/\s+/g,' ')};
  function records(){return tasks.filter(task=>typeOf(task)==='class'&&task.status!=='archived')}
  const safeURL=value=>{try{const url=new URL(value);return ['https:','http:'].includes(url.protocol)?url.href:null}catch{return null}};
  function render(){
@@ -51,15 +48,15 @@
    const body=document.createElement('div');body.className='homework-copy';const title=document.createElement('button');title.type='button';title.className='homework-title';title.textContent=task.title;title.onclick=()=>{close();closeSheets();tune(task.id)};
    const meta=document.createElement('div');meta.className='homework-meta';const name=document.createElement('span');name.textContent=task.course||'Other';meta.append(name);
    const url=safeURL(classes[task.course]?.url||classes[task.course]?.courseUrl||task.courseUrl);
-   if(url){const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Go to course';meta.append(link)}else{const link=document.createElement('button');link.type='button';link.className='homework-course-link';link.textContent=SessionWorkspace.mode==='demo'?'View class':'Add course link';link.onclick=()=>{if(SessionWorkspace.mode==='demo'){course=task.course||'all';render();return}linkCourse=task.course||'Other';linkDialog.querySelector('[data-course]').textContent=linkCourse;linkDialog.querySelector('input').value='';linkDialog.querySelector('[role=status]').textContent='';linkDialog.showModal()};meta.append(link)}
+   if(url){const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Go to course';meta.append(link)}else{const link=document.createElement('button');link.type='button';link.className='homework-course-link';link.textContent=SessionWorkspace.mode==='demo'?'View class':'+ Add course link';link.onclick=()=>{if(SessionWorkspace.mode==='demo'){course=task.course||'all';render();return}linkCourse=task.course||'Other';linkDialog.querySelector('[data-course]').textContent=linkCourse;linkDialog.querySelector('input').value='';linkDialog.querySelector('[role=status]').textContent='';linkDialog.showModal()};meta.append(link)}
    body.append(title,meta);if(task.points!==undefined&&task.points!==''&&task.points!==null){const points=document.createElement('p');points.className='homework-points';points.textContent=task.points+' pts';body.append(points)}
-   const due=document.createElement('time');due.className='homework-deadline '+active;due.textContent=formatDue(task);if(task.due)due.dateTime=task.dueTime?task.due+'T'+task.dueTime:task.due;row.append(icon,body,due);list.append(row);
+   const due=document.createElement('time');due.className='homework-deadline '+active;due.textContent=fmtDue(task);if(task.due)due.dateTime=task.dueTime?task.due+'T'+task.dueTime:task.due;row.append(icon,body,due);list.append(row);
   }
   if(!items.length){const empty=document.createElement('p');empty.className='homework-empty';empty.textContent=active==='due'?'No upcoming assignments.':active==='missing'?'No missing assignments.':'No submitted assignments yet.';list.append(empty)}
  }
  dialog.querySelector('[data-canvas]').onclick=()=>{if(SessionWorkspace.mode==='demo')return;SessionTVLocal.openSetup('preferences');document.getElementById('pref-tab-canvas').click()};
  dialog.querySelector('[data-close]').onclick=()=>close();dialog.querySelector('select').onchange=event=>{course=event.target.value;render()};dialog.querySelector('[data-add]').onclick=()=>SessionAddForms.open('assignment',course==='all'?undefined:course);
  SessionTV.hooks.after('guide:render',()=>{if(!dialog.hidden)render()});
- globalThis.SessionHomework={open(){opener=document.activeElement;active='due';course='all';render();show()},classify,kindOf,formatDue};
+ globalThis.SessionHomework={open(){opener=document.activeElement;active='due';course='all';render();show()},classify,kindOf,formatDue:fmtDue};
  addEventListener('sessiontv:auth',()=>{close();linkDialog.close()});
 })();

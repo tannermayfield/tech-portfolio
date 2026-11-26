@@ -27,8 +27,8 @@ function courseLabel(key){const {code,name}=courseFields(key);return name?code+'
 const gdYmd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const gdVis=()=>{const w=$('crt').getBoundingClientRect().width;return w<600?2:w<1000?3:4};
 function gdClock(){
-  if(current?.mood==='class'){const t=T(TV.gSel.class);if(!t)return '';if(!t.due)return 'No due date';const d=dueAt(t)||parseDay(t.due);return `Due ${d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})} · ${fmtClock(d)}`}
-  const d=new Date();return `${d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})} · ${fmtClock(d)}`}
+  if(current?.mood==='class'){const t=T(TV.gSel.class);if(!t)return '';if(!t.due)return 'No due date';return 'Due '+fmtDue({due:t.due,dueTime:t.dueTime||'23:59'})}
+  const d=new Date();return fmtDay(d)+' · '+fmtClock(d)}
 function gdCourses(){if(globalThis.SessionClasses?.names)return SessionClasses.names();return [...new Set([...Object.keys(recall('sb.classes')),...tasks.filter(t=>typeOf(t)==='class'&&t.status!=='archived').map(t=>t.course||'Other')])].sort()}
 function gdDays(){
   const all=candidates('class'),today=gdYmd(new Date());let lo=today,hi=gdYmd(new Date(Date.now()+6*864e5));
@@ -37,7 +37,7 @@ function gdDays(){
   if(all.some(t=>!t.due))out.push('none');return out;
 }
 function gdCellItems(course,day){return candidates('class').filter(t=>(t.course||'Other')===course&&(day==='none'?!t.due:t.due===day)).sort((a,b)=>(a.dueTime||'23:59').localeCompare(b.dueTime||'23:59'))}
-function gdShortTime(hm){const [h,m]=(hm||'23:59').split(':').map(Number);return `${(h%12)||12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}`}
+const gdShortTime=hm=>fmtTime(hm||'23:59');
 function gdDefaultSel(k){
   const s=TV.gSel[k];
   if(k==='class'){const all=candidates('class');if(s&&all.some(t=>t.id===s))return s;const a=T(current?.active);if(a&&typeOf(a)==='class')return a.id;return (listFor('class','Due Date')[0]||all[0])?.id||null}
@@ -107,7 +107,7 @@ function renderGuide(){return SessionTV.hooks.run('guide:render',arguments,()=>{
   const k=current.mood;TV.gSel[k]=gdDefaultSel(k);
   const keepScroll=g.querySelector('.gd-pills')?.scrollTop||0;
   const th=themeById(current.themeId)||THEMES[k][0];
-  const what=k==='class'?'Classwork':k==='skill'?'Skills':'Projects';
+  const what=TYPES[k].label;
   let body='',hint='';
   if(k==='class'){
     const days=gdDays(),N=Math.min(gdVis(),days.length),courses=gdCourses(),today=gdYmd(new Date());

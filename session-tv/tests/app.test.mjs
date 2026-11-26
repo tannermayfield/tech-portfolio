@@ -137,7 +137,7 @@ test('SQL executes on the airline sample data and editor drafts persist',async()
 });
 test('public preview keeps sign-in usable and blocks record editing in the DOM',async()=>{const {dom,w,errors}=await boot({},'https://tannermayfield.dev/session-tv/');try{assert.equal(w.SessionWorkspace.readOnly,true);assert.equal(w.document.body.dataset.readonly,'true');assert.equal(w.eval('tasks.length'),7);await assert.rejects(w.eval("db.doc('tasks/demo-cs').update({title:'Forbidden'})"),/read-only/);w.SessionAddForms.open('assignment');assert.equal(w.document.getElementById('create-assignment').open,false);w.document.querySelector('#create-assignment form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));assert.equal(w.eval('tasks.length'),7);assert.equal(w.document.getElementById('workspace-email').disabled,false);assert.equal(w.document.getElementById('workspace-data'),null);assert.deepEqual(errors,[])}finally{dom.window.close()}});
 
-test('appearance preferences persist without changing workspace data',async()=>{const {dom,w,errors}=await boot();try{assert.equal(w.document.getElementById('workspace-banner'),null);w.document.getElementById('btn-set').click();const titles=[...w.document.querySelectorAll('#set-body .set-card>h3')].map(x=>x.textContent);assert.deepEqual(titles.slice(0,4),['Session Login','Preferences','Exit SessionTV','Connections']);assert.equal(titles.includes('Appearance'),false);assert.equal(w.document.getElementById('session-preferences-open'),null);assert.ok(w.document.getElementById('session-connection-summary'));assert.equal(w.document.getElementById('session-exit').href,'https://tannermayfield.dev/#projects');
+test('appearance preferences persist without changing workspace data',async()=>{const {dom,w,errors}=await boot();try{assert.equal(w.document.getElementById('workspace-banner'),null);w.document.getElementById('btn-set').click();const titles=[...w.document.querySelectorAll('#set-body .set-card>h3')].map(x=>x.textContent);assert.deepEqual(titles.slice(0,4),['Account','Preferences','Exit SessionTV','Connections']);assert.equal(titles.includes('Appearance'),false);assert.equal(w.document.getElementById('session-preferences-open'),null);assert.ok(w.document.getElementById('session-connection-summary'));assert.equal(w.document.getElementById('session-exit').href,'https://tannermayfield.dev/#projects');
  assert.equal(w.document.body.dataset.screenStatic,'on');assert.equal(w.document.body.dataset.screenColor,'bw');
  w.document.getElementById('preferences-open').click();assert.equal(w.document.getElementById('preferences').open,true);assert.equal(w.document.getElementById('pref-tab-appearance').getAttribute('aria-selected'),'true');
  for(const key of ['sections','voices','music','canvas','ai'])assert.equal(w.document.getElementById('pref-tab-'+key).hidden,true,key+' needs a private workspace');
@@ -181,7 +181,7 @@ test('Preferences is one tabbed popup with arrow-key tabs, private tabs and a co
  }finally{dom.window.close()}
 });
 
-test('Session Login offers only email and password or Google',async()=>{
+test('Sign in offers only email and password or Google',async()=>{
  const {dom,w}=await boot();
  try{
   w.SessionTVLocal.openSetup('login');const dialog=w.document.getElementById('local-setup');assert.equal(dialog.open,true);
@@ -310,13 +310,13 @@ test('skill settings show category chips, then each skill in a row with its tool
 });
 
 
-test('Start selects Classwork from a saved project session and AI Markdown is formatted safely',async()=>{
+test('Start selects Classes from a saved project session and AI Markdown is formatted safely',async()=>{
  const {dom,w}=await boot();
  try {
   w.eval("current.mood='project';document.body.classList.add('tv-home-active');document.getElementById('tv-home').hidden=false");
   w.document.getElementById('tv-home-start').click();
   assert.equal(w.eval('current.mood'),'class');
-  assert.match(w.document.getElementById('tv-guide').textContent,/Classwork/);
+  assert.match(w.document.getElementById('tv-guide').textContent,/Classes/);
   w.__markdown='## Sprint\n\n**Goal**\n\n| Task | Hours |\n|---|---:|\n| Setup | 2 |\n\n```sql\nselect 1;\n```\n<script>alert(1)</script><img src=x onerror=alert(1)>[bad](javascript:alert(1))';
   const html=w.eval('fmtMsg(window.__markdown,true)');
   const node=w.document.createElement('div');node.innerHTML=html;
@@ -451,7 +451,7 @@ test('task controls persist prompts and skills, queue only prepared Codex tasks,
  }finally{dom.window.close()}
 });
 
-test('Classwork menu uses exactly the settings classes including empty classes and custom names',async()=>{const {dom,w}=await boot();try{w.eval("store('sb.classes',{'CS 101 — Computing':{code:'CS 101',name:'Computing'},'MATH 120 — Algebra':{code:'MATH 120',name:'Algebra'},'ENG 110 — Writing':{code:'ENG 110',name:'Writing'},'HIST 100 — History':{code:'HIST 100',name:'History'}})");w.eval("TV.mode='settings';TV.dbView='classes';renderSettings()");const count=w.document.querySelectorAll('.class-settings-row').length;assert.equal(count,4);assert.equal(w.eval('gdCourses().length'),4);assert.deepEqual(Array.from(w.eval("subsOf('class')")),['Due Date',...Array.from(w.eval('SessionClasses.names()'))]);w.eval("current.mood='class';openGuide()");const labels=[...w.document.querySelectorAll('#tv-guide .gd-row:not(.gd-hdr) .gd-ch b')].map(node=>node.textContent);assert.equal(labels.length,4);assert(labels.includes('CS 101'));assert(!labels.includes('IS 401'));assert.match(w.document.getElementById('tv-guide').textContent,/Computing/);}finally{dom.window.close()}});
+test('Classes menu uses exactly the settings classes including empty classes and custom names',async()=>{const {dom,w}=await boot();try{w.eval("store('sb.classes',{'CS 101 — Computing':{code:'CS 101',name:'Computing'},'MATH 120 — Algebra':{code:'MATH 120',name:'Algebra'},'ENG 110 — Writing':{code:'ENG 110',name:'Writing'},'HIST 100 — History':{code:'HIST 100',name:'History'}})");w.eval("TV.mode='settings';TV.dbView='classes';renderSettings()");const count=w.document.querySelectorAll('.class-settings-row').length;assert.equal(count,4);assert.equal(w.eval('gdCourses().length'),4);assert.deepEqual(Array.from(w.eval("subsOf('class')")),['Due Date',...Array.from(w.eval('SessionClasses.names()'))]);w.eval("current.mood='class';openGuide()");const labels=[...w.document.querySelectorAll('#tv-guide .gd-row:not(.gd-hdr) .gd-ch b')].map(node=>node.textContent);assert.equal(labels.length,4);assert(labels.includes('CS 101'));assert(!labels.includes('IS 401'));assert.match(w.document.getElementById('tv-guide').textContent,/Computing/);}finally{dom.window.close()}});
 
 test('failed saves put optimistic changes back and say so',async()=>{
  const {dom,w,errors}=await boot();

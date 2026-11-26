@@ -67,7 +67,7 @@
   }finally{busy=false}
  }
  $id('demo-publish-confirm').onclick=publish;$id('demo-publish-download').onclick=download;
- // Owner-only card next to Session Login.
+ // Owner-only card next to Account.
  SessionTV.hooks.after('settings:render',()=>{
   if(TV.dbView||!isOwner()||document.getElementById('demo-publish-open'))return;
   const login=document.getElementById('local-open')?.closest('.set-card');if(!login)return;

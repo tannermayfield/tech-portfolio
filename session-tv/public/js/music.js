@@ -20,7 +20,7 @@
  radio.className = 'confirm-dlg';
  radio.setAttribute('aria-labelledby', 'radio-heading');
  radio.innerHTML = `<div class="local-panel radio-panel">
-  <header class="row spread"><h2 id="radio-heading">TV Radio</h2><button type="button" class="btn ghost" data-radio-close>Collapse</button></header>
+  <header class="row spread"><h2 id="radio-heading">TV Radio</h2><button type="button" class="btn ghost" data-radio-close>Close</button></header>
   <div class="radio-station"><span data-radio-section></span><button type="button" class="btn ghost" data-radio-stop>Stop music</button></div>
   <div class="radio-player"></div><p class="small" role="status" data-radio-status></p>
  </div>`;

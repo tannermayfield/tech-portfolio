@@ -41,3 +41,16 @@ Rule: define each function once, and extend it through `SessionTV.hooks`. Never 
   An unknown name throws, so a typo fails when the script loads.
 - `core/preferences.js` lists every `sb.*` preference key with its default and a description. `recall(key)` with no fallback returns that default. Add any new key there.
 - If the UI changes before a save finishes, pass an undo function: `guard(save, message, undo)`. When the save fails, `guard` runs undo (restore the old values and re-render) and then shows the error toast.
+
+## UI text conventions
+
+Apply these to every label, button, heading, aria-label, empty state and toast, in core and feature files alike.
+
+- The three sections are always "Classes", "Skills" and "Projects" (`TYPES[k].label` in `core/model.js`). Do not write "Classwork", "Skill Development" or "Personal Projects".
+- Account wording is "Sign in", "Sign out" and "Signed in as …". Do not write "Login" or "Logout". The Settings card is "Account".
+- Write button text in sentence case ("Add assignment", "Publish to demo"). Screen names keep their capitals ("Open Preferences", "Homework Overview"). The uppercase TV look comes only from the shared `body.tv .btn` rule in `styles.css`. Never set `text-transform`, `letter-spacing` or `font-size` on `.btn` for one screen.
+- A button that adds or creates something starts with "+ " ("+ Add class", "+ Add assignment", "+ Add skill", "+ Add tool", "+ Create project"). No other button uses "+". The dialog that button opens uses the same words without the "+" in its heading and submit button.
+- An edit action is the word "Edit". Do not use pencil icons. Put the record's name in the aria-label ("Edit skill SQL").
+- Modal dialogs put a "Close" button (`btn ghost`) in the header. Full-screen sheets (Settings sub-pages, Homework Overview) use "← Back". The Settings home sheet keeps its "×", with the aria-label "Close settings". Confirmation dialogs keep "Cancel" next to their action.
+- A destructive button says exactly what it does: "Delete class", "Remove skill", "Delete account permanently".
+- Show due dates with `fmtDue(t)` from `core/util.js`, which gives "Thu, Nov 26 · 11:59 PM", or "Thu, Nov 26" when there is no time. Use `fmtDay(date)` for a date alone and `fmtClock(date)` or `fmtTime('23:59')` for a time alone. Do not write new `toLocaleDateString` formats.

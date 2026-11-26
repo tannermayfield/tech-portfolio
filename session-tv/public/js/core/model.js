@@ -1,16 +1,16 @@
 /* ---------- model: record types, shared state and lookups ---------- */
 const TYPES={
-  class:{label:'Classwork',tag:'Class',short:'Class',page:'Class',mood:'class',level:2.6,
+  class:{label:'Classes',tag:'Class',short:'Class',page:'Class',mood:'class',level:2.6,
     rule:'You do the work. AI coach explains concepts and checks your understanding, but never produces graded answers.'},
-  skill:{label:'Skill Development',tag:'Skills',short:'Skill',page:'Skills',mood:'skill',level:3.8,
+  skill:{label:'Skills',tag:'Skills',short:'Skill',page:'Skills',mood:'skill',level:3.8,
     rule:'Learn it, practice it, then apply it. Try it cold first; AI coach teaches what you don\'t know yet and checks your work.'},
-  project:{label:'Personal Projects',tag:'Projects',short:'Project',page:'Projects',mood:'project',level:3.2,
+  project:{label:'Projects',tag:'Projects',short:'Project',page:'Projects',mood:'project',level:3.2,
     rule:'AI coach can do the heavy lifting. Your job is to explain what it built and why.'}
 };
 const CATS=['class','skill','project'];
 const PIPE_RULE='You build it. AI coach teaches and hints, never writes your code or config.';
 const COLOR={class:'var(--class)',skill:'var(--pipeline)',project:'var(--personal)'};
-const MOODS={class:{label:'Class'},skill:{label:'Skills'},project:{label:'Projects'}};
+const MOODS={class:{label:'Classes'},skill:{label:'Skills'},project:{label:'Projects'}};
 /* The coach profile (Preferences → Coach, kept in sb.coachProfile) says who the AI coach is tutoring.
    Prompt templates are written with he/him; coachVoice rewrites them to the profile's pronouns. */
 const COACH_PRONOUNS={'he/him':['he','him','his','himself'],'she/her':['she','her','her','herself'],'they/them':['they','them','their','themselves']};

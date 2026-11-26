@@ -92,7 +92,7 @@ function renderWork(){return SessionTV.hooks.run('work:render',arguments,()=>{
   if(!t){f.innerHTML=`<div class="signal-lost" role="status"><div class="signal-bars" aria-hidden="true"></div><h2>Signal lost</h2><p>Choose a channel from Menu</p></div>`;$('coach-log').innerHTML='';$('coach-quick').innerHTML='';$('coach-form').hidden=true;renderClock();return}
   const type=typeOf(t),doneNow=isDoneNow(t);
   const doneBtn=doneNow?(isSkill(t)?`<span class="small" style="color:var(--ok)">Practiced ✓</span>`:`<button class="btn" id="undo-done">Mark not done</button>`)
-    :isSkill(t)?(current.wrapUp?.[t.id]?`<button class="btn primary" id="done-btn" title="Save this conversation and move to the next skill">Next Skill</button>`:`<button class="btn primary" id="wrapup-btn" title="Stop practicing and teach back what you know">Wrap Up</button>`)
+    :isSkill(t)?(current.wrapUp?.[t.id]?`<button class="btn primary" id="done-btn" title="Save this conversation and move to the next skill">Next skill</button>`:`<button class="btn primary" id="wrapup-btn" title="Stop practicing and teach back what you know">Wrap up</button>`)
     :`<button class="btn primary" id="done-btn" title="Mark this assignment done and go back to the channel menu">Done</button>`;
   const head=type==='project'?(t.course||'Project'):t.title;
   f.innerHTML=`<div class="chat-title"><h2 title="${esc(head)}">${esc(head)}</h2></div>

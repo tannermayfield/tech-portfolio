@@ -171,7 +171,7 @@
   const groups=[...list.querySelectorAll(':scope>[data-skill-category]')];
   const apply=()=>{groups.forEach(group=>group.hidden=group.dataset.skillCategory!==selected);filters.querySelectorAll('[data-category]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.category===selected)))};
   for(const category of categories){const button=document.createElement('button');button.type='button';button.dataset.category=category;button.textContent=category;button.onclick=()=>{selected=category;apply()};filters.append(button)}
-  const plus=document.createElement('button');plus.type='button';plus.textContent='+';plus.setAttribute('aria-label','Add skill category');plus.title='Add skill category';plus.disabled=SessionWorkspace.mode==='demo';plus.onclick=()=>{dialog.querySelector('input').value='';dialog.querySelector('[role=status]').textContent='';dialog.showModal();dialog.querySelector('input').focus()};filters.append(plus);
+  const plus=document.createElement('button');plus.type='button';plus.textContent='+ Add category';plus.title='Add skill category';plus.disabled=SessionWorkspace.mode==='demo';plus.onclick=()=>{dialog.querySelector('input').value='';dialog.querySelector('[role=status]').textContent='';dialog.showModal();dialog.querySelector('input').focus()};filters.append(plus);
   list.before(filters);apply();
   list.querySelectorAll('[data-skill-editor]').forEach(select=>{select.disabled=readOnly();select.onchange=()=>{try{setEditor(select.dataset.skillEditor,select.value)}catch(error){toast(error.message)}}});
   list.querySelectorAll('[data-edit-skill]').forEach(button=>{button.disabled=readOnly();button.onclick=()=>openEdit(button.dataset.editSkill)});

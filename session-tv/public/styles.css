@@ -76,7 +76,7 @@ label.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(
 /* header */
 header.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 header.top h1{font-size:22px}
-header.top .btn{padding:5px 12px;font-size:13px}
+header.top .btn{padding:5px 12px}
 nav.links{display:flex;gap:6px;flex-wrap:wrap}
 
 /* tech background */
@@ -171,8 +171,7 @@ html:has(body[data-view="log"]){overflow:hidden}
 .task-dlg{max-width:480px}
 .td-head{display:flex;align-items:flex-start;gap:10px}
 .td-head h3{flex:1;margin:0;font-size:19px;line-height:1.3}
-.td-x{flex:none;width:30px;height:30px;border-radius:8px;border:0;background:transparent;color:var(--muted);font-size:20px;line-height:1;cursor:pointer}
-.td-x:hover{background:var(--sunk);color:var(--ink)}
+.td-x,.pa-x{flex:none;white-space:nowrap}
 .td-rows{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;margin:16px 0 18px;font-size:14px}
 .td-rows dt{color:var(--muted)}
 .td-rows dd{margin:0;color:var(--ink)}
@@ -191,7 +190,7 @@ html:has(body[data-view="log"]){overflow:hidden}
 .wrap-chat .chat-head{padding:12px 16px}
 .wrap-chat .chat-head h3{margin:2px 0 0;font-size:18px;line-height:1.25}
 .wc-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.wc-acts .btn{padding:6px 12px;font-size:13px}
+.wc-acts .btn{padding:6px 12px}
 .wrap-foot{display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap}
 .wrap-task{margin-top:14px}
 .wrap-task-h{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-bottom:6px;min-width:0}
@@ -230,7 +229,7 @@ html:has(body[data-view="log"]){overflow:hidden}
 /* chat header matches the editor header: same height, title size and button size */
 #focus,.ws-head{min-height:46px;box-sizing:border-box}
 #focus .chat-actions{gap:5px}
-#focus .chat-actions .btn{padding:4px 11px;font-size:12.5px}
+#focus .chat-actions .btn{padding:4px 11px}
 #focus .lvl-box{width:26px;height:24px;font-size:12px}
 .chat-title{min-width:0;flex:1 1 auto} /* sized to the actual title text, so the buttons only drop below when they'd touch it */
 .chat-head .chat-actions{margin-left:auto;flex:none}
@@ -298,7 +297,7 @@ html:has(body[data-view="log"]){overflow:hidden}
 .ws-head{display:flex;align-items:center;justify-content:space-between;gap:6px 10px;flex-wrap:wrap;padding:8px 12px 8px 16px;border-bottom:1px solid var(--line)}
 .ws-head h3{margin:0;font-size:16px;line-height:1.2;flex:1 1 auto;min-width:0}
 .ws-acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
-.ws-acts .btn{padding:4px 11px;font-size:12.5px}
+.ws-acts .btn{padding:4px 11px}
 .ws-ed{flex:1 1 0;min-height:110px;position:relative;isolation:isolate;background:rgba(255,255,255,.7)}
 .ws-ed .CodeMirror{position:absolute;inset:0;height:auto;font-family:var(--f-mono);font-size:13px;line-height:1.55;background:transparent;color:#1B2B3C}
 /* solid line-number column that always sits in front of the code when it scrolls sideways */
@@ -666,7 +665,8 @@ body.tv #tv-guide .sheet-head h2{font-family:var(--f-osd)!important;color:inheri
 body.tv .set-card h3,body.tv .confirm-dlg h2,body.tv .confirm-dlg h3{font-size:22px!important}
 body.tv .eyebrow,body.tv .msg.ai .ai-name,body.tv .wrap-grp h4{font-family:var(--f-osd)!important;font-size:16px!important;letter-spacing:.08em;text-transform:uppercase;color:var(--hd)!important;text-shadow:var(--hd-glow);font-weight:400!important}
 body.tv .ai-name svg,body.tv .ai-name i{filter:none}
-/* buttons: bakelite by day, amber outline at night */
+/* buttons: bakelite by day, amber outline at night. Every .btn gets its type (uppercase OSD mono, size, spacing) only here:
+   labels are written in sentence case in the source, and screens never override text-transform, letter-spacing or font-size on .btn */
 body.tv .btn,body.tv .coach-quick button,body.tv .conf button{font-family:var(--f-mono)!important;font-size:11.5px!important;font-weight:500!important;letter-spacing:.1em;text-transform:uppercase;border-radius:8px!important;padding:7px 12px!important;
   background:linear-gradient(180deg,var(--btn-a),var(--btn-b))!important;color:var(--btn-ink)!important;border:1px solid var(--btn-line)!important;box-shadow:inset 0 1px 0 rgba(255,230,200,.18),0 2px 0 rgba(0,0,0,.25)}
 body.tv .btn:hover{filter:brightness(1.12)}
@@ -961,7 +961,7 @@ body.tv #tv-settings .sheet-body{padding:18px clamp(40px,calc(var(--tv-vw,1vw) *
 .gd-what{margin-left:6px}
 .gd-det-row{display:flex;margin-top:4px}
 .gd-ch small{text-align:center;line-height:1.15;padding:0 4px;letter-spacing:.06em}
-.gd-det{padding:4px 10px!important;font-size:11px!important}
+.gd-det{padding:4px 10px!important}
 .gd-info{padding-left:clamp(26px,calc(var(--tv-vw,1vw) * 3),40px)!important}
 .gd-t{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;font-size:clamp(20px,calc(var(--tv-vw,1vw) * 1.9),27px)!important}
 .gd-sel{align-items:flex-start!important;flex-wrap:wrap;margin-top:8px!important}
@@ -1010,7 +1010,7 @@ details.ls>summary b{font-size:15px}
 .gd-info{position:relative}
 #gd-info-sel{flex:1 1 auto}
 .gd-det-row{position:absolute;right:14px;bottom:10px;margin:0!important}
-.gd-det{font-family:var(--f-osd)!important;font-size:17px!important;font-weight:400!important;letter-spacing:.04em!important;text-transform:none!important;padding:3px 12px!important;line-height:1.1}
+.gd-det{padding:3px 12px!important;line-height:1.1}
 .gd-sel,.gd-info .gd-desc{padding-right:150px}
 @media (max-width:700px){.gd-sel,.gd-info .gd-desc{padding-right:0}.gd-det-row{position:static;justify-content:flex-end;margin-top:2px!important}}
 
@@ -1031,7 +1031,7 @@ body.tv #coach-wrap .msg{max-width:100%}
 .past-dlg{--dlg-w:560px}
 .pa-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
 .pa-head h3{margin:0;font-family:var(--f-osd)}
-.pa-x{border:0;background:none;color:var(--ink);font-size:22px;line-height:1;cursor:pointer;padding:2px 6px}
+
 .pa-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--line)}
 .pa-list li{border-bottom:1px solid var(--line)}
 .pa-row{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;background:none;border:0;padding:10px 4px;color:var(--ink);cursor:pointer;font:inherit}
@@ -1043,7 +1043,7 @@ body.tv #coach-wrap .msg{max-width:100%}
 .gd-det-row{gap:8px}
 .gd-past{background:transparent!important;border-color:transparent!important;text-decoration:none!important}
 @media (min-width:701px){.gd-sel,.gd-info .gd-desc{padding-right:300px}}
-.td-x.td-back{width:auto;padding:0 10px;font-family:var(--f-osd);font-size:16px;color:var(--ink);border:1px solid var(--line);white-space:nowrap}
+
 .tv-sheet.snap{transition:none!important}
 #tv-timer .cap{margin-top:4px}
 #cut-bar{display:none!important}
@@ -1079,7 +1079,7 @@ body.tv #work-mid:has(#ws:not([hidden])) #focus.chat-head{padding-right:16px!imp
 .db-t{font-size:13.5px;font-weight:600}
 .db-m{font-size:12px;color:var(--muted)}
 .db-note,.db-empty{grid-column:1/-1;color:var(--muted);font-size:13px;margin:6px 0}
-@media (max-width:700px){.db-al{display:none}.db-as{display:inline}.db-card .db-stats{grid-template-columns:repeat(4,1fr);gap:4px}.db-stat{padding:3px 2px}.db-stat b{font-size:18px}.db-stat span{font-size:8px;letter-spacing:0}.db-btns .btn{padding:6px 9px;font-size:11px}.db-list{grid-template-columns:1fr}.db-head .btn{white-space:nowrap;padding:6px 9px}.db-head h3{font-size:18px}#tv-settings .sheet-body:has(.db-view){overflow:hidden!important}}
+@media (max-width:700px){.db-al{display:none}.db-as{display:inline}.db-card .db-stats{grid-template-columns:repeat(4,1fr);gap:4px}.db-stat{padding:3px 2px}.db-stat b{font-size:18px}.db-stat span{font-size:8px;letter-spacing:0}.db-btns .btn{padding:6px 9px}.db-list{grid-template-columns:1fr}.db-head .btn{white-space:nowrap;padding:6px 9px}.db-head h3{font-size:18px}#tv-settings .sheet-body:has(.db-view){overflow:hidden!important}}
 .db-stat:hover{background:var(--sunk);border-color:var(--ink)}
 .db-stat:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 #set-body .set-card>.seg{align-self:center;max-width:100%}

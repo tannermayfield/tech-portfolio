@@ -88,7 +88,7 @@ function settingsWindow({ownerId=OWNER,user=OWNER,mode='private',publishDemo}={}
  Object.assign(w,{SessionTVConfig:{ownerId},SessionWorkspace:{mode},SessionCloud:{user:user?{id:user}:null,exportBackup:async()=>privateBackup()},
   SessionCompanion:{publishDemo:async snapshot=>{calls.push(snapshot);return publishDemo(snapshot)}},SessionProjectPublish:{verify:commit=>calls.push(commit)}});
  w.eval(source('core/hooks.js'));
- w.eval(`var TV={dbView:null};function renderSettings(){return SessionTV.hooks.run('settings:render',arguments,()=>{document.getElementById('set-body').innerHTML='<div class="set-grid"><div class="set-card"><h3>Session Login</h3><button id="local-open">Logout</button></div></div>'})}`);
+ w.eval(`var TV={dbView:null};function renderSettings(){return SessionTV.hooks.run('settings:render',arguments,()=>{document.getElementById('set-body').innerHTML='<div class="set-grid"><div class="set-card"><h3>Account</h3><button id="local-open">Sign out</button></div></div>'})}`);
  w.eval(source('demo-snapshot.js'));w.eval(source('demo-export.js'));w.eval('renderSettings()');
  return {w,calls};
 }
